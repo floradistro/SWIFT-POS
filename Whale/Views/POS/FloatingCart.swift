@@ -1,0 +1,405 @@
+//
+//  FloatingCart.swift
+//  Whale
+//
+//  Beautiful floating cart with glass effects and smooth animations.
+//  Backend-driven customer queue shared across all registers at a location.
+//
+
+import SwiftUI
+import Combine
+
+
+struct FloatingCart: View {
+    @ObservedObject var posStore: POSStore
+    @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
+    @EnvironmentObject private var session: SessionObserver
+
+    @StateObject private var paymentStore = PaymentStore()
+    @ObservedObject private var dealStore = DealStore.shared
+
+    var onScanID: () -> Void
+    var onFindCustomer: (() -> Void)?
+
+    // MARK: - State
+
+    @State private var showCheckoutSheet = false
+    @State private var cartUpdateCounter = 0
+    @State private var queueStore: LocationQueueStore?
+    @State private var queueUpdateCounter = 0  // Incremented via NotificationCenter
+
+    // MARK: - Computed Properties
+
+    private var isMultiWindowSession: Bool {
+        windowSession?.location != nil
+    }
+
+    private var effectiveLocationId: UUID? {
+        windowSession?.locationId ?? session.selectedLocation?.id
+    }
+
+    // Queue from backend
+    private var queue: [QueueEntry] {
+        queueStore?.queue ?? []
+    }
+
+    private var selectedCartId: UUID? {
+        queueStore?.selectedCartId
+    }
+
+    private var selectedEntry: QueueEntry? {
+        queueStore?.selectedEntry
+    }
+
+    // Current cart data (from POSStore/WindowSession based on selected cart)
+    private var activeCart: ServerCart? {
+        guard let cartId = selectedCartId else { return nil }
+        if isMultiWindowSession {
+            return windowSession?.carts.first { $0.id == cartId }
+        } else {
+            return posStore.carts.first { $0.id == cartId }
+        }
+    }
+
+    private var cartItems: [CartItem] {
+        activeCart?.items.map { CartItem(from: $0) } ?? []
+    }
+
+    private var totals: CheckoutTotals? {
+        activeCart?.totals
+    }
+
+    private var hasItems: Bool { !cartItems.isEmpty }
+    private var itemCount: Int { cartItems.reduce(0) { $0 + $1.quantity } }
+
+    // MARK: - Body
+
+    var body: some View {
+        let _ = cartUpdateCounter
+        let _ = queueUpdateCounter  // Force refresh when queue changes
+
+        VStack(spacing: 8) {
+            Spacer()
+
+            // Customer queue tabs (when there are entries)
+            if !queue.isEmpty {
+                customerQueueTabs
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .bottom)),
+                        removal: .opacity
+                    ))
+            }
+
+            // Floating cart pill
+            floatingCartPill
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, SafeArea.bottom + 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: queue.count)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: hasItems)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: itemCount)
+        .sheet(isPresented: $showCheckoutSheet) {
+            if let totals = totals {
+                CheckoutSheet(
+                    posStore: posStore,
+                    paymentStore: paymentStore,
+                    dealStore: dealStore,
+                    totals: totals,
+                    sessionInfo: buildSessionInfo(),
+                    onScanID: onScanID,
+                    onComplete: handleCheckoutComplete
+                )
+            }
+        }
+        .task(id: effectiveLocationId) {
+            // Initialize queue store for this location
+            guard let locationId = effectiveLocationId else { return }
+
+            let store = LocationQueueStore.shared(for: locationId)
+            queueStore = store
+
+            await store.loadQueue()
+
+            // Subscribe to realtime updates
+            store.subscribeToRealtime()
+
+            // Load the first cart from queue if one is selected
+            if let cartId = store.selectedCartId {
+                await loadAndSelectCart(cartId: cartId)
+            }
+        }
+        .onDisappear {
+            queueStore?.unsubscribeFromRealtime()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .queueDidChange)) { notification in
+            // Update UI when queue changes (from any source - local or realtime)
+            if let locationId = notification.object as? UUID, locationId == effectiveLocationId {
+                queueUpdateCounter += 1
+            }
+        }
+        .onReceive(windowSession?.objectWillChange.eraseToAnyPublisher() ?? Empty().eraseToAnyPublisher()) { _ in
+            if isMultiWindowSession {
+                cartUpdateCounter += 1
+            }
+        }
+        .onReceive(posStore.objectWillChange) { _ in
+            if !isMultiWindowSession {
+                cartUpdateCounter += 1
+            }
+        }
+    }
+
+    // MARK: - Customer Queue Tabs
+
+    private var customerQueueTabs: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(queue) { entry in
+                    customerTab(for: entry)
+                }
+
+                // Add customer button
+                Button {
+                    Haptics.light()
+                    onFindCustomer?()
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .frame(width: 40, height: 40)
+                        .glassEffect(.regular, in: .circle)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 4)
+        }
+        .frame(maxWidth: 500)
+    }
+
+    private func customerTab(for entry: QueueEntry) -> some View {
+        let isActive = entry.cartId == selectedCartId
+
+        return Button {
+            Haptics.light()
+            queueStore?.selectCart(entry.cartId)
+            Task { await loadAndSelectCart(cartId: entry.cartId) }
+        } label: {
+            HStack(spacing: 6) {
+                // Customer initials
+                Text(entry.customerInitials)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(isActive ? Color.accentColor : Color.white.opacity(0.25)))
+
+                // Item count if any
+                if entry.cartItemCount > 0 {
+                    Text("\(entry.cartItemCount)")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+
+                // Remove button
+                Button {
+                    Haptics.light()
+                    Task { await removeFromQueue(cartId: entry.cartId) }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.5))
+                        .frame(width: 18, height: 18)
+                        .background(Circle().fill(Color.white.opacity(0.15)))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .glassEffect(.regular, in: .capsule)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Floating Cart Pill
+
+    private var floatingCartPill: some View {
+        HStack(spacing: 12) {
+            // Customer avatar with menu or cart icon
+            if let entry = selectedEntry {
+                Menu {
+                    Section {
+                        Text(entry.customerName)
+                    }
+
+                    Button(role: .destructive) {
+                        Haptics.light()
+                        clearCurrentCart()
+                    } label: {
+                        Label("Clear Cart", systemImage: "trash")
+                    }
+
+                    Button(role: .destructive) {
+                        Haptics.light()
+                        Task { await removeFromQueue(cartId: entry.cartId) }
+                    } label: {
+                        Label("Remove Customer", systemImage: "person.badge.minus")
+                    }
+                } label: {
+                    Text(entry.customerInitials)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(Color.accentColor))
+                }
+            } else {
+                Image(systemName: "cart.fill")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .frame(width: 36, height: 36)
+            }
+
+            if hasItems {
+                // Item count badge
+                Text("\(itemCount)")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Color.white.opacity(0.2)))
+
+                Spacer()
+
+                // Total
+                if let totals = totals {
+                    Text(CurrencyFormatter.format(totals.total))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                }
+
+                // Checkout button
+                Button {
+                    Haptics.medium()
+                    showCheckoutSheet = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "creditcard")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Pay")
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.green, in: Capsule())
+                }
+                .buttonStyle(.plain)
+            } else if selectedEntry != nil {
+                // Has customer but no items
+                Text("Add items")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.5))
+
+                Spacer()
+            } else {
+                // No customer, no items
+                Text("Add customer")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.5))
+
+                Spacer()
+
+                // Add customer button
+                Button {
+                    Haptics.light()
+                    onFindCustomer?()
+                } label: {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .frame(width: 36, height: 36)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: 500)
+        .glassEffect(.regular, in: .capsule)
+        .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
+    }
+
+    // MARK: - Actions
+
+    /// Load cart from server and select it (for queue integration)
+    private func loadAndSelectCart(cartId: UUID) async {
+        if isMultiWindowSession, let ws = windowSession {
+            await ws.loadCartById(cartId)
+        } else {
+            await posStore.loadCartById(cartId)
+        }
+    }
+
+    private func removeFromQueue(cartId: UUID) async {
+        await queueStore?.removeFromQueue(cartId: cartId)
+
+        // Also remove from local store
+        if isMultiWindowSession, let ws = windowSession {
+            if let cart = ws.carts.first(where: { $0.id == cartId }),
+               let customerId = cart.customerId,
+               let customer = ws.customer(for: customerId) {
+                ws.removeCustomer(customer)
+            }
+        } else {
+            if let cart = posStore.carts.first(where: { $0.id == cartId }),
+               let customerId = cart.customerId {
+                posStore.removeCustomer(customerId)
+            }
+        }
+    }
+
+    private func clearCurrentCart() {
+        if isMultiWindowSession, let ws = windowSession {
+            Task { await ws.clearCart() }
+        } else {
+            posStore.clearCart()
+        }
+    }
+
+    private func buildSessionInfo() -> SessionInfo {
+        if isMultiWindowSession, let ws = windowSession {
+            return SessionInfo(
+                storeId: session.storeId ?? session.store?.id ?? UUID(),
+                locationId: ws.locationId ?? ws.location?.id ?? UUID(),
+                registerId: ws.register?.id ?? session.selectedRegister?.id ?? UUID(),
+                sessionId: ws.posSession?.id ?? ws.sessionId,
+                userId: session.userId
+            )
+        }
+
+        let location = session.selectedLocation
+        return SessionInfo(
+            storeId: session.storeId ?? session.store?.id ?? UUID(),
+            locationId: location?.id ?? UUID(),
+            registerId: session.selectedRegister?.id ?? UUID(),
+            sessionId: UUID(),
+            userId: session.userId
+        )
+    }
+
+    private func handleCheckoutComplete(_ order: SaleCompletion?) {
+        showCheckoutSheet = false
+
+        guard let cartId = selectedCartId else { return }
+
+        // Remove from backend queue
+        Task {
+            await queueStore?.removeFromQueue(cartId: cartId)
+        }
+
+        // Clear local cart
+        if isMultiWindowSession, let ws = windowSession {
+            Task { await ws.clearCart() }
+        } else {
+            posStore.clearCart()
+        }
+    }
+}
