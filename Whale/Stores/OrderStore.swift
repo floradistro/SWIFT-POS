@@ -275,16 +275,61 @@ final class OrderStore: ObservableObject {
     /// Walk-in order types (walk_in and pos are the same thing)
     static let walkInOrderTypes: Set<OrderType> = [.walkIn, .pos]
 
-    /// Orders are already filtered by the backend RPC
-    /// This property returns all orders - they're pre-filtered for this location
+    /// Filtered orders with client-side filtering as fallback
+    /// Note: Backend should handle filtering via get_orders_for_location RPC,
+    /// but we apply client-side filtering as fallback/supplement
     var filteredOrders: [Order] {
-        // Backend handles all filtering via get_orders_for_location RPC
-        // Orders in this array are already filtered by:
-        // - Location visibility
-        // - Status group, order type, payment status
-        // - Date range, amount range
-        // - Search text
-        return orders
+        var result = orders
+
+        // Filter by status group
+        if let statusGroup = selectedStatusGroup {
+            let statuses = statusGroup.statuses
+            result = result.filter { statuses.contains($0.status) }
+        }
+
+        // Filter by order type
+        if let orderType = selectedOrderType {
+            result = result.filter { $0.orderType == orderType }
+        }
+
+        // Filter by payment status
+        if let paymentStatus = selectedPaymentStatus {
+            result = result.filter { $0.paymentStatus == paymentStatus }
+        }
+
+        // Filter by search text
+        if !searchText.isEmpty {
+            let query = searchText.lowercased()
+            result = result.filter { order in
+                order.orderNumber.lowercased().contains(query) ||
+                order.customers?.firstName?.lowercased().contains(query) == true ||
+                order.customers?.lastName?.lowercased().contains(query) == true ||
+                (order.customers?.fullName?.lowercased().contains(query) == true)
+            }
+        }
+
+        // Filter by date range
+        if let startDate = dateRangeStart {
+            result = result.filter { $0.createdAt >= startDate }
+        }
+        if let endDate = dateRangeEnd {
+            result = result.filter { $0.createdAt <= endDate }
+        }
+
+        // Filter by amount range
+        if let minAmount = amountMin {
+            result = result.filter { $0.totalAmount >= minAmount }
+        }
+        if let maxAmount = amountMax {
+            result = result.filter { $0.totalAmount <= maxAmount }
+        }
+
+        // Filter online orders only
+        if showOnlineOrdersOnly {
+            result = result.filter { Self.onlineOrderTypes.contains($0.orderType) }
+        }
+
+        return result
     }
 
     /// Count of online orders (pickup, shipping, delivery) for filter badge

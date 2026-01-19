@@ -450,6 +450,13 @@ final class LabelRenderer: UIPrintPageRenderer {
 
     static func prefetchImages(for products: [Product]) async -> [UUID: UIImage] {
         var cache: [UUID: UIImage] = [:]
+        let productsWithImages = products.filter { $0.iconUrl != nil }
+        let productsWithoutImages = products.count - productsWithImages.count
+
+        if productsWithoutImages > 0 {
+            print("🏷️ ⚠️ \(productsWithoutImages) products missing iconUrl")
+        }
+
         await withTaskGroup(of: (UUID, UIImage?).self) { group in
             for product in products {
                 guard let url = product.iconUrl else { continue }
@@ -458,6 +465,7 @@ final class LabelRenderer: UIPrintPageRenderer {
                         let (data, _) = try await URLSession.shared.data(from: url)
                         return (product.id, UIImage(data: data))
                     } catch {
+                        print("🏷️ Failed to fetch image for \(product.name): \(error.localizedDescription)")
                         return (product.id, nil)
                     }
                 }
@@ -549,29 +557,50 @@ final class LabelPrinterManager {
 
     /// Print labels for an order (auto-print flow)
     func printOrder(_ order: Order) async throws {
+        print("🏷️ LabelPrinterManager.printOrder called for order \(order.orderNumber)")
+
         guard LabelPrinterSettings.shared.autoPrintEnabled else {
+            print("🏷️ Auto-print disabled in printOrder check")
             logger.info("Auto-print disabled, skipping")
             return
         }
 
         guard LabelPrinterSettings.shared.isPrinterConfigured else {
+            print("🏷️ No printer configured - printerUrl is nil")
             logger.warning("No printer configured, skipping auto-print")
             throw LabelPrintError.noPrinterConfigured
         }
 
-        // Build config from order context
+        print("🏷️ Printer configured: \(LabelPrinterSettings.shared.printerName ?? "unknown")")
+        print("🏷️ Order items count: \(order.items?.count ?? 0)")
+
+        // Build config from order context with store logo
+        let storeLogoUrl = await SessionObserver.shared.store?.fullLogoUrl
+        print("🏷️ Store logo URL: \(storeLogoUrl?.absoluteString ?? "none")")
+
         let config = LabelConfig(
             storeId: order.storeId,
             locationId: order.pickupLocationId,
-            locationName: order.pickupLocation?.name ?? "Licensed Dispensary"
+            locationName: order.pickupLocation?.name ?? "Licensed Dispensary",
+            locationLicense: nil,
+            distributorLicense: nil,
+            storeLogoUrl: storeLogoUrl,
+            brandLogoFallback: "W",
+            weightTier: nil,
+            storeLogoImage: nil,
+            saleContext: nil,
+            saleCode: nil
         )
 
+        print("🏷️ Calling printOrderLabels with startPosition: \(LabelPrinterSettings.shared.startPosition)")
         let success = await LabelPrintService.printOrderLabels([order], config: config)
 
         if !success {
+            print("🏷️ printOrderLabels returned false")
             throw LabelPrintError.printFailed
         }
 
+        print("🏷️ Auto-print completed successfully for order \(order.orderNumber)")
         logger.info("Auto-printed labels for order \(order.orderNumber)")
     }
 }
@@ -593,11 +622,20 @@ enum LabelPrintService {
     @MainActor
     static func printLabels(
         _ products: [Product],
-        startPosition: Int = 0,
+        startPosition: Int? = nil,
         config: LabelConfig = .default,
         sealedDate: Date = Date()
     ) async -> Bool {
-        Log.ui.info("Printing \(products.count) labels")
+        // Use saved start position from settings if not explicitly provided
+        let effectiveStartPosition = startPosition ?? LabelPrinterSettings.shared.startPosition
+
+        if startPosition == nil {
+            print("🏷️ printLabels: Using saved position \(effectiveStartPosition + 1) (not explicitly provided)")
+        } else {
+            print("🏷️ printLabels: Using explicit position \(effectiveStartPosition + 1)")
+        }
+
+        Log.ui.info("Printing \(products.count) labels starting at position \(effectiveStartPosition + 1)")
 
         // Register QR codes with location for transfer tracking
         if let storeId = config.storeId {
@@ -609,7 +647,8 @@ enum LabelPrintService {
         }
 
         let imageCache = await LabelRenderer.prefetchImages(for: products)
-        let renderer = LabelRenderer(products: products, startPosition: startPosition, config: config, sealedDate: sealedDate)
+        print("🏷️ Prefetched \(imageCache.count) product images")
+        let renderer = LabelRenderer(products: products, startPosition: effectiveStartPosition, config: config, sealedDate: sealedDate)
         renderer.setImageCache(imageCache)
 
         let printController = UIPrintInteractionController.shared
@@ -646,22 +685,91 @@ enum LabelPrintService {
 
     @MainActor
     static func printOrderLabels(_ orders: [Order], config: LabelConfig = .default) async -> Bool {
-        var products: [Product] = []
+        let startPos = LabelPrinterSettings.shared.startPosition
+        print("🏷️ printOrderLabels: Using saved start position \(startPos + 1)")
+
+        // Use optimized RPC fetch if printing single order
+        if orders.count == 1, let order = orders.first {
+            return await printOrderLabelsOptimized(orderId: order.id, config: config, startPosition: startPos)
+        }
+
+        // Legacy multi-order path (less common)
+        return await printOrderLabelsLegacy(orders, config: config, startPosition: startPos)
+    }
+
+    /// Optimized single-order print using RPC (Apple standard: single database round trip)
+    @MainActor
+    private static func printOrderLabelsOptimized(orderId: UUID, config: LabelConfig, startPosition: Int) async -> Bool {
+        print("🏷️ Using optimized RPC fetch for order \(orderId)")
+
+        do {
+            guard let orderData = try await OrderService.fetchOrderForPrinting(orderId: orderId) else {
+                print("🏷️ Order not found: \(orderId)")
+                return false
+            }
+
+            print("🏷️ Fetched order with \(orderData.items.count) items via RPC")
+
+            // Convert to products for printing
+            var products: [Product] = []
+            for item in orderData.items {
+                for _ in 0..<item.quantity {
+                    products.append(item.product.toProduct())
+                }
+            }
+
+            print("🏷️ Printing \(products.count) total labels")
+            return await printLabels(products, startPosition: startPosition, config: config)
+        } catch {
+            print("🏷️ Error in optimized fetch: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    /// Legacy multi-order print path
+    @MainActor
+    private static func printOrderLabelsLegacy(_ orders: [Order], config: LabelConfig, startPosition: Int) async -> Bool {
+        print("🏷️ Using legacy multi-order print path")
+
+        // Collect unique product IDs and their quantities
+        var productIdCounts: [UUID: Int] = [:]
         for order in orders {
             guard let items = order.items else { continue }
             for item in items {
-                for _ in 0..<item.quantity {
-                    // Create minimal product from order item info
-                    let product = Product(
-                        id: item.productId,
-                        name: item.productName,
-                        storeId: config.storeId ?? UUID()
-                    )
-                    products.append(product)
-                }
+                productIdCounts[item.productId, default: 0] += item.quantity
             }
         }
-        return await printLabels(products, config: config)
+
+        guard !productIdCounts.isEmpty else {
+            print("🏷️ No products to print")
+            return true
+        }
+
+        // Fetch full product data
+        let productIds = Array(productIdCounts.keys)
+        print("🏷️ Fetching full product data for \(productIds.count) unique products")
+
+        do {
+            let fullProducts = try await ProductService.fetchProductsByIds(productIds)
+            print("🏷️ Fetched \(fullProducts.count) full products")
+
+            let productLookup = Dictionary(uniqueKeysWithValues: fullProducts.map { ($0.id, $0) })
+
+            var products: [Product] = []
+            for (productId, count) in productIdCounts {
+                if let product = productLookup[productId] {
+                    for _ in 0..<count {
+                        products.append(product)
+                    }
+                }
+            }
+
+            print("🏷️ Printing \(products.count) total labels")
+            return await printLabels(products, startPosition: startPosition, config: config)
+        } catch {
+            print("🏷️ Error fetching products: \(error.localizedDescription)")
+            return false
+        }
     }
 
     @MainActor
@@ -698,6 +806,7 @@ enum LabelPrintService {
 
         guard !printProducts.isEmpty else { return true }
 
+        print("🏷️ autoPrintCartLabels: Printing \(printProducts.count) labels starting at position \(settings.startPosition + 1)")
         Log.ui.info("Auto-printing \(printProducts.count) labels with sale codes")
 
         guard let printerUrl = settings.printerUrl else { return false }
@@ -747,7 +856,7 @@ enum LabelPrintService {
         }
 
         let imageCache = await LabelRenderer.prefetchImages(for: printProducts)
-        let renderer = LabelRenderer(products: printProducts, config: updatedConfig, sealedDate: sealedDate, saleCodes: saleCodes, tierLabels: tierLabels)
+        let renderer = LabelRenderer(products: printProducts, startPosition: settings.startPosition, config: updatedConfig, sealedDate: sealedDate, saleCodes: saleCodes, tierLabels: tierLabels)
         renderer.setImageCache(imageCache)
 
         return await printDirect(renderer: renderer, to: printerUrl, jobName: "Auto Labels")
@@ -835,22 +944,50 @@ enum LabelPrintService {
         let picker = UIPrinterPickerController(initiallySelectedPrinter: existingPrinter)
 
         return await withCheckedContinuation { continuation in
-            // On iPad, UIPrinterPickerController must be presented from a source view/rect
-            // Using present(from:) with a centered rect for iPad compatibility
-            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                  let window = windowScene.windows.first(where: { $0.isKeyWindow }) else {
-                continuation.resume(returning: false)
+            var hasResumed = false
+            let resumeOnce: (Bool) -> Void = { result in
+                guard !hasResumed else { return }
+                hasResumed = true
+                continuation.resume(returning: result)
+            }
+
+            // Find the key window
+            guard let windowScene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first(where: { $0.activationState == .foregroundActive }),
+                  let window = windowScene.windows.first(where: { $0.isKeyWindow }) ?? windowScene.windows.first else {
+                Log.ui.error("selectPrinter: Could not find window")
+                resumeOnce(false)
                 return
             }
 
-            // Present from center of screen on iPad, uses fullscreen sheet on iPhone
-            let centerRect = CGRect(x: window.bounds.midX, y: window.bounds.midY, width: 1, height: 1)
-            picker.present(from: centerRect, in: window, animated: true) { controller, selected, error in
+            let completionHandler: UIPrinterPickerController.CompletionHandler = { controller, selected, error in
+                if let error = error {
+                    Log.ui.error("Printer picker error: \(error.localizedDescription)")
+                }
                 if selected, let printer = controller.selectedPrinter {
                     LabelPrinterSettings.shared.printerUrl = printer.url
                     LabelPrinterSettings.shared.printerName = printer.displayName
+                    Log.ui.info("Selected printer: \(printer.displayName)")
                 }
-                continuation.resume(returning: selected)
+                resumeOnce(selected)
+            }
+
+            var presented = false
+
+            // iPad requires presenting from a rect in a view
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                // Present from center of window for iPad popover
+                let centerRect = CGRect(x: window.bounds.midX - 1, y: window.bounds.midY - 1, width: 2, height: 2)
+                presented = picker.present(from: centerRect, in: window, animated: true, completionHandler: completionHandler)
+            } else {
+                // iPhone can use simple presentation
+                presented = picker.present(animated: true, completionHandler: completionHandler)
+            }
+
+            if !presented {
+                Log.ui.error("selectPrinter: Failed to present picker")
+                resumeOnce(false)
             }
         }
     }

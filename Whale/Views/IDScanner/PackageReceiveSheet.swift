@@ -1,5 +1,5 @@
 //
-//  PackageReceiveModal.swift
+//  PackageReceiveSheet.swift
 //  Whale
 //
 //  Modal for receiving transfer packages after scanning QR code.
@@ -7,13 +7,13 @@
 
 import SwiftUI
 
-struct PackageReceiveModal: View {
+struct PackageReceiveSheet: View {
     let transfer: InventoryTransfer
     let items: [InventoryTransferItem]
     let storeId: UUID
     let onDismiss: () -> Void
 
-    @State private var isPresented = true
+    @Environment(\.dismiss) private var dismiss
     @State private var isLoading = false
     @State private var isReceived = false
     @State private var errorMessage: String?
@@ -31,49 +31,19 @@ struct PackageReceiveModal: View {
     }
 
     var body: some View {
-        UnifiedModal(isPresented: $isPresented, id: "package-receive", dismissOnTapOutside: !isLoading) {
-            VStack(spacing: 0) {
-                // Header
-                HStack {
-                    Button {
-                        Haptics.light()
-                        isPresented = false
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.7))
-                            .frame(width: 44, height: 44)
-                            .background(.white.opacity(0.1), in: Circle())
-                    }.buttonStyle(.plain)
-
-                    Spacer()
-
-                    VStack(spacing: 2) {
-                        Text("Package").font(.system(size: 11)).foregroundStyle(.white.opacity(0.4))
-                        Text(transfer.displayNumber).font(.system(size: 20, weight: .bold, design: .rounded)).foregroundStyle(.white)
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    // Error banner
+                    if let error = errorMessage {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+                            Text(error).font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                            Spacer()
+                        }
+                        .padding(12).background(Color.red.opacity(0.3)).padding(.horizontal, 20)
                     }
 
-                    Spacer()
-
-                    Text(transfer.status.displayName)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Capsule().fill(statusColor))
-                }
-                .padding(.horizontal, 20).padding(.top, 20).padding(.bottom, 12)
-
-                // Error banner
-                if let error = errorMessage {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
-                        Text(error).font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
-                        Spacer()
-                    }
-                    .padding(12).background(Color.red.opacity(0.3)).padding(.horizontal, 20)
-                }
-
-                ScrollView(showsIndicators: false) {
                     VStack(spacing: 12) {
                         if isReceived {
                             successContent
@@ -96,8 +66,26 @@ struct PackageReceiveModal: View {
                     .padding(.horizontal, 20).padding(.bottom, 20)
                 }
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .navigationTitle("Package \(transfer.displayNumber)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                        onDismiss()
+                    }
+                }
+                ToolbarItem(placement: .principal) {
+                    Text(transfer.status.displayName)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(Capsule().fill(statusColor))
+                }
+            }
         }
-        .onChange(of: isPresented) { _, newValue in if !newValue { onDismiss() } }
+        .interactiveDismissDisabled(isLoading)
     }
 
     // MARK: - Transfer Info
@@ -162,7 +150,7 @@ struct PackageReceiveModal: View {
             Text("\(items.count) items added to inventory").font(.system(size: 14)).foregroundStyle(.white.opacity(0.6))
             Text(transfer.displayNumber).font(.system(size: 12, design: .monospaced)).foregroundStyle(.white.opacity(0.4))
 
-            ModalActionButton("Done", icon: "checkmark") { isPresented = false }
+            ModalActionButton("Done", icon: "checkmark") { dismiss(); onDismiss() }
         }
         .frame(maxWidth: .infinity).padding(.vertical, 24)
     }

@@ -1,5 +1,5 @@
 //
-//  BootModal.swift
+//  BootSheet.swift
 //  Whale
 //
 //  Simplified boot flow: splash → login → Stage Manager (launcher)
@@ -20,7 +20,7 @@ enum BootStep: Equatable {
 
 // MARK: - Boot Modal
 
-struct BootModal: View {
+struct BootSheet: View {
     @EnvironmentObject private var session: SessionObserver
 
     // Animation states
@@ -55,12 +55,8 @@ struct BootModal: View {
                 modalView
 
             case .authenticated:
-                // Show Stage Manager - user launches POS windows from here
-                StageManagerRoot {
-                    // This content is used for POS windows
-                    // POSMainView no longer needs posSession - it uses windowSession
-                    POSMainView()
-                }
+                // Show POS directly
+                POSMainView()
             }
         }
         .preferredColorScheme(.dark)
@@ -479,60 +475,69 @@ private struct LocationContent: View {
     let onSelected: (Location) -> Void
 
     @State private var appearAnimation = false
+    @State private var selectedId: UUID?
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(spacing: 6) {
-                Text("Select Location")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(.white)
+            // Header - minimal
+            Text("Select Location")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.white)
+                .padding(.bottom, 24)
 
-                if let email = session.userEmail {
-                    Text(email)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.35))
-                }
-            }
-            .padding(.bottom, 20)
-
-            // Locations - elegant cards with store logo
-            VStack(spacing: 10) {
+            // Locations - clean list
+            VStack(spacing: 0) {
                 if session.isLoading {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white.opacity(0.5)))
                         .padding(.vertical, 40)
                 } else {
                     ForEach(Array(session.locations.enumerated()), id: \.element.id) { index, location in
-                        LocationCard(
+                        LocationRow(
                             location: location,
-                            storeLogoUrl: session.store?.fullLogoUrl,
-                            storeName: session.store?.businessName,
-                            delay: Double(index) * 0.06,
+                            isSelected: selectedId == location.id,
+                            delay: Double(index) * 0.05,
                             isAnimated: appearAnimation
                         ) {
                             Haptics.medium()
+                            selectedId = location.id
                             Task {
                                 await session.selectLocation(location)
+                                try? await Task.sleep(nanoseconds: 100_000_000)
                                 onSelected(location)
                             }
+                        }
+
+                        // Subtle divider
+                        if index < session.locations.count - 1 {
+                            Rectangle()
+                                .fill(.white.opacity(0.06))
+                                .frame(height: 1)
+                                .padding(.leading, 16)
+                                .opacity(appearAnimation ? 1 : 0)
+                                .animation(.easeOut(duration: 0.3).delay(Double(index) * 0.05), value: appearAnimation)
                         }
                     }
                 }
             }
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(.white.opacity(0.04))
+            )
             .padding(.horizontal, 20)
 
-            // Sign out
+            // Sign out - subtle
             Button {
                 Haptics.light()
                 Task { await session.signOut() }
             } label: {
                 Text("Sign Out")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.3))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.25))
             }
-            .padding(.top, 20)
-            .padding(.bottom, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 28)
         }
         .task {
             await session.fetchStore()
@@ -544,12 +549,11 @@ private struct LocationContent: View {
     }
 }
 
-// MARK: - Location Card (Premium design with store logo)
+// MARK: - Location Row (Clean, minimal)
 
-private struct LocationCard: View {
+private struct LocationRow: View {
     let location: Location
-    let storeLogoUrl: URL?
-    let storeName: String?
+    let isSelected: Bool
     let delay: Double
     let isAnimated: Bool
     let action: () -> Void
@@ -558,58 +562,44 @@ private struct LocationCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
-                // Store logo
-                StoreLogo(
-                    url: storeLogoUrl,
-                    size: 44,
-                    storeName: storeName
-                )
-
-                // Location info
-                VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(location.name)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(.white)
                         .lineLimit(1)
 
                     if let address = location.displayAddress, !address.isEmpty {
                         Text(address)
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white.opacity(0.45))
+                            .font(.system(size: 13))
+                            .foregroundStyle(.white.opacity(0.4))
                             .lineLimit(1)
                     }
                 }
 
-                Spacer()
+                Spacer(minLength: 12)
 
-                // Chevron
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.25))
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(.white.opacity(isPressed ? 0.12 : 0.05))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(.white.opacity(0.1), lineWidth: 1)
-            )
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+            .background(isPressed ? Color.white.opacity(0.06) : Color.clear)
         }
         .buttonStyle(.plain)
-        .scaleEffect(isPressed ? 0.98 : 1.0)
         .opacity(isAnimated ? 1 : 0)
-        .offset(y: isAnimated ? 0 : 12)
-        .animation(.spring(response: 0.4, dampingFraction: 0.75).delay(delay), value: isAnimated)
-        .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isPressed)
+        .offset(y: isAnimated ? 0 : 8)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8).delay(delay), value: isAnimated)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in if !isPressed { isPressed = true } }
                 .onEnded { _ in isPressed = false }
         )
+        .animation(.easeOut(duration: 0.1), value: isPressed)
     }
 }
 
@@ -621,10 +611,11 @@ private struct RegisterContent: View {
     let onBack: () -> Void
 
     @State private var appearAnimation = false
+    @State private var selectedId: UUID?
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header with back button
+            // Header with back
             HStack {
                 Button {
                     Haptics.light()
@@ -635,61 +626,73 @@ private struct RegisterContent: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))
                         Text("Back")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 14, weight: .medium))
                     }
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(.white.opacity(0.4))
                 }
 
                 Spacer()
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 12)
+            .padding(.bottom, 16)
 
-            // Title with location badge
-            VStack(spacing: 8) {
+            // Title with location context
+            VStack(spacing: 6) {
                 Text("Select Register")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(.white)
 
                 if let location = session.selectedLocation {
                     Text(location.name)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.4))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                        .background(Capsule().fill(.white.opacity(0.08)))
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.35))
                 }
             }
-            .padding(.bottom, 20)
+            .padding(.bottom, 24)
 
-            // Registers - elegant cards with store logo
-            VStack(spacing: 10) {
+            // Registers - clean list
+            VStack(spacing: 0) {
                 if session.isLoading {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white.opacity(0.5)))
                         .padding(.vertical, 40)
                 } else {
                     ForEach(Array(session.registers.enumerated()), id: \.element.id) { index, register in
-                        RegisterCard(
+                        RegisterRow(
                             register: register,
-                            storeLogoUrl: session.store?.fullLogoUrl,
-                            storeName: session.store?.businessName,
-                            delay: Double(index) * 0.06,
+                            isSelected: selectedId == register.id,
+                            delay: Double(index) * 0.05,
                             isAnimated: appearAnimation
                         ) {
                             Haptics.medium()
+                            selectedId = register.id
                             Task {
                                 await session.selectRegister(register)
+                                try? await Task.sleep(nanoseconds: 100_000_000)
                                 onSelected(register)
                             }
+                        }
+
+                        if index < session.registers.count - 1 {
+                            Rectangle()
+                                .fill(.white.opacity(0.06))
+                                .frame(height: 1)
+                                .padding(.leading, 16)
+                                .opacity(appearAnimation ? 1 : 0)
+                                .animation(.easeOut(duration: 0.3).delay(Double(index) * 0.05), value: appearAnimation)
                         }
                     }
                 }
             }
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(.white.opacity(0.04))
+            )
             .padding(.horizontal, 20)
-            .padding(.bottom, 24)
+            .padding(.bottom, 28)
         }
         .task {
             await session.fetchRegisters()
@@ -700,12 +703,11 @@ private struct RegisterContent: View {
     }
 }
 
-// MARK: - Register Card (Premium design with store logo)
+// MARK: - Register Row (Clean, minimal)
 
-private struct RegisterCard: View {
+private struct RegisterRow: View {
     let register: Register
-    let storeLogoUrl: URL?
-    let storeName: String?
+    let isSelected: Bool
     let delay: Double
     let isAnimated: Bool
     let action: () -> Void
@@ -714,55 +716,41 @@ private struct RegisterCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
-                // Store logo
-                StoreLogo(
-                    url: storeLogoUrl,
-                    size: 44,
-                    storeName: storeName
-                )
-
-                // Register info
-                VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(register.displayName)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(.white)
                         .lineLimit(1)
 
-                    Text("Register #\(register.registerNumber)")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.45))
+                    Text("Register \(register.registerNumber)")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.4))
                 }
 
-                Spacer()
+                Spacer(minLength: 12)
 
-                // Chevron
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.25))
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(.white.opacity(isPressed ? 0.12 : 0.05))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(.white.opacity(0.1), lineWidth: 1)
-            )
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+            .background(isPressed ? Color.white.opacity(0.06) : Color.clear)
         }
         .buttonStyle(.plain)
-        .scaleEffect(isPressed ? 0.98 : 1.0)
         .opacity(isAnimated ? 1 : 0)
-        .offset(y: isAnimated ? 0 : 12)
-        .animation(.spring(response: 0.4, dampingFraction: 0.75).delay(delay), value: isAnimated)
-        .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isPressed)
+        .offset(y: isAnimated ? 0 : 8)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8).delay(delay), value: isAnimated)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in if !isPressed { isPressed = true } }
                 .onEnded { _ in isPressed = false }
         )
+        .animation(.easeOut(duration: 0.1), value: isPressed)
     }
 }
 
@@ -1012,7 +1000,7 @@ private struct OptionRow: View {
 
 // MARK: - End Session Modal
 
-struct EndSessionModal: View {
+struct BootEndSessionSheet: View {
     @EnvironmentObject private var session: SessionObserver
     @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
 
@@ -1032,12 +1020,12 @@ struct EndSessionModal: View {
         windowSession?.register ?? session.selectedRegister
     }
 
-    enum ModalMode {
+    enum SheetMode {
         case main
         case safeDrop
     }
 
-    @State private var mode: ModalMode = .main
+    @State private var mode: SheetMode = .main
     @State private var closingCash = ""
     @State private var safeDropAmount = ""
     @State private var safeDropNotes = ""
@@ -1468,7 +1456,7 @@ struct EndSessionModal: View {
 
 // MARK: - Safe Drop Modal (Standalone - for use during shift)
 
-struct SafeDropModal: View {
+struct BootSafeDropSheet: View {
     @EnvironmentObject private var session: SessionObserver
     @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
 
@@ -1789,6 +1777,6 @@ struct SafeDropModal: View {
 // Note: TextSystemWarmupView removed - keyboard warmup now handled by SubsystemWarmup in WhaleApp.swift
 
 #Preview {
-    BootModal()
+    BootSheet()
         .environmentObject(SessionObserver.shared)
 }

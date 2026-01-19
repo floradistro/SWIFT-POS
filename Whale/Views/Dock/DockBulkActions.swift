@@ -9,42 +9,12 @@ struct DockBulkActionsView: View {
     @ObservedObject var orderStore: OrderStore
     @EnvironmentObject private var session: SessionObserver
 
-    @State private var showProductLabelSheet = false
-    @State private var showOrderLabelSheet = false
-    @State private var isPrintingProductLabels = false
-    @State private var selectedProductsForLabels: [Product] = []
-
     var body: some View {
         VStack(spacing: 12) {
             header
             actionButtons
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .fullScreenCover(isPresented: $showProductLabelSheet) {
-            ProductLabelTemplateSheet(
-                products: selectedProductsForLabels,
-                store: session.store,
-                location: session.selectedLocation,
-                isPrinting: $isPrintingProductLabels,
-                onDismiss: {
-                    showProductLabelSheet = false
-                    selectedProductsForLabels = []
-                    multiSelect.exitMultiSelect()
-                }
-            )
-            .presentationBackground(.clear)
-        }
-        .sheet(isPresented: $showOrderLabelSheet) {
-            BulkOrderLabelSheet(
-                orders: orderStore.orders.filter { multiSelect.isSelected($0.id) },
-                onDismiss: {
-                    showOrderLabelSheet = false
-                    multiSelect.exitMultiSelect()
-                }
-            )
-            .presentationDetents([.height(400)])
-            .presentationDragIndicator(.visible)
-        }
     }
 
     private var header: some View {
@@ -82,8 +52,10 @@ struct DockBulkActionsView: View {
     private var productActions: some View {
         HStack(spacing: 10) {
             BulkActionButton(icon: "printer.fill", label: "Print", color: Design.Colors.Semantic.info) {
-                selectedProductsForLabels = posStore.products.filter { multiSelect.isProductSelected($0.id) }
-                showProductLabelSheet = true
+                let selectedProducts = posStore.products.filter { multiSelect.isProductSelected($0.id) }
+                SheetCoordinator.shared.present(.labelTemplate(products: selectedProducts)) {
+                    multiSelect.exitMultiSelect()
+                }
             }
             BulkActionButton(icon: "tag.fill", label: "Price", color: Design.Colors.Semantic.accent) {
                 handleBulkPriceUpdate()
@@ -99,7 +71,10 @@ struct DockBulkActionsView: View {
     private var orderActions: some View {
         HStack(spacing: 10) {
             BulkActionButton(icon: "printer.fill", label: "Print", color: Design.Colors.Semantic.info) {
-                showOrderLabelSheet = true
+                let selectedOrders = orderStore.orders.filter { multiSelect.isSelected($0.id) }
+                SheetCoordinator.shared.present(.orderLabelTemplate(orders: selectedOrders)) {
+                    multiSelect.exitMultiSelect()
+                }
             }
             BulkActionButton(icon: "checkmark.circle.fill", label: "Ready", color: Design.Colors.Semantic.success) {
                 handleBulkMarkReady()

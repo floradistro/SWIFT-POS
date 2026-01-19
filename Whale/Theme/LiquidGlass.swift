@@ -189,9 +189,13 @@ struct LiquidGlassPill: View {
                         .background(.fill.tertiary, in: .capsule)
                 }
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
+            .background(
+                isSelected ? .white.opacity(0.15) : Color.clear,
+                in: .capsule
+            )
         }
         .tint(.white)
         .glassEffect(.regular.interactive(), in: .capsule)
@@ -572,11 +576,101 @@ struct TopFadeMask: ViewModifier {
     }
 }
 
+struct BottomFadeMask: ViewModifier {
+    var fadeHeight: CGFloat = 60  // Height of fade zone from bottom of screen
+
+    func body(content: Content) -> some View {
+        content
+            .mask(
+                GeometryReader { geo in
+                    let safeBottom = geo.safeAreaInsets.bottom
+
+                    VStack(spacing: 0) {
+                        // Rest is fully visible
+                        Color.black
+
+                        // Fade zone at bottom of screen
+                        LinearGradient(
+                            stops: [
+                                .init(color: .black, location: 0),
+                                .init(color: .black.opacity(0.3), location: 0.6),
+                                .init(color: .clear, location: 1)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: safeBottom + fadeHeight)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                }
+                .ignoresSafeArea()
+            )
+    }
+}
+
+struct TopBottomFadeMask: ViewModifier {
+    var topFadeHeight: CGFloat = 60
+    var bottomFadeHeight: CGFloat = 60
+
+    func body(content: Content) -> some View {
+        content
+            .mask(
+                GeometryReader { geo in
+                    let safeTop = geo.safeAreaInsets.top
+                    let safeBottom = geo.safeAreaInsets.bottom
+
+                    VStack(spacing: 0) {
+                        // Top fade zone
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0),
+                                .init(color: .black.opacity(0.3), location: 0.4),
+                                .init(color: .black, location: 1)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: safeTop + topFadeHeight)
+
+                        // Middle is fully visible
+                        Color.black
+
+                        // Bottom fade zone
+                        LinearGradient(
+                            stops: [
+                                .init(color: .black, location: 0),
+                                .init(color: .black.opacity(0.3), location: 0.6),
+                                .init(color: .clear, location: 1)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: safeBottom + bottomFadeHeight)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                }
+                .ignoresSafeArea()
+            )
+    }
+}
+
 extension View {
     /// Apple-style top fade mask for ScrollViews
     /// Content fades at the very top edge of screen (behind status bar)
     func topFadeMask(fadeHeight: CGFloat = 60) -> some View {
         modifier(TopFadeMask(fadeHeight: fadeHeight))
+    }
+
+    /// Apple-style bottom fade mask for ScrollViews
+    /// Content fades at the very bottom edge of screen
+    func bottomFadeMask(fadeHeight: CGFloat = 60) -> some View {
+        modifier(BottomFadeMask(fadeHeight: fadeHeight))
+    }
+
+    /// Apple-style top and bottom fade mask for ScrollViews
+    /// Content fades at both top and bottom edges
+    func topBottomFadeMask(topFadeHeight: CGFloat = 60, bottomFadeHeight: CGFloat = 60) -> some View {
+        modifier(TopBottomFadeMask(topFadeHeight: topFadeHeight, bottomFadeHeight: bottomFadeHeight))
     }
 }
 

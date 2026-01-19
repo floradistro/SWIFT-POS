@@ -88,13 +88,6 @@ struct ProductGridCard: View {
                         .padding(8)
                         .scaleEffect(isSelected ? 1.0 : 0.9)
                         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
-                    } else if hasTiers {
-                        Image(systemName: "square.stack.3d.up.fill")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(5)
-                            .background(Circle().fill(Color.black.opacity(0.6)))
-                            .padding(8)
                     }
                 }
 
@@ -786,9 +779,13 @@ struct CategoryPill: View {
         } label: {
             Text(name)
                 .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
-                .foregroundStyle(isSelected ? .white : .white.opacity(0.7))
+                .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
+                .background(
+                    isSelected ? .white.opacity(0.15) : Color.clear,
+                    in: .capsule
+                )
         }
         .tint(.white)
         .glassEffect(.regular.interactive(), in: .capsule)

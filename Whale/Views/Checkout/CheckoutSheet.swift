@@ -977,14 +977,41 @@ struct CheckoutSheet: View {
     }
 
     private func triggerAutoPrintIfEnabled(with completion: SaleCompletion?) {
-        guard LabelPrinterSettings.shared.autoPrintEnabled, let orderId = completion?.orderId else { return }
+        let settings = LabelPrinterSettings.shared
+        print("🏷️ triggerAutoPrintIfEnabled called")
+        print("🏷️ autoPrintEnabled: \(settings.autoPrintEnabled)")
+        print("🏷️ isPrinterConfigured: \(settings.isPrinterConfigured)")
+        print("🏷️ printerUrl: \(settings.printerUrl?.absoluteString ?? "nil")")
+        print("🏷️ orderId: \(completion?.orderId.uuidString ?? "nil")")
+
+        guard settings.autoPrintEnabled else {
+            print("🏷️ Auto-print disabled, skipping")
+            return
+        }
+        guard let completion = completion else {
+            print("🏷️ No completion, skipping")
+            return
+        }
+        let orderId = completion.orderId
 
         Task {
             do {
-                let orderForLabels = await OrderStore.shared.orders.first { $0.id == orderId }
-                guard let order = orderForLabels else { return }
+                // Fetch order directly from database instead of waiting for OrderStore
+                // This is more reliable since OrderStore may not have received the realtime update yet
+                print("🏷️ Fetching order from database: \(orderId.uuidString)")
+
+                guard let order = try await OrderService.fetchOrder(orderId: orderId) else {
+                    print("🏷️ Order not found in database: \(orderId.uuidString)")
+                    await MainActor.run { autoPrintFailed = true }
+                    return
+                }
+
+                print("🏷️ Order fetched successfully: \(order.orderNumber)")
+                print("🏷️ Calling LabelPrinterManager.printOrder...")
                 try await LabelPrinterManager.shared.printOrder(order)
+                print("🏷️ Print completed successfully")
             } catch {
+                print("🏷️ Print error: \(error.localizedDescription)")
                 await MainActor.run { autoPrintFailed = true }
             }
         }

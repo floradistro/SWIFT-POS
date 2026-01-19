@@ -17,13 +17,13 @@ struct FloatingCart: View {
 
     @StateObject private var paymentStore = PaymentStore()
     @ObservedObject private var dealStore = DealStore.shared
+    @ObservedObject private var sheetCoordinator = SheetCoordinator.shared
 
     var onScanID: () -> Void
     var onFindCustomer: (() -> Void)?
 
     // MARK: - State
 
-    @State private var showCheckoutSheet = false
     @State private var cartUpdateCounter = 0
     @State private var queueStore: LocationQueueStore?
     @State private var queueUpdateCounter = 0  // Incremented via NotificationCenter
@@ -74,6 +74,10 @@ struct FloatingCart: View {
 
     // MARK: - Body
 
+    private var shouldHide: Bool {
+        sheetCoordinator.isPresenting
+    }
+
     var body: some View {
         let _ = cartUpdateCounter
         let _ = queueUpdateCounter  // Force refresh when queue changes
@@ -96,20 +100,15 @@ struct FloatingCart: View {
         .padding(.horizontal, 16)
         .padding(.bottom, SafeArea.bottom + 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .offset(y: shouldHide ? 200 : 0)
+        .opacity(shouldHide ? 0 : 1)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: shouldHide)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: queue.count)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: hasItems)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: itemCount)
-        .sheet(isPresented: $showCheckoutSheet) {
-            if let totals = totals {
-                CheckoutSheet(
-                    posStore: posStore,
-                    paymentStore: paymentStore,
-                    dealStore: dealStore,
-                    totals: totals,
-                    sessionInfo: buildSessionInfo(),
-                    onScanID: onScanID,
-                    onComplete: handleCheckoutComplete
-                )
+        .onReceive(NotificationCenter.default.publisher(for: .sheetOrderCompleted)) { notification in
+            if let completion = notification.object as? SaleCompletion {
+                handleCheckoutComplete(completion)
             }
         }
         .task(id: effectiveLocationId) {
@@ -279,7 +278,9 @@ struct FloatingCart: View {
                 // Checkout button
                 Button {
                     Haptics.medium()
-                    showCheckoutSheet = true
+                    if let totals = totals {
+                        SheetCoordinator.shared.present(.checkout(totals: totals, sessionInfo: buildSessionInfo()))
+                    }
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "creditcard")
@@ -386,8 +387,6 @@ struct FloatingCart: View {
     }
 
     private func handleCheckoutComplete(_ order: SaleCompletion?) {
-        showCheckoutSheet = false
-
         guard let cartId = selectedCartId else { return }
 
         // Remove from backend queue

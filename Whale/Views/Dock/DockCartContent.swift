@@ -15,9 +15,8 @@ struct DockIdleContent: View {
     let onSafeDrop: (() -> Void)?
     let onCreateTransfer: (() -> Void)?
     let onPrinterSettings: (() -> Void)?
-    let onAskLisa: (() -> Void)?
     let onEndSession: () -> Void
-    @Binding var showRegisterPicker: Bool
+    let onRegisterPicker: () -> Void
 
     /// True when we have a proper window session with location/register
     private var isIsolatedWindow: Bool {
@@ -50,7 +49,7 @@ struct DockIdleContent: View {
                     if let register = ws.register {
                         Button {
                             Haptics.light()
-                            showRegisterPicker = true
+                            onRegisterPicker()
                         } label: {
                             Label("\(register.registerName) (#\(register.registerNumber))", systemImage: "desktopcomputer")
                         }
@@ -60,7 +59,7 @@ struct DockIdleContent: View {
                     } else {
                         Button {
                             Haptics.light()
-                            showRegisterPicker = true
+                            onRegisterPicker()
                         } label: {
                             Label("Select Register", systemImage: "exclamationmark.triangle")
                         }
@@ -114,27 +113,13 @@ struct DockIdleContent: View {
                 }
             }
 
-            // Window actions
+            // Session
             Section {
-                Button {
-                    Haptics.light()
-                    onAskLisa?()
-                } label: {
-                    Label("Ask Lisa", systemImage: "sparkles")
-                }
-
-                Button {
-                    Haptics.light()
-                    StageManagerStore.shared.show()
-                } label: {
-                    Label("Switch Window", systemImage: "rectangle.on.rectangle")
-                }
-
                 Button(role: .destructive) {
                     Haptics.light()
                     onEndSession()
                 } label: {
-                    Label("Close Window", systemImage: "xmark.circle")
+                    Label("End Session", systemImage: "power")
                 }
             }
         } label: {

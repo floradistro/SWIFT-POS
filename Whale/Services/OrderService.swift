@@ -395,4 +395,37 @@ enum OrderService {
     // The backend creates orders atomically after successful payment processing.
     // See: supabase/functions/payment-intent/index.ts
 
+    // MARK: - Print Optimized Fetch
+
+    /// Fetch order with complete product details for label printing (OPTIMIZED)
+    /// Uses single RPC call with database-side joins instead of multiple queries
+    /// Returns order + full product data (images, custom fields, COAs) in one round trip
+    static func fetchOrderForPrinting(orderId: UUID) async throws -> OrderPrintData? {
+        Log.network.info("Fetching order for printing: \(orderId.uuidString)")
+
+        let response = try await supabase
+            .rpc("get_order_for_printing", params: [
+                "p_order_id": AnyJSON.string(orderId.uuidString)
+            ])
+            .execute()
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        // Check for error response
+        struct ErrorResponse: Decodable {
+            let error: String?
+        }
+
+        if let errorResponse = try? decoder.decode(ErrorResponse.self, from: response.data),
+           let error = errorResponse.error {
+            Log.network.warning("Order not found for printing: \(error)")
+            return nil
+        }
+
+        let result = try decoder.decode(OrderPrintData.self, from: response.data)
+        Log.network.info("✅ Fetched order for printing with \(result.items.count) items")
+
+        return result
+    }
 }

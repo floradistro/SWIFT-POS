@@ -98,8 +98,9 @@ struct LabelTemplateSheet: View {
     let location: Location?
     @Binding var isPrinting: Bool
     let onDismiss: () -> Void
+    var embedded: Bool = false  // Legacy parameter, now always uses NavigationStack
 
-    @State private var isPresented = true
+    @Environment(\.dismiss) private var dismiss
     @State private var storeLogoImage: UIImage?
     @State private var isSelectingPrinter = false
     @State private var printItems: [LabelPrintItem] = []
@@ -119,14 +120,27 @@ struct LabelTemplateSheet: View {
     }
 
     var body: some View {
-        UnifiedModal(isPresented: $isPresented, id: "labels", dismissOnTapOutside: !isPrinting) {
-            VStack(spacing: 0) {
-                ModalHeader("Print Labels", subtitle: "\(products.count) product\(products.count == 1 ? "" : "s")", onClose: {
-                    guard !isPrinting else { return }
-                    onDismiss()
-                }) { EmptyView() }
+        NavigationStack {
+            sheetContent
+                .navigationTitle("Print Labels")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            guard !isPrinting else { return }
+                            dismiss()
+                            onDismiss()
+                        }
+                    }
+                }
+        }
+        .interactiveDismissDisabled(isPrinting)
+    }
 
-                ScrollView(showsIndicators: false) {
+    @ViewBuilder
+    private var sheetContent: some View {
+        VStack(spacing: 0) {
+            ScrollView(showsIndicators: false) {
                     VStack(spacing: 12) {
                         // Template info (start position is now in Printer Settings)
                         ModalSection {
@@ -239,20 +253,20 @@ struct LabelTemplateSheet: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
             }
+        .sheet(isPresented: $isSelectingPrinter) {
+            LabelPrinterSetupView(isPresented: $isSelectingPrinter)
         }
         .task {
             await loadStoreLogo()
-            let warehouseMode = isWarehouse
-            printItems = products.map { LabelPrintItem(product: $0, quantity: 1, tierLabel: nil, isWarehouseMode: warehouseMode) }
+            initializePrintItems()
         }
-        .onChange(of: isSelectingPrinter) { selecting in
-            if selecting {
-                Task {
-                    _ = await LabelPrintService.selectPrinter()
-                    isSelectingPrinter = false
-                }
-            }
-        }
+    }
+
+    // MARK: - Helper Functions
+
+    private func initializePrintItems() {
+        let warehouseMode = isWarehouse
+        printItems = products.map { LabelPrintItem(product: $0, quantity: 1, tierLabel: nil, isWarehouseMode: warehouseMode) }
     }
 
     @ViewBuilder
@@ -655,8 +669,8 @@ struct LabelTemplateSheet: View {
             Haptics.error()
         }
 
-        // Reset start position to 0 after printing (so next print starts fresh)
-        settings.startPosition = 0
+        // Keep position persistent - user can manually change it in printer settings
+        // This allows continuing on a partially-used label sheet
 
         onDismiss()
     }

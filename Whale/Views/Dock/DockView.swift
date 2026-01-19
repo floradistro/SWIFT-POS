@@ -23,7 +23,7 @@ struct DockView: View {
     @State private var expansion: DockExpansion = .collapsed
     @ObservedObject private var tabManager = DockTabManager.shared
     @ObservedObject private var multiSelect = MultiSelectManager.shared
-    @ObservedObject private var modalManager = ModalManager.shared
+    @ObservedObject private var sheetCoordinator = SheetCoordinator.shared
 
     @State private var pulseScale: CGFloat = 1.0
     @State private var isFirstRun = true
@@ -57,15 +57,8 @@ struct DockView: View {
     @State private var processingAmount: Decimal?
     @State private var processingLabel: String?
 
-    // Order detail modal
+    // Order detail - shown via SheetCoordinator
     @State private var selectedOrderForDetail: Order?
-    @State private var showOrderDetailModal = false
-
-    // Register picker modal (for isolated windows)
-    @State private var showRegisterPicker = false
-
-    // Checkout sheet (backend-driven)
-    @State private var showCheckoutSheet = false
 
     // Trigger re-render when windowSession publishes changes
     @State private var windowSessionUpdateTrigger = UUID()
@@ -224,7 +217,7 @@ struct DockView: View {
     }
 
     private var shouldHideDock: Bool {
-        modalManager.isModalOpen || showCheckoutSheet
+        sheetCoordinator.isPresenting
     }
 
     // MARK: - Body
@@ -251,31 +244,6 @@ struct DockView: View {
                 .animation(.spring(response: 0.35, dampingFraction: 0.85), value: shouldHideDock)
                 .animation(.spring(response: 0.5, dampingFraction: 0.85), value: isCheckoutExpanded)
 
-            // Order detail modal - opens when tapping order tab
-            if showOrderDetailModal, let order = selectedOrderForDetail {
-                OrderDetailModal(order: order, store: orderStore, isPresented: $showOrderDetailModal)
-                    .zIndex(10)
-            }
-
-        }
-        .sheet(isPresented: $showRegisterPicker) {
-            RegisterPickerSheetContent(
-                isPresented: $showRegisterPicker,
-                windowSession: windowSession
-            )
-        }
-        .sheet(isPresented: $showCheckoutSheet) {
-            if let totals = totals {
-                CheckoutSheet(
-                    posStore: posStore,
-                    paymentStore: paymentStore,
-                    dealStore: dealStore,
-                    totals: totals,
-                    sessionInfo: buildSessionInfo(),
-                    onScanID: onScanID,
-                    onComplete: handleCheckoutComplete
-                )
-            }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: expansion)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: hasItems)
@@ -297,9 +265,11 @@ struct DockView: View {
             try? await Task.sleep(nanoseconds: 50_000_000)
             await MainActor.run { updateDockExpansion() }
         }
-        // Deals now loaded server-side as part of cart calculation
-        .onChange(of: showOrderDetailModal) { _, isShowing in
-            if !isShowing { selectedOrderForDetail = nil }
+        // Listen for order completion from checkout sheet
+        .onReceive(NotificationCenter.default.publisher(for: .sheetOrderCompleted)) { notification in
+            if let completion = notification.object as? SaleCompletion {
+                handleCheckoutComplete(completion)
+            }
         }
     }
 
@@ -341,8 +311,7 @@ struct DockView: View {
                         onAddCustomer: onFindCustomer,
                         onClearAll: clearEverything,
                         onOpenOrder: { order in
-                            selectedOrderForDetail = order
-                            showOrderDetailModal = true
+                            SheetCoordinator.shared.present(.orderDetail(order: order))
                         }
                     )
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -360,7 +329,9 @@ struct DockView: View {
         case .collapsed, .standard, .idleExpanded:
             if hasItems {
                 DockCartContent(posStore: posStore) {
-                    showCheckoutSheet = true
+                    if let totals = totals, let sessionInfo = sessionInfo {
+                        SheetCoordinator.shared.present(.checkout(totals: totals, sessionInfo: sessionInfo))
+                    }
                 }
             } else if !hasTabs {
                 // No tabs = no customer, show idle state with menu
@@ -371,9 +342,8 @@ struct DockView: View {
                     onSafeDrop: onSafeDrop,
                     onCreateTransfer: onCreateTransfer,
                     onPrinterSettings: onPrinterSettings,
-                    onAskLisa: { /* AI chat moved to Stage Manager */ },
                     onEndSession: onEndSession,
-                    showRegisterPicker: $showRegisterPicker
+                    onRegisterPicker: { SheetCoordinator.shared.present(.registerPicker) }
                 )
             }
             // NOTE: When hasTabs is true but hasItems is false, we show nothing here

@@ -1,5 +1,5 @@
 //
-//  InventoryUnitScanModal.swift
+//  InventoryUnitScanSheet.swift
 //  Whale
 //
 //  Modal for inventory unit actions after scanning QR code.
@@ -7,18 +7,18 @@
 
 import SwiftUI
 
-enum InventoryModalScreen { case main, receive, transfer, audit, damage, reprint, success }
+enum InventorySheetScreen { case main, receive, transfer, audit, damage, reprint, success }
 enum InventoryScanAction { case receive, transferOut, transferIn, convert, audit, damage, reprint }
 
-struct InventoryUnitScanModal: View {
+struct InventoryUnitScanSheet: View {
     let unit: InventoryUnit
     let lookupResult: LookupResult
     let storeId: UUID
     let onDismiss: () -> Void
     let onAction: (InventoryScanAction) -> Void
 
-    @State private var isPresented = true
-    @State private var currentScreen: InventoryModalScreen = .main
+    @Environment(\.dismiss) private var dismiss
+    @State private var currentScreen: InventorySheetScreen = .main
     @State private var isLoading = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
@@ -41,29 +41,24 @@ struct InventoryUnitScanModal: View {
     }
 
     var body: some View {
-        UnifiedModal(isPresented: $isPresented, id: "inventory-scan", dismissOnTapOutside: currentScreen == .main) {
-            VStack(spacing: 0) {
-                modalHeader
-
-                if let error = errorMessage {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
-                        Text(error).font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
-                        Spacer()
-                        Button { errorMessage = nil } label: {
-                            Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundStyle(.white.opacity(0.5)).frame(width: 28, height: 28)
-                                .contentShape(Circle())
-                                .background(Circle().fill(.ultraThinMaterial))
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    if let error = errorMessage {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+                            Text(error).font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                            Spacer()
+                            Button { errorMessage = nil } label: {
+                                Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundStyle(.white.opacity(0.5)).frame(width: 28, height: 28)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+                        .padding(12)
+                        .background(Color.red.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal, 20)
                     }
-                    .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.ultraThinMaterial))
-                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.white.opacity(0.1), lineWidth: 0.5))
-                    .padding(.horizontal, 20)
-                }
 
-                ScrollView(showsIndicators: false) {
                     VStack(spacing: 12) {
                         switch currentScreen {
                         case .main: mainContent
@@ -78,8 +73,30 @@ struct InventoryUnitScanModal: View {
                     .padding(.horizontal, 20).padding(.bottom, 20)
                 }
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .navigationTitle("Inventory Unit")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(currentScreen == .main || currentScreen == .success ? "Done" : "Back") {
+                        if currentScreen == .main || currentScreen == .success {
+                            dismiss()
+                            onDismiss()
+                        } else {
+                            withAnimation(.spring(response: 0.3)) { currentScreen = .main; clearInputs() }
+                        }
+                    }
+                }
+                ToolbarItem(placement: .principal) {
+                    Text(unit.status.displayName)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(Capsule().fill(statusColor))
+                }
+            }
         }
-        .onChange(of: isPresented) { _, newValue in if !newValue { onDismiss() } }
+        .interactiveDismissDisabled(isLoading)
     }
 
     // MARK: - Header
@@ -88,7 +105,7 @@ struct InventoryUnitScanModal: View {
         HStack {
             Button {
                 Haptics.light()
-                if currentScreen == .main || currentScreen == .success { isPresented = false }
+                if currentScreen == .main || currentScreen == .success { dismiss(); onDismiss() }
                 else { withAnimation(.spring(response: 0.3)) { currentScreen = .main; clearInputs() } }
             } label: {
                 Image(systemName: currentScreen == .main || currentScreen == .success ? "xmark" : "chevron.left")
@@ -396,8 +413,8 @@ struct InventoryUnitScanModal: View {
             Text(unit.qrCode).font(.system(size: 12, design: .monospaced)).foregroundStyle(.white.opacity(0.5))
         }.frame(maxWidth: .infinity).padding(.vertical, 24)
 
-        ModalActionButton("Done", icon: "checkmark") { isPresented = false }
-        ModalSecondaryButton(title: "Scan Another") { isPresented = false; onAction(.receive) }
+        ModalActionButton("Done", icon: "checkmark") { dismiss(); onDismiss() }
+        ModalSecondaryButton(title: "Scan Another") { dismiss(); onDismiss(); onAction(.receive) }
     }
 
     // MARK: - Helper Views
@@ -481,7 +498,7 @@ struct InventoryUnitScanModal: View {
         }
     }
 
-    private func navigateTo(_ screen: InventoryModalScreen) { withAnimation(.spring(response: 0.3)) { currentScreen = screen } }
+    private func navigateTo(_ screen: InventorySheetScreen) { withAnimation(.spring(response: 0.3)) { currentScreen = screen } }
     private func clearInputs() { binLocation = ""; notes = ""; auditQuantity = ""; damageReason = "" }
 
     // MARK: - Actions

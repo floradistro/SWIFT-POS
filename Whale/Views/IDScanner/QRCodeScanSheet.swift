@@ -1,5 +1,5 @@
 //
-//  QRCodeScanModal.swift
+//  QRCodeScanSheet.swift
 //  Whale
 //
 //  Modal shown when scanning a QR code from sale/product labels.
@@ -24,13 +24,13 @@ struct SplitOption: Identifiable {
     }
 }
 
-struct QRCodeScanModal: View {
+struct QRCodeScanSheet: View {
     let qrCode: ScannedQRCode
     let storeId: UUID
     let onDismiss: () -> Void
 
     @EnvironmentObject private var session: SessionObserver
-    @State private var isPresented = true
+    @Environment(\.dismiss) private var dismiss
     @State private var currentScreen: QRScanScreen = .main
     @State private var product: Product?
     @State private var order: Order?
@@ -104,40 +104,54 @@ struct QRCodeScanModal: View {
     }
 
     var body: some View {
-        UnifiedModal(isPresented: $isPresented, id: "qr-scan", dismissOnTapOutside: currentScreen == .main && !isPrinting) {
-            VStack(spacing: 0) {
-                modalHeader
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 0) {
+                    if let error = errorMessage {
+                        errorBanner(error)
+                    }
 
-                if let error = errorMessage {
-                    errorBanner(error)
+                    VStack(spacing: 12) {
+                        switch currentScreen {
+                        case .main: mainContent
+                        case .receive: receiveContent
+                        case .transfer: transferContent
+                        case .reprint: reprintContent
+                        case .split: splitContent
+                        case .success: successContent
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                    .opacity(contentOpacity)
+                    .contentShape(Rectangle())
                 }
-
-                VStack(spacing: 12) {
-                    switch currentScreen {
-                    case .main: mainContent
-                    case .receive: receiveContent
-                    case .transfer: transferContent
-                    case .reprint: reprintContent
-                    case .split: splitContent
-                    case .success: successContent
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .navigationTitle(qrCode.type.capitalized)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    if currentScreen == .main || currentScreen == .success {
+                        Button("Done") {
+                            dismiss()
+                            onDismiss()
+                        }
+                    } else {
+                        Button("Back") {
+                            withAnimation(.spring(response: 0.3)) { currentScreen = .main }
+                        }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
-                .opacity(contentOpacity)
-                .contentShape(Rectangle())  // Ensure content area captures touches
             }
         }
-        .onChange(of: isPresented) { _, newValue in
-            if !newValue { onDismiss() }
-        }
+        .interactiveDismissDisabled(isPrinting || isLoading)
         .task {
             await loadProduct()
             await loadLocations()
             if qrCode.isSale, qrCode.orderId != nil {
                 await loadOrder()
             }
-            // Check for pending transfer
             await checkPendingTransfer()
             await QRCodeLookupService.recordScan(qrCodeId: qrCode.id, storeId: storeId)
         }
@@ -151,7 +165,7 @@ struct QRCodeScanModal: View {
             Button {
                 Haptics.light()
                 if currentScreen == .main || currentScreen == .success {
-                    isPresented = false
+                    dismiss(); onDismiss()
                 } else {
                     navigateTo(.main)
                 }
@@ -1017,7 +1031,7 @@ struct QRCodeScanModal: View {
         // Done button
         Button {
             Haptics.medium()
-            isPresented = false
+            dismiss(); onDismiss()
         } label: {
             Text("Done")
                 .font(.system(size: 17, weight: .semibold))
