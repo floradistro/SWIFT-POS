@@ -20,27 +20,23 @@ struct ServerCart: Codable, Identifiable {
     let storeId: UUID
     let locationId: UUID
     let customerId: UUID?
-    let subtotal: Decimal
-    let discountAmount: Decimal
-    let taxRate: Decimal
-    let taxAmount: Decimal
-    let total: Decimal
-    let itemCount: Int
     let status: String
     let items: [ServerCartItem]
     let totals: CheckoutTotals
+
+    // Computed from totals - these don't exist at root in the database response
+    var subtotal: Decimal { totals.subtotal }
+    var discountAmount: Decimal { totals.discountAmount }
+    var taxRate: Decimal { totals.taxRate }
+    var taxAmount: Decimal { totals.taxAmount }
+    var total: Decimal { totals.total }
+    var itemCount: Int { totals.itemCount }
 
     enum CodingKeys: String, CodingKey {
         case id
         case storeId = "store_id"
         case locationId = "location_id"
         case customerId = "customer_id"
-        case subtotal
-        case discountAmount = "discount_amount"
-        case taxRate = "tax_rate"
-        case taxAmount = "tax_amount"
-        case total
-        case itemCount = "item_count"
         case status
         case items
         case totals
@@ -365,18 +361,29 @@ actor CartService {
         request.setValue("Bearer \(SupabaseConfig.anonKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
+        print("🛒 CartService POST \(path) - request body: \(body)")
+
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw CartError.networkError
         }
 
+        let responseString = String(data: data, encoding: .utf8) ?? "nil"
+        print("🛒 CartService RESPONSE (\(path)) status=\(httpResponse.statusCode): \(responseString.prefix(1000))")
+
         guard httpResponse.statusCode == 200 else {
             throw CartError.httpError(httpResponse.statusCode)
         }
 
         let decoder = JSONDecoder()
-        return try decoder.decode(T.self, from: data)
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            print("🛒 CartService DECODE ERROR: \(error)")
+            print("🛒 CartService RAW RESPONSE: \(responseString)")
+            throw error
+        }
     }
 }
 
@@ -386,6 +393,35 @@ private struct CartResponse: Decodable {
     let success: Bool
     let data: ServerCart?
     let error: String?
+
+    // Custom decoder to handle backend returning partial data (just totals) when no cart exists
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        success = try container.decode(Bool.self, forKey: .success)
+        error = try container.decodeIfPresent(String.self, forKey: .error)
+
+        // Try to decode data, but check if it has required fields first
+        if container.contains(.data) {
+            // Peek at the data to see if it has an 'id' field (indicates a real cart)
+            let dataContainer = try? container.nestedContainer(keyedBy: DataKeys.self, forKey: .data)
+            if dataContainer?.contains(.id) == true {
+                data = try container.decode(ServerCart.self, forKey: .data)
+            } else {
+                // Backend returned partial data (just totals) - treat as no cart
+                data = nil
+            }
+        } else {
+            data = nil
+        }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case success, data, error
+    }
+
+    enum DataKeys: String, CodingKey {
+        case id
+    }
 }
 
 private struct CheckoutResponse: Decodable {

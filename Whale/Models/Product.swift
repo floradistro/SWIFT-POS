@@ -16,13 +16,6 @@ struct Product: Identifiable, Hashable, Sendable {
     let description: String?
     let sku: String?
 
-    // Pricing
-    let price: Decimal?
-    let regularPrice: Decimal?
-    let salePrice: Decimal?
-    let costPrice: Decimal?
-    let onSale: Bool?
-
     // Images
     let imageUrl: String?
     let featuredImage: String?
@@ -38,7 +31,7 @@ struct Product: Identifiable, Hashable, Sendable {
 
     // Custom fields & pricing data (JSONB - decoded as raw)
     let customFields: [String: AnyCodable]?
-    let pricingData: [String: AnyCodable]?
+    let pricingData: [AnyCodable]?  // Array of pricing tiers from database
 
     // Joined data (set after fetch)
     var inventory: ProductInventory?
@@ -60,11 +53,6 @@ extension Product: Codable {
         case name
         case description
         case sku
-        case price
-        case regularPrice = "regular_price"
-        case salePrice = "sale_price"
-        case costPrice = "cost_price"
-        case onSale = "on_sale"
         case imageUrl = "image_url"
         case featuredImage = "featured_image"
         case primaryCategoryId = "primary_category_id"
@@ -86,20 +74,13 @@ extension Product: Codable {
         description = try container.decodeIfPresent(String.self, forKey: .description)
         sku = try container.decodeIfPresent(String.self, forKey: .sku)
 
-        // Pricing - handle String, Double, or Decimal
-        price = Self.decodePrice(from: container, forKey: .price)
-        regularPrice = Self.decodePrice(from: container, forKey: .regularPrice)
-        salePrice = Self.decodePrice(from: container, forKey: .salePrice)
-        costPrice = Self.decodePrice(from: container, forKey: .costPrice)
-        onSale = try? container.decodeIfPresent(Bool.self, forKey: .onSale)
-
         imageUrl = try? container.decodeIfPresent(String.self, forKey: .imageUrl)
         featuredImage = try? container.decodeIfPresent(String.self, forKey: .featuredImage)
         primaryCategoryId = try? container.decodeIfPresent(UUID.self, forKey: .primaryCategoryId)
         pricingSchemaId = try? container.decodeIfPresent(UUID.self, forKey: .pricingSchemaId)
         stockQuantity = Self.decodeInt(from: container, forKey: .stockQuantity)
         customFields = try? container.decodeIfPresent([String: AnyCodable].self, forKey: .customFields)
-        pricingData = try? container.decodeIfPresent([String: AnyCodable].self, forKey: .pricingData)
+        pricingData = try? container.decodeIfPresent([AnyCodable].self, forKey: .pricingData)
 
         // Nested objects from joins
         primaryCategory = try? container.decodeIfPresent(ProductCategory.self, forKey: .primaryCategory)
@@ -111,22 +92,6 @@ extension Product: Codable {
         // PostgREST returns to-many relations as arrays
         inventoryArray = try? container.decodeIfPresent([ProductInventory].self, forKey: .inventory)
         inventory = inventoryArray?.first
-    }
-
-    private static func decodePrice(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) -> Decimal? {
-        // Try Decimal first
-        if let decimal = try? container.decodeIfPresent(Decimal.self, forKey: key) {
-            return decimal
-        }
-        // Try Double
-        if let double = try? container.decodeIfPresent(Double.self, forKey: key) {
-            return Decimal(double)
-        }
-        // Try String
-        if let string = try? container.decodeIfPresent(String.self, forKey: key) {
-            return Decimal(string: string)
-        }
-        return nil
     }
 
     private static func decodeInt(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) -> Int? {
@@ -153,11 +118,6 @@ extension Product: Codable {
         try container.encode(name, forKey: .name)
         try container.encodeIfPresent(description, forKey: .description)
         try container.encodeIfPresent(sku, forKey: .sku)
-        try container.encodeIfPresent(price, forKey: .price)
-        try container.encodeIfPresent(regularPrice, forKey: .regularPrice)
-        try container.encodeIfPresent(salePrice, forKey: .salePrice)
-        try container.encodeIfPresent(costPrice, forKey: .costPrice)
-        try container.encodeIfPresent(onSale, forKey: .onSale)
         try container.encodeIfPresent(imageUrl, forKey: .imageUrl)
         try container.encodeIfPresent(featuredImage, forKey: .featuredImage)
         try container.encodeIfPresent(primaryCategoryId, forKey: .primaryCategoryId)
@@ -174,11 +134,6 @@ extension Product: Codable {
         self.name = name
         self.description = nil
         self.sku = nil
-        self.price = nil
-        self.regularPrice = nil
-        self.salePrice = nil
-        self.costPrice = nil
-        self.onSale = nil
         self.imageUrl = nil
         self.featuredImage = nil
         self.primaryCategoryId = nil
@@ -200,16 +155,13 @@ extension Product: Codable {
         name: String,
         description: String? = nil,
         sku: String? = nil,
-        price: Decimal? = nil,
-        regularPrice: Decimal? = nil,
-        salePrice: Decimal? = nil,
-        onSale: Bool? = nil,
         featuredImage: String? = nil,
         customFields: [String: AnyCodable]? = nil,
-        pricingData: [String: AnyCodable]? = nil,
+        pricingData: [AnyCodable]? = nil,  // Array of pricing tiers
         storeId: UUID,
         primaryCategoryId: UUID? = nil,
         pricingSchemaId: UUID? = nil,
+        pricingSchema: PricingSchema? = nil,
         status: String? = nil
     ) {
         self.id = id
@@ -217,11 +169,6 @@ extension Product: Codable {
         self.name = name
         self.description = description
         self.sku = sku
-        self.price = price
-        self.regularPrice = regularPrice
-        self.salePrice = salePrice
-        self.costPrice = nil
-        self.onSale = onSale
         self.imageUrl = nil
         self.featuredImage = featuredImage
         self.primaryCategoryId = primaryCategoryId
@@ -230,7 +177,7 @@ extension Product: Codable {
         self.customFields = customFields
         self.pricingData = pricingData
         self.primaryCategory = nil
-        self.pricingSchema = nil
+        self.pricingSchema = pricingSchema
         self.coa = nil
         self.variants = nil
         self.inventory = nil
@@ -241,10 +188,15 @@ extension Product: Codable {
 // MARK: - Computed Properties
 
 extension Product {
-    /// Display price - calculated by backend (sale price if on sale, otherwise regular price)
-    /// Backend handles all pricing logic including template-based pricing
+    /// Display price - derived from first tier of pricing schema
+    /// All pricing is now tier-based - this returns the smallest/first tier price for display
     var displayPrice: Decimal {
-        price ?? 0
+        // Get first tier price from pricing schema (sorted by sort_order)
+        if let tiers = pricingSchema?.defaultTiers,
+           let firstTier = tiers.sorted(by: { ($0.sortOrder ?? 0) < ($1.sortOrder ?? 0) }).first {
+            return firstTier.defaultPrice
+        }
+        return 0
     }
 
     /// Check if product uses tiered pricing

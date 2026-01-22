@@ -1099,7 +1099,9 @@ private struct POSSettingsSheet: View {
         Button {
             Haptics.medium()
             dismiss()
-            NotificationCenter.default.post(name: .init("endPOSSession"), object: nil)
+            Task {
+                try? await session.signOut()
+            }
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "power")

@@ -168,10 +168,12 @@ enum CustomerService {
         do {
             let pendingStatuses = ["pending", "confirmed", "preparing", "packing", "packed", "ready", "ready_to_ship"]
 
+            // customerId is the relationship ID (from user_creation_relationships.id)
+            // orders.customer_id references user_creation_relationships.id
             let orders: [Order] = try await supabase
                 .from("orders")
                 .select("*, v_store_customers(first_name, last_name, email, phone), pickup_location:pickup_location_id(name)")
-                .eq("platform_user_id", value: customerId.uuidString)
+                .eq("customer_id", value: customerId.uuidString)
                 .in("status", values: pendingStatuses)
                 .order("created_at", ascending: false)
                 .limit(10)
@@ -189,10 +191,12 @@ enum CustomerService {
 
     static func fetchOrderHistory(for customerId: UUID, limit: Int = 10) async -> [Order] {
         do {
+            // customerId is the relationship ID (from user_creation_relationships.id)
+            // orders.customer_id references user_creation_relationships.id
             let orders: [Order] = try await supabase
                 .from("orders")
                 .select("*, v_store_customers(first_name, last_name, email, phone), pickup_location:pickup_location_id(name)")
-                .eq("platform_user_id", value: customerId.uuidString)
+                .eq("customer_id", value: customerId.uuidString)
                 .order("created_at", ascending: false)
                 .limit(limit)
                 .execute()

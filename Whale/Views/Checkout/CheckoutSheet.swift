@@ -49,9 +49,6 @@ struct CheckoutSheet: View {
     @State private var selectedItemForDiscount: CartItem?
     @State private var showDiscountSheet = false
 
-    // Animation
-    @State private var showContent = false
-
     enum CheckoutPhase { case checkout, processing, success }
 
     // MARK: - Accessors
@@ -84,16 +81,10 @@ struct CheckoutSheet: View {
             }
         }
         .frame(maxWidth: 580)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .task {
-            // Stagger animations like other sheets
-            try? await Task.sleep(nanoseconds: 100_000_000)
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                showContent = true
-            }
-        }
+        .preferredColorScheme(.dark)
         .onChange(of: paymentStore.uiState) { _, state in
             handlePaymentStateChange(state)
         }
@@ -342,44 +333,35 @@ struct CheckoutSheet: View {
             // Header
             sheetHeader
 
-            // Content
-            VStack(spacing: 12) {
-                // Items
-                itemsSection
-                    .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : 20)
+            // Scrollable content
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 12) {
+                    // Items
+                    itemsSection
 
-                // Totals
-                totalsSection
-                    .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : 20)
+                    // Totals
+                    totalsSection
 
-                // Loyalty
-                if hasLoyaltyPoints {
-                    loyaltySection
-                        .opacity(showContent ? 1 : 0)
-                        .offset(y: showContent ? 0 : 20)
+                    // Loyalty
+                    if hasLoyaltyPoints {
+                        loyaltySection
+                    }
+
+                    // Payment methods
+                    paymentMethodSection
+
+                    // Payment input
+                    paymentInputSection
                 }
-
-                // Payment methods
-                paymentMethodSection
-                    .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : 20)
-
-                // Payment input
-                paymentInputSection
-                    .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : 20)
-
-                Spacer(minLength: 16)
-
-                // Action
-                actionButton
-                    .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : 20)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
+            .scrollBounceBehavior(.basedOnSize)
+
+            // Action button pinned at bottom
+            actionButton
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
         }
     }
 
@@ -696,28 +678,39 @@ struct CheckoutSheet: View {
     // MARK: - Processing Content
 
     private var processingContent: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 0) {
             Spacer()
 
-            ProgressView()
-                .scaleEffect(1.5)
-                .tint(.accentColor)
+            VStack(spacing: 28) {
+                // Animated spinner
+                ZStack {
+                    Circle()
+                        .stroke(.white.opacity(0.1), lineWidth: 4)
+                        .frame(width: 80, height: 80)
 
-            VStack(spacing: 4) {
-                Text("Processing...")
-                    .font(.system(size: 17, weight: .semibold))
+                    ProgressView()
+                        .scaleEffect(1.8)
+                        .tint(.accentColor)
+                }
+
+                VStack(spacing: 6) {
+                    Text("Processing...")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Text(selectedPaymentMethod.label)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+
+                Text(CurrencyFormatter.format(displayTotal))
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
-                Text(selectedPaymentMethod.label)
-                    .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.5))
             }
 
-            Text(CurrencyFormatter.format(displayTotal))
-                .font(.system(size: 36, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-
+            Spacer()
             Spacer()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Success Content
@@ -725,39 +718,38 @@ struct CheckoutSheet: View {
     private var successContent: some View {
         VStack(spacing: 0) {
             // Header
-            VStack(spacing: 16) {
-                HStack(alignment: .center) {
-                    ModalCloseButton {
-                        onComplete(completedOrder)
-                        dismiss()
-                    }
-
-                    Spacer()
-
-                    VStack(spacing: 4) {
-                        Text(isInvoice ? "Invoice Sent" : "Payment Complete")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-
-                        if let orderNumber = completedOrder?.orderNumber {
-                            Text(orderNumber)
-                                .font(.system(size: 13, weight: .medium, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.4))
-                        }
-                    }
-
-                    Spacer()
-
-                    Color.clear.frame(width: 44, height: 44)
+            HStack(alignment: .center) {
+                ModalCloseButton {
+                    onComplete(completedOrder)
+                    dismiss()
                 }
+
+                Spacer()
+
+                VStack(spacing: 4) {
+                    Text(isInvoice ? "Invoice Sent" : "Payment Complete")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+
+                    if let orderNumber = completedOrder?.orderNumber {
+                        Text(orderNumber)
+                            .font(.system(size: 13, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+                }
+
+                Spacer()
+
+                Color.clear.frame(width: 44, height: 44)
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
             .padding(.bottom, 12)
 
-            VStack(spacing: 20) {
-                Spacer()
+            // Main content - fills space
+            Spacer()
 
+            VStack(spacing: 24) {
                 if autoPrintFailed {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -772,12 +764,12 @@ struct CheckoutSheet: View {
                 }
 
                 Image(systemName: isInvoice ? "paperplane.circle.fill" : "checkmark.circle.fill")
-                    .font(.system(size: 72))
+                    .font(.system(size: 80))
                     .foregroundStyle(isInvoice ? .blue : .green)
                     .symbolEffect(.bounce, value: checkoutPhase)
 
                 Text(CurrencyFormatter.format(completedOrder?.total ?? displayTotal))
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .font(.system(size: 44, weight: .bold, design: .rounded))
                     .foregroundStyle(isInvoice ? .blue : .green)
 
                 if isInvoice, let paymentUrl = completedOrder?.paymentUrl {
@@ -798,32 +790,34 @@ struct CheckoutSheet: View {
                         .frame(height: 48)
                     }
                     .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 40)
                 }
-
-                Spacer()
-
-                // Done button
-                Button {
-                    onComplete(completedOrder)
-                    dismiss()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text("Done")
-                            .font(.system(size: 16, weight: .semibold))
-                    }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(Color.green, in: RoundedRectangle(cornerRadius: 14))
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
             }
+
+            Spacer()
+            Spacer()
+
+            // Done button pinned at bottom
+            Button {
+                onComplete(completedOrder)
+                dismiss()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text("Done")
+                        .font(.system(size: 17, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(isInvoice ? Color.blue : Color.green, in: RoundedRectangle(cornerRadius: 14))
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var isInvoice: Bool {

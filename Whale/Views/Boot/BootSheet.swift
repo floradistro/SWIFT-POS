@@ -68,6 +68,18 @@ struct BootSheet: View {
                 onSessionReady()
             }
         }
+        .onChange(of: session.isAuthenticated) { _, isAuthenticated in
+            if !isAuthenticated {
+                // User signed out - go back to login
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    currentStep = .login
+                    showContent = true
+                }
+                withAnimation(.easeOut(duration: 0.3)) {
+                    contentOpacity = 1
+                }
+            }
+        }
     }
 
     // MARK: - Modal View

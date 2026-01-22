@@ -1112,16 +1112,19 @@ private struct CustomerSearchContent: View {
             dobFormatted = parsed
         }
 
+        // Use scanned ID data for address/license if available
+        let scanned = effectiveScannedID
+
         let customerData = NewCustomerFromScan(
             firstName: firstName.trimmingCharacters(in: .whitespaces),
-            middleName: nil,
+            middleName: scanned?.middleName,
             lastName: lastName.trimmingCharacters(in: .whitespaces),
             dateOfBirth: dobFormatted,
-            streetAddress: nil,
-            city: nil,
-            state: nil,
-            postalCode: nil,
-            driversLicenseNumber: nil
+            streetAddress: scanned?.streetAddress,
+            city: scanned?.city,
+            state: scanned?.state,
+            postalCode: scanned?.zipCode,
+            driversLicenseNumber: scanned?.licenseNumber
         )
 
         let phoneValue = phone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : phone

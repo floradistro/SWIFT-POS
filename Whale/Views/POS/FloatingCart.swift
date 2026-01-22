@@ -389,16 +389,21 @@ struct FloatingCart: View {
     private func handleCheckoutComplete(_ order: SaleCompletion?) {
         guard let cartId = selectedCartId else { return }
 
-        // Remove from backend queue
         Task {
+            // Remove from backend queue (this updates selectedCartId to next cart)
             await queueStore?.removeFromQueue(cartId: cartId)
-        }
 
-        // Clear local cart
-        if isMultiWindowSession, let ws = windowSession {
-            Task { await ws.clearCart() }
-        } else {
-            posStore.clearCart()
+            // Clear the completed cart from local store
+            if isMultiWindowSession, let ws = windowSession {
+                await ws.clearCart()
+            } else {
+                await MainActor.run { posStore.clearCart() }
+            }
+
+            // Load the next customer's cart if one is now selected
+            if let nextCartId = queueStore?.selectedCartId {
+                await loadAndSelectCart(cartId: nextCartId)
+            }
         }
     }
 }

@@ -28,10 +28,6 @@ enum ProductService {
                 name,
                 description,
                 sku,
-                price,
-                regular_price,
-                sale_price,
-                on_sale,
                 featured_image,
                 custom_fields,
                 pricing_data,
@@ -105,10 +101,6 @@ enum ProductService {
                 name,
                 description,
                 sku,
-                price,
-                regular_price,
-                sale_price,
-                on_sale,
                 featured_image,
                 custom_fields,
                 pricing_data,
@@ -152,10 +144,6 @@ enum ProductService {
                 name,
                 description,
                 sku,
-                price,
-                regular_price,
-                sale_price,
-                on_sale,
                 featured_image,
                 custom_fields,
                 pricing_data,
@@ -850,13 +838,9 @@ struct ProductWithInventoryRow: Codable {
     let name: String
     let description: String?
     let sku: String?
-    let price: Decimal?
-    let regularPrice: Decimal?
-    let salePrice: Decimal?
-    let onSale: Bool?
     let featuredImage: String?
     let customFields: [String: AnyCodable]?
-    let pricingData: [String: AnyCodable]?
+    let pricingData: [AnyCodable]?  // Array of pricing tiers from database
     let storeId: UUID
     let primaryCategoryId: UUID?
     let pricingSchemaId: UUID?
@@ -875,10 +859,7 @@ struct ProductWithInventoryRow: Codable {
     let pricingSchema: PricingSchemaJSON?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, description, sku, price, status
-        case regularPrice = "regular_price"
-        case salePrice = "sale_price"
-        case onSale = "on_sale"
+        case id, name, description, sku, status
         case featuredImage = "featured_image"
         case customFields = "custom_fields"
         case pricingData = "pricing_data"

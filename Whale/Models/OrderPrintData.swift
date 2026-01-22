@@ -70,7 +70,7 @@ struct ProductPrintData: Codable, Sendable, Identifiable {
     let sku: String?
     let featuredImage: String?
     let customFields: [String: AnyCodable]?
-    let pricingData: [String: AnyCodable]?
+    let pricingData: [AnyCodable]?  // Array of pricing tiers, not dictionary
     let storeId: UUID
     let primaryCategoryId: UUID?
     let status: String

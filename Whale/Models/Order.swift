@@ -309,9 +309,9 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         totalAmount = try container.decode(Decimal.self, forKey: .totalAmount)
         paymentMethod = try container.decodeIfPresent(String.self, forKey: .paymentMethod)
 
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
-        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
-        completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
+        createdAt = try Self.parseDate(from: container, forKey: .createdAt)
+        updatedAt = try Self.parseDate(from: container, forKey: .updatedAt)
+        completedAt = try Self.parseDateIfPresent(from: container, forKey: .completedAt)
 
         shippingName = try container.decodeIfPresent(String.self, forKey: .shippingName)
         shippingAddressLine1 = try container.decodeIfPresent(String.self, forKey: .shippingAddressLine1)
@@ -352,6 +352,44 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
             return UUID(uuidString: uuidString)
         }
         return nil
+    }
+
+    // Helper to parse Postgres timestamps (with timezone offset like -05:00)
+    private static func parseDate(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Date {
+        // Try decoding as Date first (if decoder has date strategy configured)
+        if let date = try? container.decode(Date.self, forKey: key) {
+            return date
+        }
+
+        // Fallback: decode as string and parse manually
+        let dateString = try container.decode(String.self, forKey: key)
+        return parseISO8601Date(dateString) ?? Date()
+    }
+
+    // Helper to parse optional Postgres timestamps
+    private static func parseDateIfPresent(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Date? {
+        // Try decoding as Date first
+        if let date = try? container.decodeIfPresent(Date.self, forKey: key) {
+            return date
+        }
+
+        // Fallback: decode as string and parse
+        guard let dateString = try container.decodeIfPresent(String.self, forKey: key) else {
+            return nil
+        }
+        return parseISO8601Date(dateString)
+    }
+
+    // Shared ISO8601 date parser
+    private static func parseISO8601Date(_ dateString: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: dateString) {
+            return date
+        }
+
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: dateString)
     }
 
     // Memberwise initializer for programmatic creation

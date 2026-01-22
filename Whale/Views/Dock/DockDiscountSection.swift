@@ -125,146 +125,70 @@ struct DockDiscountSection: View {
     // MARK: - Loyalty Slider
 
     private func loyaltySliderSection(customer: Customer) -> some View {
-        VStack(spacing: 12) {
-            // Header row
-            HStack {
-                // Points info
-                HStack(spacing: 8) {
-                    Image(systemName: "star.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(tierColor(for: customer))
+        VStack(spacing: 8) {
+            // Points info row
+            HStack(spacing: 0) {
+                // Available balance
+                HStack(spacing: 4) {
+                    Text("Balance")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.4))
 
-                    Text("\(customer.formattedLoyaltyPoints) pts")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
+                    Text("\(customer.loyaltyPoints ?? 0)")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.7))
                 }
 
                 Spacer()
 
-                // Current redemption value
+                // Redeeming (center)
                 if pointsToRedeem > 0 {
-                    Text("-\(CurrencyFormatter.format(loyaltyDiscount))")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(Design.Colors.Semantic.success)
-                        .contentTransition(.numericText())
-                }
-            }
+                    HStack(spacing: 4) {
+                        Text("Using")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.4))
 
-            // Native iOS Slider
-            if maxRedeemablePoints > 0 {
-                VStack(spacing: 8) {
-                    // Slider with manual labels for better rendering
-                    HStack(spacing: 12) {
-                        Text("0")
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.5))
-                            .frame(width: 24, alignment: .trailing)
-
-                        Slider(
-                            value: Binding(
-                                get: { Double(pointsToRedeem) },
-                                set: { pointsToRedeem = Int($0) }
-                            ),
-                            in: 0...Double(maxRedeemablePoints),
-                            step: 1
-                        )
-                        .tint(tierColor(for: customer))
-
-                        Text("\(maxRedeemablePoints)")
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.5))
-                            .frame(width: 40, alignment: .leading)
-                    }
-
-                    // Quick action buttons
-                    HStack(spacing: 8) {
-                        QuickPointsButton(
-                            title: "None",
-                            isSelected: pointsToRedeem == 0,
-                            color: tierColor(for: customer)
-                        ) {
-                            withAnimation(.spring(response: 0.3)) {
-                                pointsToRedeem = 0
-                            }
-                            Haptics.light()
-                        }
-
-                        QuickPointsButton(
-                            title: "Half",
-                            isSelected: pointsToRedeem == maxRedeemablePoints / 2,
-                            color: tierColor(for: customer)
-                        ) {
-                            withAnimation(.spring(response: 0.3)) {
-                                pointsToRedeem = maxRedeemablePoints / 2
-                            }
-                            Haptics.light()
-                        }
-
-                        QuickPointsButton(
-                            title: "All",
-                            isSelected: pointsToRedeem == maxRedeemablePoints,
-                            color: tierColor(for: customer)
-                        ) {
-                            withAnimation(.spring(response: 0.3)) {
-                                pointsToRedeem = maxRedeemablePoints
-                            }
-                            Haptics.light()
-                        }
-
-                        Spacer()
-
-                        // Points being used
-                        Text("\(pointsToRedeem) pts")
+                        Text("\(pointsToRedeem)")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundStyle(tierColor(for: customer))
+                            .foregroundStyle(.white)
                             .contentTransition(.numericText())
                     }
+
+                    Spacer()
+                }
+
+                // Remaining or discount
+                if pointsToRedeem > 0 {
+                    HStack(spacing: 4) {
+                        Text("-\(CurrencyFormatter.format(loyaltyDiscount))")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .contentTransition(.numericText())
+                    }
+                } else {
+                    Text("pts")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.4))
                 }
             }
-        }
-        .padding(12)
-        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
-    }
 
-    // MARK: - Helpers
-
-    private func tierColor(for customer: Customer) -> Color {
-        switch customer.loyaltyTier?.lowercased() {
-        case "gold": return Color(red: 255/255, green: 215/255, blue: 0/255)
-        case "platinum": return Color(red: 180/255, green: 180/255, blue: 200/255)
-        case "diamond": return Color(red: 185/255, green: 242/255, blue: 255/255)
-        default: return Design.Colors.Semantic.accent
-        }
-    }
-}
-
-// MARK: - Quick Points Button
-
-private struct QuickPointsButton: View {
-    let title: String
-    let isSelected: Bool
-    let color: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? color.opacity(0.4) : Color.white.opacity(0.1))
+            // Slider
+            if maxRedeemablePoints > 0 {
+                Slider(
+                    value: Binding(
+                        get: { Double(pointsToRedeem) },
+                        set: { pointsToRedeem = Int($0) }
+                    ),
+                    in: 0...Double(maxRedeemablePoints),
+                    step: 1
                 )
-                .overlay(
-                    Capsule()
-                        .strokeBorder(isSelected ? color.opacity(0.6) : Color.clear, lineWidth: 1)
-                )
-                .contentShape(Capsule())
+                .tint(.white.opacity(0.7))
+            }
         }
-        .buttonStyle(ScaleButtonStyle())
+        .padding(10)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
     }
+
 }
 
 // MARK: - Deal Pill
@@ -325,37 +249,38 @@ struct DealPill: View {
         Color.black.ignoresSafeArea()
 
         VStack(spacing: 20) {
+            // Preview with points
             DockDiscountSection(
                 customer: Customer(
                     id: UUID(),
                     platformUserId: UUID(),
                     storeId: UUID(),
-                    firstName: "John",
+                    firstName: "Fahad",
                     middleName: nil,
-                    lastName: "Smith",
-                    email: "john@example.com",
-                    phone: "5551234567",
+                    lastName: "Khan",
+                    email: "fahad@cwscommercial.com",
+                    phone: "8283204633",
                     dateOfBirth: "1990-01-15",
                     avatarUrl: nil,
-                    streetAddress: "123 Main St",
-                    city: "Denver",
-                    state: "CO",
-                    postalCode: "80202",
-                    driversLicenseNumber: "123456789",
+                    streetAddress: "310 Ogdon Dr",
+                    city: "Hendersonville",
+                    state: "NC",
+                    postalCode: "287925861",
+                    driversLicenseNumber: "000038472511",
                     idVerified: true,
                     isActive: true,
-                    loyaltyPoints: 1500,
-                    loyaltyTier: "gold",
-                    totalSpent: Decimal(2500),
-                    totalOrders: 25,
-                    lifetimeValue: Decimal(2500),
-                    emailConsent: true,
-                    smsConsent: true,
+                    loyaltyPoints: 25000,
+                    loyaltyTier: "bronze",
+                    totalSpent: Decimal(24218.56),
+                    totalOrders: 726,
+                    lifetimeValue: Decimal(24218.56),
+                    emailConsent: false,
+                    smsConsent: false,
                     createdAt: Date(),
                     updatedAt: Date()
                 ),
-                subtotal: Decimal(85.50),
-                pointsToRedeem: .constant(500),
+                subtotal: Decimal(100.00),
+                pointsToRedeem: .constant(0),
                 pointValue: Decimal(0.01),
                 dealStore: DealStore.shared
             )

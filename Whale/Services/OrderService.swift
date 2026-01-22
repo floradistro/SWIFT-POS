@@ -412,6 +412,11 @@ enum OrderService {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
 
+        // DEBUG: Log raw JSON response
+        if let jsonString = String(data: response.data, encoding: .utf8) {
+            print("🏷️ RPC raw response: \(jsonString.prefix(500))")
+        }
+
         // Check for error response
         struct ErrorResponse: Decodable {
             let error: String?
@@ -423,9 +428,27 @@ enum OrderService {
             return nil
         }
 
-        let result = try decoder.decode(OrderPrintData.self, from: response.data)
-        Log.network.info("✅ Fetched order for printing with \(result.items.count) items")
-
-        return result
+        do {
+            let result = try decoder.decode(OrderPrintData.self, from: response.data)
+            Log.network.info("✅ Fetched order for printing with \(result.items.count) items")
+            return result
+        } catch {
+            print("🏷️ Decoding error: \(error)")
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("🏷️ Missing key: \(key.stringValue) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                case .typeMismatch(let type, let context):
+                    print("🏷️ Type mismatch for type: \(type) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                case .valueNotFound(let type, let context):
+                    print("🏷️ Value not found for type: \(type) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                case .dataCorrupted(let context):
+                    print("🏷️ Data corrupted at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                @unknown default:
+                    print("🏷️ Unknown decoding error: \(error)")
+                }
+            }
+            throw error
+        }
     }
 }
