@@ -40,16 +40,44 @@ enum AdjustmentType: String, CaseIterable, Sendable {
 
 struct AdjustmentResult: Codable, Sendable {
     let adjustmentId: UUID
+    let inventoryId: UUID?
     let quantityBefore: Double
     let quantityAfter: Double
+    let quantityChange: Double?
     let productTotalStock: Double
 
     enum CodingKeys: String, CodingKey {
         case adjustmentId = "adjustment_id"
+        case inventoryId = "inventory_id"
         case quantityBefore = "quantity_before"
         case quantityAfter = "quantity_after"
+        case quantityChange = "quantity_change"
         case productTotalStock = "product_total_stock"
     }
+}
+
+// MARK: - RPC Parameters
+
+private nonisolated(unsafe) struct AdjustmentParams: Encodable, Sendable {
+    nonisolated let p_store_id: String
+    nonisolated let p_product_id: String
+    nonisolated let p_location_id: String
+    nonisolated let p_adjustment_type: String
+    nonisolated let p_quantity_change: Double
+    nonisolated let p_reason: String
+    nonisolated let p_notes: String?
+    nonisolated let p_created_by: String?
+    nonisolated let p_idempotency_key: String
+    nonisolated let p_set_absolute: Double?
+}
+
+private nonisolated(unsafe) struct ConversionParams: Encodable, Sendable {
+    nonisolated let p_product_id: String
+    nonisolated let p_variant_template_id: String
+    nonisolated let p_location_id: String
+    nonisolated let p_parent_quantity_to_convert: Double
+    nonisolated let p_notes: String
+    nonisolated let p_performed_by_user_id: String?
 }
 
 // MARK: - Inventory Service
@@ -74,49 +102,38 @@ enum InventoryService {
         let quantityChange = newQuantity - currentQuantity
 
         // Generate idempotency key
-        let idempotencyKey = "adj-\(productId.uuidString)-\(Date().timeIntervalSince1970)-\(UUID().uuidString.prefix(8))"
+        let idempotencyKey = "adj-\(productId.uuidString)-\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString.prefix(8))"
 
-        // Get current user
-        let session = try await supabase.auth.session
-        let userId = session.user.id.uuidString
-
-        // Build JSON payload for RPC
-        let payload: [String: Any] = [
-            "p_store_id": storeId.uuidString,
-            "p_product_id": productId.uuidString,
-            "p_location_id": locationId.uuidString,
-            "p_adjustment_type": adjustmentType.rawValue,
-            "p_quantity_change": quantityChange,
-            "p_reason": reason,
-            "p_notes": notes as Any,
-            "p_created_by": userId,
-            "p_idempotency_key": idempotencyKey
-        ]
-
-        // Make raw POST to RPC endpoint
-        let rpcUrl = SupabaseConfig.url.appendingPathComponent("rest/v1/rpc/process_inventory_adjustment")
-
-        var request = URLRequest(url: rpcUrl)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw InventoryError.invalidResponse
+        // Get current user ID (optional - audit still works without it)
+        var userId: String? = nil
+        do {
+            let session = try await supabase.auth.session
+            userId = session.user.id.uuidString
+        } catch {
+            Log.network.warning("⚠️ Could not get user session for audit attribution: \(error.localizedDescription)")
         }
 
-        if httpResponse.statusCode != 200 {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            Log.network.error("❌ RPC failed (\(httpResponse.statusCode)): \(errorMessage)")
-            throw InventoryError.rpcFailed(statusCode: httpResponse.statusCode, message: errorMessage)
-        }
+        // Build RPC parameters
+        let params = AdjustmentParams(
+            p_store_id: storeId.uuidString,
+            p_product_id: productId.uuidString,
+            p_location_id: locationId.uuidString,
+            p_adjustment_type: adjustmentType.rawValue,
+            p_quantity_change: quantityChange,
+            p_reason: reason,
+            p_notes: notes,
+            p_created_by: userId,
+            p_idempotency_key: idempotencyKey,
+            p_set_absolute: nil
+        )
 
-        let results = try JSONDecoder().decode([AdjustmentResult].self, from: data)
+        // Call RPC via Supabase SDK
+        let response = try await supabase
+            .rpc("process_inventory_adjustment", params: params)
+            .execute()
+
+        // Decode result
+        let results = try JSONDecoder().decode([AdjustmentResult].self, from: response.data)
 
         guard let result = results.first else {
             throw InventoryError.noResult
@@ -163,47 +180,37 @@ enum InventoryService {
     ) async throws -> AdjustmentResult {
         Log.network.info("📦 Creating absolute inventory adjustment for product: \(productId.uuidString) -> \(absoluteQuantity)")
 
-        let idempotencyKey = "adj-\(productId.uuidString)-\(Date().timeIntervalSince1970)-\(UUID().uuidString.prefix(8))"
-        let session = try await supabase.auth.session
-        let userId = session.user.id.uuidString
+        let idempotencyKey = "adj-\(productId.uuidString)-\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString.prefix(8))"
 
-        // Pass p_set_absolute for race-condition-safe absolute value setting
-        let payload: [String: Any] = [
-            "p_store_id": storeId.uuidString,
-            "p_product_id": productId.uuidString,
-            "p_location_id": locationId.uuidString,
-            "p_adjustment_type": adjustmentType.rawValue,
-            "p_quantity_change": 0,  // Ignored when p_set_absolute is provided
-            "p_reason": reason,
-            "p_notes": notes as Any,
-            "p_created_by": userId,
-            "p_idempotency_key": idempotencyKey,
-            "p_set_absolute": absoluteQuantity  // NEW: Set exact value, ignore delta
-        ]
-
-        let rpcUrl = SupabaseConfig.url.appendingPathComponent("rest/v1/rpc/process_inventory_adjustment")
-
-        var request = URLRequest(url: rpcUrl)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw InventoryError.invalidResponse
+        // Get current user ID (optional)
+        var userId: String? = nil
+        do {
+            let session = try await supabase.auth.session
+            userId = session.user.id.uuidString
+        } catch {
+            Log.network.warning("⚠️ Could not get user session for audit attribution")
         }
 
-        if httpResponse.statusCode != 200 {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            Log.network.error("❌ RPC failed (\(httpResponse.statusCode)): \(errorMessage)")
-            throw InventoryError.rpcFailed(statusCode: httpResponse.statusCode, message: errorMessage)
-        }
+        // Build params with p_set_absolute for race-condition-safe absolute value setting
+        let params = AdjustmentParams(
+            p_store_id: storeId.uuidString,
+            p_product_id: productId.uuidString,
+            p_location_id: locationId.uuidString,
+            p_adjustment_type: adjustmentType.rawValue,
+            p_quantity_change: 0,  // Ignored when p_set_absolute is provided
+            p_reason: reason,
+            p_notes: notes,
+            p_created_by: userId,
+            p_idempotency_key: idempotencyKey,
+            p_set_absolute: absoluteQuantity
+        )
 
-        let results = try JSONDecoder().decode([AdjustmentResult].self, from: data)
+        // Call RPC via Supabase SDK
+        let response = try await supabase
+            .rpc("process_inventory_adjustment", params: params)
+            .execute()
+
+        let results = try JSONDecoder().decode([AdjustmentResult].self, from: response.data)
 
         guard let result = results.first else {
             throw InventoryError.noResult
@@ -259,44 +266,31 @@ enum InventoryService {
 
         Log.network.info("🔄 Converting \(parentQuantityToConvert)\(variant.conversionUnit ?? "g") → \(unitsToCreate) \(variant.variantName)")
 
-        // Get current user
-        let session = try await supabase.auth.session
-        let userId = session.user.id.uuidString
-
-        // Build payload for RPC - using correct parameter names
-        let payload: [String: Any] = [
-            "p_product_id": product.id.uuidString,
-            "p_variant_template_id": variant.variantTemplateId.uuidString,
-            "p_location_id": locationId.uuidString,
-            "p_parent_quantity_to_convert": parentQuantityToConvert,
-            "p_notes": "Converted via POS",
-            "p_performed_by_user_id": userId
-        ]
-
-        // Make raw POST to RPC endpoint
-        let rpcUrl = SupabaseConfig.url.appendingPathComponent("rest/v1/rpc/convert_parent_to_variant_inventory")
-
-        var request = URLRequest(url: rpcUrl)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw InventoryError.invalidResponse
+        // Get current user (optional)
+        var userId: String? = nil
+        do {
+            let session = try await supabase.auth.session
+            userId = session.user.id.uuidString
+        } catch {
+            Log.network.warning("⚠️ Could not get user session for conversion attribution")
         }
 
-        if httpResponse.statusCode != 200 {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            Log.network.error("❌ Conversion RPC failed (\(httpResponse.statusCode)): \(errorMessage)")
-            throw InventoryError.rpcFailed(statusCode: httpResponse.statusCode, message: errorMessage)
-        }
+        // Build params
+        let params = ConversionParams(
+            p_product_id: product.id.uuidString,
+            p_variant_template_id: variant.variantTemplateId.uuidString,
+            p_location_id: locationId.uuidString,
+            p_parent_quantity_to_convert: parentQuantityToConvert,
+            p_notes: "Converted via POS",
+            p_performed_by_user_id: userId
+        )
 
-        let results = try JSONDecoder().decode([ConversionResult].self, from: data)
+        // Call RPC via Supabase SDK
+        let response = try await supabase
+            .rpc("convert_parent_to_variant_inventory", params: params)
+            .execute()
+
+        let results = try JSONDecoder().decode([ConversionResult].self, from: response.data)
 
         guard let result = results.first else {
             throw InventoryError.noResult

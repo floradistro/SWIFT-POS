@@ -437,53 +437,7 @@ struct CheckoutSheet: View {
     private var itemsSection: some View {
         VStack(spacing: 0) {
             ForEach(Array(cartItems.prefix(5).enumerated()), id: \.element.id) { index, item in
-                HStack(spacing: 10) {
-                    Text("\(item.quantity)×")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.4))
-                        .frame(width: 24, alignment: .leading)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.productName)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-
-                        // Show discount badge if item has discount
-                        if item.discountAmount > 0 {
-                            Text("-\(CurrencyFormatter.format(item.discountAmount))")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(.green)
-                        }
-                    }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(CurrencyFormatter.format(item.lineTotal))
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.6))
-
-                        // Show original price if discounted
-                        if item.discountAmount > 0 {
-                            Text(CurrencyFormatter.format(item.originalLineTotal))
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.3))
-                                .strikethrough()
-                        }
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .contentShape(Rectangle())
-                .onLongPressGesture {
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
-                    selectedItemForDiscount = item
-                    withAnimation(.spring(response: 0.3)) {
-                        showDiscountSheet = true
-                    }
-                }
+                itemRow(item: item, index: index)
             }
 
             if cartItems.count > 5 {
@@ -496,6 +450,110 @@ struct CheckoutSheet: View {
             }
         }
         .glassEffect(.regular, in: .rect(cornerRadius: 14))
+    }
+
+    private func itemRow(item: CartItem, index: Int) -> some View {
+        HStack(spacing: 10) {
+            Text("\(item.quantity)×")
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.4))
+                .frame(width: 24, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.productName)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+
+                // Show discount badge if item has discount
+                if item.discountAmount > 0 {
+                    Text("-\(CurrencyFormatter.format(item.discountAmount))")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.green)
+                }
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(CurrencyFormatter.format(item.lineTotal))
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.6))
+
+                // Show original price if discounted
+                if item.discountAmount > 0 {
+                    Text(CurrencyFormatter.format(item.originalLineTotal))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.3))
+                        .strikethrough()
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
+        .onLongPressGesture(minimumDuration: 0.4, maximumDistance: 10) {
+            Haptics.medium()
+            selectedItemForDiscount = item
+            withAnimation(.spring(response: 0.3)) {
+                showDiscountSheet = true
+            }
+        }
+        .contextMenu {
+            // Percentage discounts
+            Menu {
+                ForEach([5, 10, 15, 20, 25, 30, 50], id: \.self) { percent in
+                    Button {
+                        Task {
+                            await applyDiscount(itemId: item.id, type: .percentage, value: Decimal(percent))
+                        }
+                    } label: {
+                        Label("\(percent)% off", systemImage: "percent")
+                    }
+                }
+            } label: {
+                Label("Percentage Off", systemImage: "percent")
+            }
+
+            // Fixed amount discounts
+            Menu {
+                ForEach([1, 2, 5, 10, 20], id: \.self) { amount in
+                    Button {
+                        Task {
+                            await applyDiscount(itemId: item.id, type: .fixed, value: Decimal(amount))
+                        }
+                    } label: {
+                        Label("$\(amount) off", systemImage: "dollarsign")
+                    }
+                }
+            } label: {
+                Label("Amount Off", systemImage: "dollarsign.circle")
+            }
+
+            // Custom price
+            Button {
+                selectedItemForDiscount = item
+                showDiscountInput(type: .customPrice)
+            } label: {
+                Label("Set Custom Price", systemImage: "dollarsign.square")
+            }
+
+            // Remove discount (if exists)
+            if item.discountAmount > 0 {
+                Divider()
+                Button(role: .destructive) {
+                    Task {
+                        if isMultiWindowSession {
+                            await windowSession?.applyManualDiscount(itemId: item.id, type: .fixed, value: 0)
+                        } else {
+                            posStore.removeManualDiscount(itemId: item.id)
+                        }
+                    }
+                } label: {
+                    Label("Remove Discount", systemImage: "xmark.circle")
+                }
+            }
+        }
     }
 
     // MARK: - Totals Section
