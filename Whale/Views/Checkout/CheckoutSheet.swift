@@ -16,6 +16,7 @@ struct CheckoutSheet: View {
     @ObservedObject var dealStore: DealStore
     let totals: CheckoutTotals
     let sessionInfo: SessionInfo
+    let loyaltyProgram: LoyaltyProgram?  // Store's loyalty program settings
 
     var onScanID: () -> Void
     var onComplete: (SaleCompletion?) -> Void
@@ -58,7 +59,22 @@ struct CheckoutSheet: View {
     private var selectedCustomer: Customer? { isMultiWindowSession ? windowSession?.selectedCustomer : posStore.selectedCustomer }
 
     private var hasLoyaltyPoints: Bool { (selectedCustomer?.loyaltyPoints ?? 0) > 0 }
-    private var calculatedLoyaltyDiscount: Decimal { Decimal(pointsToRedeem) * Decimal(string: "0.01")! }
+
+    /// Point value from loyalty program (defaults to $0.05 per point)
+    private var pointValue: Decimal { loyaltyProgram?.pointValue ?? Decimal(string: "0.05")! }
+
+    /// Calculate loyalty discount based on actual point value from settings
+    private var calculatedLoyaltyDiscount: Decimal { Decimal(pointsToRedeem) * pointValue }
+
+    /// Max points that can be redeemed (capped at order total)
+    private var maxRedeemablePoints: Int {
+        let availablePoints = selectedCustomer?.loyaltyPoints ?? 0
+        guard pointValue > 0 else { return 0 }
+        // Max points = order total / point value (e.g., $5.33 / $0.05 = 106 points max)
+        let maxByTotal = Int(truncating: (totals.total / pointValue) as NSDecimalNumber)
+        return min(availablePoints, maxByTotal)
+    }
+
     private var displayTotal: Decimal { totals.total - calculatedLoyaltyDiscount }
     private var hasLoyaltyDiscount: Bool { pointsToRedeem > 0 }
 
@@ -80,7 +96,6 @@ struct CheckoutSheet: View {
             case .success: successContent
             }
         }
-        .frame(maxWidth: 580)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
@@ -542,47 +557,91 @@ struct CheckoutSheet: View {
     // MARK: - Loyalty Section
 
     private var loyaltySection: some View {
-        VStack(spacing: 0) {
-            HStack {
+        VStack(spacing: 12) {
+            // Header row
+            HStack(alignment: .center) {
+                // Star icon
                 Image(systemName: "star.fill")
-                    .font(.system(size: 14))
+                    .font(.system(size: 16))
                     .foregroundStyle(.yellow)
-                Text("\(selectedCustomer?.loyaltyPoints ?? 0) points available")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Loyalty Points")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+
+                    Text("\(selectedCustomer?.loyaltyPoints ?? 0) available • \(CurrencyFormatter.format(pointValue)) each")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+
                 Spacer()
+
+                // Discount badge - only shown when redeeming
                 if hasLoyaltyDiscount {
                     Text("-\(CurrencyFormatter.format(calculatedLoyaltyDiscount))")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(.green)
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 14)
-            .padding(.bottom, 8)
 
-            Slider(
-                value: Binding(
-                    get: { Double(pointsToRedeem) },
-                    set: { pointsToRedeem = Int($0) }
-                ),
-                in: 0...Double(min(selectedCustomer?.loyaltyPoints ?? 0, Int(truncating: (totals.total * 100) as NSDecimalNumber))),
-                step: 10
-            )
-            .tint(.yellow)
-            .padding(.horizontal, 14)
-            .padding(.bottom, 14)
+            // Slider with labels
+            VStack(spacing: 6) {
+                Slider(
+                    value: Binding(
+                        get: { Double(pointsToRedeem) },
+                        set: { newValue in
+                            withAnimation(.interactiveSpring(response: 0.2, dampingFraction: 0.8)) {
+                                pointsToRedeem = Int(newValue)
+                            }
+                        }
+                    ),
+                    in: 0...Double(max(maxRedeemablePoints, 1)),
+                    step: 10
+                )
+                .tint(.yellow)
+
+                // Labels under slider
+                HStack {
+                    Text("0")
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.3))
+
+                    Spacer()
+
+                    // Current value - centered and prominent
+                    if pointsToRedeem > 0 {
+                        Text("\(pointsToRedeem) pts")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundStyle(.yellow)
+                    } else {
+                        Text("Slide to redeem")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.35))
+                    }
+
+                    Spacer()
+
+                    Text("\(maxRedeemablePoints)")
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.3))
+                }
+            }
         }
+        .padding(14)
         .glassEffect(.regular, in: .rect(cornerRadius: 14))
     }
 
     // MARK: - Payment Method Section
 
     private var paymentMethodSection: some View {
-        HStack(spacing: 8) {
-            ForEach([DockPaymentMethod.card, .cash, .split, .multiCard, .invoice], id: \.self) { method in
-                paymentMethodButton(method)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach([DockPaymentMethod.card, .cash, .split, .multiCard, .invoice], id: \.self) { method in
+                    paymentMethodButton(method)
+                }
             }
+            .padding(.horizontal, 2)
         }
     }
 
@@ -595,30 +654,29 @@ struct CheckoutSheet: View {
                 selectedPaymentMethod = method
             }
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 Image(systemName: method.icon)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 18, weight: .medium))
                 Text(method.label)
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
             }
-            .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
+            .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
+            .frame(width: 72, height: 56)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 14)
                         .fill(Color.white.opacity(0.15))
                 }
             }
-            .glassEffect(.regular, in: .rect(cornerRadius: 12))
+            .glassEffect(.regular, in: .rect(cornerRadius: 14))
             .overlay {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 14)
                         .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScaleButtonStyle())
     }
 
     // MARK: - Payment Input
@@ -990,23 +1048,22 @@ struct CheckoutSheet: View {
 
         Task {
             do {
-                // Fetch order directly from database instead of waiting for OrderStore
-                // This is more reliable since OrderStore may not have received the realtime update yet
-                print("🏷️ Fetching order from database: \(orderId.uuidString)")
-
                 guard let order = try await OrderService.fetchOrder(orderId: orderId) else {
-                    print("🏷️ Order not found in database: \(orderId.uuidString)")
-                    await MainActor.run { autoPrintFailed = true }
+                    await MainActor.run {
+                        autoPrintFailed = true
+                        errorMessage = "Print failed: Order not found in database"
+                        showErrorAlert = true
+                    }
                     return
                 }
 
-                print("🏷️ Order fetched successfully: \(order.orderNumber)")
-                print("🏷️ Calling LabelPrinterManager.printOrder...")
                 try await LabelPrinterManager.shared.printOrder(order)
-                print("🏷️ Print completed successfully")
             } catch {
-                print("🏷️ Print error: \(error.localizedDescription)")
-                await MainActor.run { autoPrintFailed = true }
+                await MainActor.run {
+                    autoPrintFailed = true
+                    errorMessage = "Print failed: \(error.localizedDescription)"
+                    showErrorAlert = true
+                }
             }
         }
     }

@@ -252,7 +252,8 @@ actor DejavooClient: PaymentTerminal {
 
     /// Lightweight ping to verify API connectivity (does NOT touch terminal)
     func ping() async throws -> Bool {
-        let url = URL(string: "\(config.environment.baseURL)/v2/Payment/Sale")!
+        let base = config.environment.baseURL
+        let url = URL(string: "\(base)/v2/Payment/Sale")!
 
         var request = URLRequest(url: url)
         request.httpMethod = "OPTIONS"
@@ -306,7 +307,8 @@ actor DejavooClient: PaymentTerminal {
     // MARK: - Private Methods
 
     private func makeRequest(endpoint: String, payload: [String: Any]) async throws -> DejavooTransactionResponse {
-        let url = URL(string: "\(config.environment.baseURL)/\(endpoint)")!
+        let base = config.environment.baseURL
+        let url = URL(string: "\(base)/\(endpoint)")!
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"

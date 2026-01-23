@@ -845,14 +845,14 @@ private struct StartShiftContent: View {
                             openingAmount = amount
                         } label: {
                             Text("$\(amount)")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(openingAmount == amount ? .white : .white.opacity(0.6))
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 38)
-                                .contentShape(RoundedRectangle(cornerRadius: 10))
+                                .frame(height: 44)
+                                .contentShape(RoundedRectangle(cornerRadius: 12))
                         }
                         .buttonStyle(ScaleButtonStyle())
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 10))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
                     }
                 }
             }
@@ -1637,14 +1637,14 @@ struct BootSafeDropSheet: View {
                             amount = quickAmount
                         } label: {
                             Text("$\(quickAmount)")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(amount == quickAmount ? .white : .white.opacity(0.6))
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 38)
-                                .contentShape(RoundedRectangle(cornerRadius: 10))
+                                .frame(height: 44)
+                                .contentShape(RoundedRectangle(cornerRadius: 12))
                         }
                         .buttonStyle(ScaleButtonStyle())
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 10))
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
                     }
                 }
 

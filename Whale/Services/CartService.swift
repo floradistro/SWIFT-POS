@@ -15,7 +15,7 @@ import Foundation
 
 // MARK: - Cart Models (from server)
 
-struct ServerCart: Codable, Identifiable {
+struct ServerCart: Codable, Identifiable, Sendable {
     let id: UUID
     let storeId: UUID
     let locationId: UUID
@@ -43,7 +43,7 @@ struct ServerCart: Codable, Identifiable {
     }
 }
 
-struct ServerCartItem: Codable, Identifiable {
+struct ServerCartItem: Codable, Identifiable, Sendable {
     let id: UUID
     let productId: UUID
     let productName: String
@@ -90,7 +90,7 @@ struct ServerCartItem: Codable, Identifiable {
     }
 }
 
-struct TaxBreakdownItem: Codable {
+struct TaxBreakdownItem: Codable, Sendable {
     let name: String?
     let rate: Decimal?
     let amount: Decimal?
@@ -105,7 +105,7 @@ struct TaxBreakdownItem: Codable {
         case taxAmount = "tax_amount"
     }
 
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         // Try both formats
         name = try container.decodeIfPresent(String.self, forKey: .name)
@@ -116,7 +116,7 @@ struct TaxBreakdownItem: Codable {
             ?? container.decodeIfPresent(Decimal.self, forKey: .taxAmount)
     }
 
-    func encode(to encoder: Encoder) throws {
+    nonisolated func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(name, forKey: .name)
         try container.encodeIfPresent(rate, forKey: .rate)
@@ -124,7 +124,7 @@ struct TaxBreakdownItem: Codable {
     }
 }
 
-struct CheckoutTotals: Codable {
+struct CheckoutTotals: Codable, Sendable {
     let subtotal: Decimal
     let discountAmount: Decimal
     let taxableAmount: Decimal
@@ -354,7 +354,7 @@ actor CartService {
 
     // MARK: - HTTP Helpers
 
-    private func post<T: Decodable>(_ path: String, body: [String: Any]) async throws -> T {
+    private func post<T: Decodable & Sendable>(_ path: String, body: [String: Any]) async throws -> T {
         let url = baseURL.appendingPathComponent(path)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -391,13 +391,13 @@ actor CartService {
 
 // MARK: - Response Types
 
-private struct CartResponse: Decodable {
+private struct CartResponse: Decodable, Sendable {
     let success: Bool
     let data: ServerCart?
     let error: String?
 
     // Custom decoder to handle backend returning partial data (just totals) when no cart exists
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         success = try container.decode(Bool.self, forKey: .success)
         error = try container.decodeIfPresent(String.self, forKey: .error)
@@ -426,13 +426,26 @@ private struct CartResponse: Decodable {
     }
 }
 
-private struct CheckoutResponse: Decodable {
+private struct CheckoutResponse: Sendable {
     let success: Bool
     let data: CheckoutData?
     let error: String?
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        success = try container.decode(Bool.self, forKey: .success)
+        data = try container.decodeIfPresent(CheckoutData.self, forKey: .data)
+        error = try container.decodeIfPresent(String.self, forKey: .error)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case success, data, error
+    }
 }
 
-private struct CheckoutData: Decodable {
+extension CheckoutResponse: Decodable {}
+
+private struct CheckoutData: Decodable, Sendable {
     let totals: CheckoutTotals
     let cart: ServerCart
 }

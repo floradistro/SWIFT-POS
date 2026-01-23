@@ -18,7 +18,7 @@ import os.log
 
 /// All realtime events from the database
 /// These are TYPE-SAFE - no more unsafe casting!
-enum RealtimeEvent: Equatable {
+enum RealtimeEvent: Equatable, CustomStringConvertible {
 
     // MARK: Queue Events
 
@@ -52,6 +52,38 @@ enum RealtimeEvent: Equatable {
 
     /// Order status changed
     case orderStatusChanged(orderId: UUID, newStatus: String)
+
+    // MARK: Inventory Events
+
+    /// Inventory was updated (stock levels changed)
+    case inventoryUpdated(locationId: UUID)
+
+    // MARK: CustomStringConvertible
+
+    var description: String {
+        switch self {
+        case .queueUpdated(let locationId):
+            return "queueUpdated(location: \(locationId))"
+        case .queueCustomerAdded(let locationId, let customerId):
+            return "queueCustomerAdded(location: \(locationId), customer: \(customerId))"
+        case .queueCustomerRemoved(let locationId, let customerId):
+            return "queueCustomerRemoved(location: \(locationId), customer: \(customerId))"
+        case .cartUpdated(let cartId):
+            return "cartUpdated(cart: \(cartId))"
+        case .cartItemAdded(let cartId, let itemId):
+            return "cartItemAdded(cart: \(cartId), item: \(itemId))"
+        case .cartItemRemoved(let cartId, let itemId):
+            return "cartItemRemoved(cart: \(cartId), item: \(itemId))"
+        case .cartItemQuantityChanged(let cartId, let itemId, let quantity):
+            return "cartItemQuantityChanged(cart: \(cartId), item: \(itemId), qty: \(quantity))"
+        case .orderCreated(let orderId):
+            return "orderCreated(order: \(orderId))"
+        case .orderStatusChanged(let orderId, let status):
+            return "orderStatusChanged(order: \(orderId), status: \(status))"
+        case .inventoryUpdated(let locationId):
+            return "inventoryUpdated(location: \(locationId))"
+        }
+    }
 }
 
 // MARK: - Event Bus
@@ -81,7 +113,9 @@ final class RealtimeEventBus: ObservableObject {
 
     // MARK: - Private State
 
-    private let eventSubject = PassthroughSubject<RealtimeEvent, Never>()
+    // nonisolated(unsafe) allows capturing in concurrent code for Swift 6
+    // Safe because we only call send() via MainActor.run
+    nonisolated(unsafe) private let eventSubject = PassthroughSubject<RealtimeEvent, Never>()
     private var activeChannels: [UUID: ChannelState] = [:]
     private var reconnectTasks: [UUID: Task<Void, Never>] = [:]
 
@@ -206,6 +240,20 @@ final class RealtimeEventBus: ObservableObject {
             .eraseToAnyPublisher()
     }
 
+    /// Get inventory events for a specific location
+    func inventoryEvents(for locationId: UUID) -> AnyPublisher<RealtimeEvent, Never> {
+        eventSubject
+            .filter { event in
+                switch event {
+                case .inventoryUpdated(let loc):
+                    return loc == locationId
+                default:
+                    return false
+                }
+            }
+            .eraseToAnyPublisher()
+    }
+
     // MARK: - Private Implementation
 
     private func createChannel(for locationId: UUID) async throws -> ChannelState {
@@ -213,81 +261,85 @@ final class RealtimeEventBus: ObservableObject {
         let channelName = "location-\(locationId.uuidString)"
         let channel = supabase.realtimeV2.channel(channelName)
 
-        // MIGRATION: When you migrate, change table name here:
-        // "location_queue" → "queues"
-        let queueChanges = await channel.postgresChange(
+        // ONE subscription per table - handle all events through the bus
+        let queueChanges = channel.postgresChange(
             AnyAction.self,
             schema: "public",
-            table: "location_queue",  // MIGRATION: Change to "queues"
+            table: "location_queue",
             filter: "location_id=eq.\(locationId.uuidString)"
         )
 
-        // MIGRATION: Update "carts" table name if changed
-        let cartChanges = await channel.postgresChange(
+        let cartChanges = channel.postgresChange(
             AnyAction.self,
             schema: "public",
-            table: "carts",  // MIGRATION: Update if table renamed
+            table: "carts",
             filter: "location_id=eq.\(locationId.uuidString)"
         )
 
-        // MIGRATION: Update "cart_items" table name if changed
-        let cartItemChanges = await channel.postgresChange(
+        let cartItemChanges = channel.postgresChange(
             AnyAction.self,
             schema: "public",
-            table: "cart_items"  // MIGRATION: Update if table renamed
+            table: "cart_items"
         )
 
-        try await channel.subscribe()
+        let inventoryChanges = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "inventory",
+            filter: "location_id=eq.\(locationId.uuidString)"
+        )
 
-        // Start listening to all change streams
+        // Subscribe and wait for confirmation using new API
+        do {
+            try await channel.subscribeWithError()
+            Log.network.info("✅ RealtimeEventBus: Successfully subscribed to \(channelName)")
+        } catch {
+            Log.network.error("❌ RealtimeEventBus: Subscription error for \(channelName): \(error.localizedDescription)")
+            throw error
+        }
+
+        // Wait a moment for subscription to fully establish
+        try await Task.sleep(nanoseconds: 500_000_000) // 500ms
+
+        // Listen to changes and broadcast events - subscribers refetch their own data
         let task = Task { [weak self] in
+            guard let self = self else { return }
+
             await withTaskGroup(of: Void.self) { group in
+                // Capture eventSubject to avoid actor isolation issues
+                let eventSubject = self.eventSubject
+
                 // Queue changes
                 group.addTask {
-                    for await change in queueChanges {
-                        await self?.handleQueueChange(locationId, change)
+                    for await _ in queueChanges {
+                        await MainActor.run { eventSubject.send(.queueUpdated(locationId: locationId)) }
                     }
                 }
 
-                // Cart changes
+                // Cart changes - broadcast location update so all carts at this location refetch
                 group.addTask {
-                    for await change in cartChanges {
-                        await self?.handleCartChange(change)
+                    for await _ in cartChanges {
+                        await MainActor.run { eventSubject.send(.queueUpdated(locationId: locationId)) }
                     }
                 }
 
-                // Cart item changes
+                // Cart item changes - same
                 group.addTask {
-                    for await change in cartItemChanges {
-                        await self?.handleCartItemChange(change)
+                    for await _ in cartItemChanges {
+                        await MainActor.run { eventSubject.send(.queueUpdated(locationId: locationId)) }
+                    }
+                }
+
+                // Inventory changes - notify product grids to refetch
+                group.addTask {
+                    for await _ in inventoryChanges {
+                        await MainActor.run { eventSubject.send(.inventoryUpdated(locationId: locationId)) }
                     }
                 }
             }
         }
 
         return ChannelState(channel: channel, task: task)
-    }
-
-    // MARK: - Event Handlers
-
-    private func handleQueueChange(_ locationId: UUID, _ change: AnyAction) {
-        Log.network.info("📡 Queue change for location \(locationId)")
-
-        // For now, just send generic update
-        // Future: Parse INSERT/UPDATE/DELETE for specific events
-        eventSubject.send(.queueUpdated(locationId: locationId))
-    }
-
-    private func handleCartChange(_ change: AnyAction) {
-        Log.network.info("📡 Cart change")
-
-        // Future: Parse cart_id and broadcast typed event
-    }
-
-    private func handleCartItemChange(_ change: AnyAction) {
-        Log.network.info("📡 Cart item change")
-
-        // Future: Parse cart_id and item_id and broadcast typed event
     }
 
     // MARK: - Reconnection Logic
@@ -323,4 +375,39 @@ final class RealtimeEventBus: ObservableObject {
             connectionState = .connected(locationIds: connectedIds)
         }
     }
+
+    // MARK: - Helper Methods for Parsing Supabase Changes
+
+    /// Extract UUID from JSONObject
+    private func extractUUID(from jsonObject: JSONObject, key: String) -> UUID? {
+        // JSONObject is [String: Any]
+        if let stringValue = jsonObject[key] as? String {
+            return UUID(uuidString: stringValue)
+        }
+
+        if let uuidValue = jsonObject[key] as? UUID {
+            return uuidValue
+        }
+
+        return nil
+    }
+
+    /// Extract Int from JSONObject
+    private func extractInt(from jsonObject: JSONObject, key: String) -> Int? {
+        if let intValue = jsonObject[key] as? Int {
+            return intValue
+        }
+
+        if let doubleValue = jsonObject[key] as? Double {
+            return Int(doubleValue)
+        }
+
+        if let stringValue = jsonObject[key] as? String,
+           let intValue = Int(stringValue) {
+            return intValue
+        }
+
+        return nil
+    }
+
 }

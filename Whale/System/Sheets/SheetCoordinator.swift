@@ -173,3 +173,17 @@ extension SheetCoordinator {
         )
     }
 }
+
+// MARK: - Convenience Methods
+
+extension SheetCoordinator {
+    /// Show a standardized error alert sheet
+    func showError(title: String = "Error", message: String) {
+        present(.errorAlert(title: title, message: message))
+    }
+
+    /// Show error from an Error type
+    func showError(_ error: Error, title: String = "Error") {
+        present(.errorAlert(title: title, message: error.localizedDescription))
+    }
+}

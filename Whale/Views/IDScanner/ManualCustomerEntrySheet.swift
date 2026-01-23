@@ -560,8 +560,8 @@ private struct CustomerSearchContent: View {
         // Name fields
         VStack(alignment: .leading, spacing: 8) {
             Text("NAME")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.4))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
 
@@ -591,8 +591,8 @@ private struct CustomerSearchContent: View {
         // DOB
         VStack(alignment: .leading, spacing: 8) {
             Text("DATE OF BIRTH")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.4))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
 
@@ -617,8 +617,8 @@ private struct CustomerSearchContent: View {
         // Contact
         VStack(alignment: .leading, spacing: 8) {
             Text("CONTACT (OPTIONAL)")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.4))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
 
@@ -827,8 +827,8 @@ private struct CustomerSearchContent: View {
     private func customerCRMStats(_ customer: Customer) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("METRICS")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.4))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
 
@@ -867,8 +867,8 @@ private struct CustomerSearchContent: View {
     private func customerContactSection(_ customer: Customer) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("CONTACT INFORMATION")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.4))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
 
@@ -906,8 +906,8 @@ private struct CustomerSearchContent: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("RECENT ORDERS")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.5))
                     .tracking(0.5)
 
                 Spacer()
@@ -982,9 +982,10 @@ private struct CustomerSearchContent: View {
         let response = try await supabase
             .from("orders")
             .select("""
-                id, order_number, store_id, customer_id, order_type, status, payment_status,
+                id, order_number, store_id, customer_id, channel, status, payment_status,
                 subtotal, discount_amount, tax_amount, total_amount, created_at, updated_at,
-                v_store_customers(first_name, last_name, email, phone)
+                v_store_customers(first_name, last_name, email, phone),
+                fulfillments(id, type, status, delivery_location_id, carrier, tracking_number, tracking_url, shipping_cost, created_at, shipped_at, delivered_at, delivery_location:delivery_location_id(id, name))
             """)
             .eq("store_id", value: storeId.uuidString)
             .eq("customer_id", value: customerId.uuidString)
@@ -1354,18 +1355,19 @@ private struct CustomerRow: View {
 
                     Spacer(minLength: 4)
 
-                    // Monochrome stats
+                    // Stats badges
                     HStack(spacing: 6) {
-                        if let points = customer.loyaltyPoints, points > 0 {
-                            HStack(spacing: 3) {
+                        // Loyalty points badge (always show if customer has points field)
+                        if let points = customer.loyaltyPoints {
+                            HStack(spacing: 2) {
                                 Image(systemName: "star.fill")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(.system(size: 8, weight: .bold))
                                 Text("\(points)")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
                             }
-                            .foregroundStyle(.white.opacity(0.5))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
+                            .foregroundStyle(points >= 0 ? .yellow.opacity(0.8) : .red.opacity(0.7))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
                             .background(.white.opacity(0.08), in: .capsule)
                         }
 

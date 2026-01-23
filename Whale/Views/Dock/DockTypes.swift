@@ -85,15 +85,43 @@ struct DockSizing {
 
 // MARK: - Scale Button Style
 
+/// Standard button style with scale animation
+/// Haptics are OFF by default - Apple recommends minimal haptic use
+/// Enable haptics only for significant actions (checkout, delete, etc.)
 struct ScaleButtonStyle: ButtonStyle {
     var scale: CGFloat = 0.97
+    var haptic: Bool = false  // Off by default - enable for important actions
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             // CRITICAL: Do NOT add .contentShape() here - it overrides the contentShape
             // set inside the button label and breaks hit testing in modals/sheets
             .scaleEffect(configuration.isPressed ? scale : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
             .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed && haptic {
+                    Haptics.soft()
+                }
+            }
+    }
+}
+
+// MARK: - Press & Hold Button Style
+
+struct PressHoldButtonStyle: ButtonStyle {
+    var scale: CGFloat = 0.95
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1.0)
+            .opacity(configuration.isPressed ? 0.85 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed {
+                    Haptics.medium()
+                }
+            }
     }
 }
 

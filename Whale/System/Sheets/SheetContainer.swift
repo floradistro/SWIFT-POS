@@ -162,12 +162,17 @@ struct SheetContainer: View {
 
         case .posSettings:
             POSSettingsSheet()
+
+        case .errorAlert(let title, let message):
+            ErrorAlertSheet(title: title, message: message)
         }
     }
 
     // MARK: - Detents
 
     private var detentsForType: Set<PresentationDetent> {
+        let isCompact = UIScreen.main.bounds.width < 500  // iPhone portrait
+
         switch sheetType.detents {
         case .small:
             return [.fraction(0.25)]
@@ -176,7 +181,11 @@ struct SheetContainer: View {
         case .mediumLarge:
             return [.medium, .large]
         case .large:
-            return [.large]
+            // On iPhone, also allow medium to avoid empty space
+            return isCompact ? [.medium, .large] : [.large]
+        case .fitted:
+            // Content-fitted - on iPhone use smaller sizes first
+            return isCompact ? [.height(350), .medium, .large] : [.medium, .large]
         case .full:
             return [.large]
         }
@@ -213,6 +222,7 @@ private struct CheckoutSheetWrapper: View {
             dealStore: dealStore,
             totals: totals,
             sessionInfo: sessionInfo,
+            loyaltyProgram: session.loyaltyProgram,
             onScanID: {
                 // Present scanner sheet
                 if let storeId = session.storeId {
@@ -1287,5 +1297,77 @@ extension PrinterPickerHostController: UIPrinterPickerControllerDelegate {
     func printerPickerControllerParentViewController(_ printerPickerController: UIPrinterPickerController) -> UIViewController? {
         print("🖨️ Delegate asked for parent view controller")
         return self
+    }
+}
+
+// MARK: - Error Alert Sheet
+
+/// Standardized error sheet that matches the app's liquid glass design
+private struct ErrorAlertSheet: View {
+    let title: String
+    let message: String
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Drag indicator
+            RoundedRectangle(cornerRadius: 3)
+                .fill(Color.white.opacity(0.3))
+                .frame(width: 36, height: 5)
+                .padding(.top, 10)
+                .padding(.bottom, 20)
+
+            VStack(spacing: 16) {
+                // Error icon
+                ZStack {
+                    Circle()
+                        .fill(Design.Colors.Semantic.error.opacity(0.15))
+                        .frame(width: 64, height: 64)
+
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(Design.Colors.Semantic.error)
+                }
+
+                // Title
+                Text(title)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+
+                // Message
+                Text(message)
+                    .font(.system(size: 15))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 8)
+            }
+            .padding(.horizontal, 24)
+
+            Spacer().frame(height: 32)
+
+            // Dismiss button
+            Button {
+                Haptics.light()
+                SheetCoordinator.shared.dismiss()
+            } label: {
+                Text("Dismiss")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.white.opacity(0.15))
+                    )
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .padding(.horizontal, 24)
+
+            Spacer().frame(height: 24)
+        }
+        .frame(maxWidth: .infinity)
+        .background(Color.black)
+        .preferredColorScheme(.dark)
     }
 }

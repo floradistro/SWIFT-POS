@@ -65,7 +65,7 @@ extension Product: Codable {
         case inventory = "inventory"
     }
 
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(UUID.self, forKey: .id)
@@ -111,7 +111,7 @@ extension Product: Codable {
     }
 
 
-    func encode(to encoder: Encoder) throws {
+    nonisolated func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encodeIfPresent(storeId, forKey: .storeId)
@@ -460,7 +460,7 @@ extension PricingSchema: Codable {
         case defaultTiers = "tiers"
     }
 
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         // ID can be UUID or String
@@ -496,7 +496,7 @@ extension PricingTier: Codable {
         case sortOrder = "sort_order"
     }
 
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(String.self, forKey: .id)
@@ -532,7 +532,7 @@ extension PricingTier: Codable {
 
 struct ProductCOA: Codable, Sendable, Identifiable {
     let id: UUID
-    let productId: UUID
+    let productId: UUID?  // Optional - not included in RPC responses
     let fileUrl: String?
     let fileName: String?
     let labName: String?
@@ -555,11 +555,11 @@ struct ProductCOA: Codable, Sendable, Identifiable {
         case isActive = "is_active"
     }
 
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(UUID.self, forKey: .id)
-        productId = try container.decode(UUID.self, forKey: .productId)
+        productId = try container.decodeIfPresent(UUID.self, forKey: .productId)
         fileUrl = try container.decodeIfPresent(String.self, forKey: .fileUrl)
         fileName = try container.decodeIfPresent(String.self, forKey: .fileName)
         labName = try container.decodeIfPresent(String.self, forKey: .labName)
@@ -622,7 +622,7 @@ struct COATestResults: Codable, Sendable {
     let contaminants: ContaminantResults?
 
     // Custom decoding to handle multiple possible key formats from database
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: FlexibleCodingKeys.self)
 
         // THC Total - try multiple key variations
@@ -650,7 +650,7 @@ struct COATestResults: Codable, Sendable {
         contaminants = try? container.decodeIfPresent(ContaminantResults.self, forKey: FlexibleCodingKeys(stringValue: "contaminants")!)
     }
 
-    func encode(to encoder: Encoder) throws {
+    nonisolated func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: FlexibleCodingKeys.self)
         try container.encodeIfPresent(thcTotal, forKey: FlexibleCodingKeys(stringValue: "thc_total")!)
         try container.encodeIfPresent(thca, forKey: FlexibleCodingKeys(stringValue: "thca")!)
@@ -791,7 +791,7 @@ struct StoreProductField: Codable, Sendable, Identifiable {
         case sortOrder = "sort_order"
     }
 
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         storeId = try container.decode(UUID.self, forKey: .storeId)
@@ -825,7 +825,7 @@ struct AnyCodable: Codable, Sendable, Hashable {
         self.value = value
     }
 
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 
         if let string = try? container.decode(String.self) {
@@ -845,7 +845,7 @@ struct AnyCodable: Codable, Sendable, Hashable {
         }
     }
 
-    func encode(to encoder: Encoder) throws {
+    nonisolated func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
 
         switch value {

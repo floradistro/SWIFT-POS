@@ -93,9 +93,6 @@ final class POSStore: ObservableObject {
     /// Realtime channel for loyalty points updates
     private var loyaltyChannel: RealtimeChannelV2?
 
-    /// Realtime channel for cart updates
-    private var cartChannel: RealtimeChannelV2?
-
     /// Look up customer by ID from cache
     func customer(for customerId: UUID?) -> Customer? {
         guard let id = customerId else { return nil }
@@ -136,6 +133,9 @@ final class POSStore: ObservableObject {
         Log.cart.info("POSStore.configure called - storeId: \(storeId), locationId: \(locationId)")
         self.storeId = storeId
         self.locationId = locationId
+
+        // Subscribe to inventory updates for this location
+        subscribeToInventoryUpdates(for: locationId)
     }
 
     // MARK: - Customer Cart Management
@@ -322,70 +322,37 @@ final class POSStore: ObservableObject {
 
     // MARK: - Realtime Cart Updates
 
-    /// Subscribe to cart updates for instant sync across devices
+    /// Cancellable for EventBus cart subscription
+    private var cartEventCancellable: AnyCancellable?
+
+    /// Cancellable for EventBus inventory subscription
+    private var inventoryEventCancellable: AnyCancellable?
+
+    /// Subscribe to cart updates for instant sync across devices using EventBus
     private func subscribeToCartUpdates(for cartId: UUID) {
-        // Unsubscribe from any existing channel
+        // Unsubscribe from any existing subscription
         unsubscribeFromCartUpdates()
 
-        Task {
-            let supabase = await supabaseAsync()
-            let channelName = "cart-updates-\(cartId.uuidString.prefix(8))-\(UInt64(Date().timeIntervalSince1970 * 1000))"
-
-            Log.cart.info("🔌 Creating realtime channel: \(channelName)")
-
-            // Create channel for this cart's updates
-            let channel = supabase.realtimeV2.channel(channelName)
-
-            // Subscribe to cart table changes (totals, discounts)
-            let cartChanges = await channel.postgresChange(
-                AnyAction.self,
-                schema: "public",
-                table: "carts",
-                filter: "id=eq.\(cartId)"
-            )
-
-            // Subscribe to cart_items table changes (items added/removed/updated)
-            let itemChanges = await channel.postgresChange(
-                AnyAction.self,
-                schema: "public",
-                table: "cart_items",
-                filter: "cart_id=eq.\(cartId)"
-            )
-
-            cartChannel = channel
-
-            do {
-                Log.cart.info("Subscribing to channel...")
-                try await channel.subscribeWithError()
-
-                Log.cart.info("✅ Subscribed to realtime for cart \(cartId)")
-
-                // Listen for both event types concurrently
-                await withTaskGroup(of: Void.self) { group in
-                    // Handle cart changes
-                    group.addTask { [weak self] in
-                        for await _ in cartChanges {
-                            guard !Task.isCancelled else { break }
-                            await self?.handleCartUpdate(cartId: cartId)
-                        }
-                    }
-
-                    // Handle item changes
-                    group.addTask { [weak self] in
-                        for await _ in itemChanges {
-                            guard !Task.isCancelled else { break }
-                            await self?.handleCartUpdate(cartId: cartId)
-                        }
-                    }
-
-                    await group.waitForAll()
-                }
-
-                Log.cart.info("Cart realtime listener loop ended")
-            } catch {
-                Log.cart.error("❌ Cart subscription error: \(error.localizedDescription)")
-            }
+        guard let locationId = locationId else {
+            Log.cart.warning("⚠️ Cannot subscribe to cart updates - no locationId")
+            return
         }
+
+        Log.cart.info("🔌 Subscribing to EventBus for location \(locationId)")
+
+        // Subscribe to queue events (includes all cart/queue changes at this location)
+        // When any cart or queue changes at this location, refetch our cart
+        cartEventCancellable = RealtimeEventBus.shared.queueEvents(for: locationId)
+            .sink { [weak self] event in
+                Task { @MainActor [weak self] in
+                    guard let self = self else { return }
+
+                    Log.cart.info("📡 Received queue event: \(event)")
+
+                    // Any queue/cart change at this location = refetch our cart
+                    await self.handleCartUpdate(cartId: cartId)
+                }
+            }
     }
 
     /// Handle cart update from Realtime - refetch cart from server
@@ -411,12 +378,34 @@ final class POSStore: ObservableObject {
 
     /// Unsubscribe from cart updates
     private func unsubscribeFromCartUpdates() {
-        if let channel = cartChannel {
-            Task {
-                cartChannel = nil
-                Log.cart.info("Unsubscribed from cart updates")
+        cartEventCancellable?.cancel()
+        cartEventCancellable = nil
+        Log.cart.info("Unsubscribed from cart updates")
+    }
+
+    /// Subscribe to inventory updates for instant stock sync across devices
+    private func subscribeToInventoryUpdates(for locationId: UUID) {
+        Log.cart.info("🔌 Subscribing to inventory updates for location \(locationId)")
+
+        // Subscribe to inventory events
+        inventoryEventCancellable = RealtimeEventBus.shared.inventoryEvents(for: locationId)
+            .sink { [weak self] event in
+                Task { @MainActor [weak self] in
+                    guard let self = self else { return }
+
+                    Log.cart.info("📡 Received inventory event: \(event)")
+
+                    // Inventory changed - reload products to get updated stock levels
+                    await self.loadProducts()
+                }
             }
-        }
+    }
+
+    /// Unsubscribe from inventory updates
+    private func unsubscribeFromInventoryUpdates() {
+        inventoryEventCancellable?.cancel()
+        inventoryEventCancellable = nil
+        Log.cart.info("Unsubscribed from inventory updates")
     }
 
     /// Clear all carts
@@ -450,10 +439,22 @@ final class POSStore: ObservableObject {
                 return false
             }
 
-            // Cache customer if available
-            if let customerId = cart.customerId {
-                // We don't have customer details from cart, but we can use placeholder
-                // The queue entry should have the customer name
+            // Fetch and cache customer if cart has a customer ID
+            if let customerId = cart.customerId, let storeId = storeId {
+                do {
+                    let customer: Customer = try await supabase
+                        .from("v_store_customers")
+                        .select()
+                        .eq("id", value: customerId.uuidString)
+                        .eq("store_id", value: storeId.uuidString)
+                        .single()
+                        .execute()
+                        .value
+                    _customerCache[customerId] = customer
+                    Log.cart.info("loadCartById: Cached customer \(customer.displayName) for cart \(cartId)")
+                } catch {
+                    Log.cart.warning("loadCartById: Failed to fetch customer \(customerId): \(error)")
+                }
             }
 
             let newIndex = carts.count

@@ -27,8 +27,7 @@ struct ContentView: View {
 
     var body: some View {
         Log.ui.debug("ContentView body evaluated - login screen rendering")
-        return
-        ZStack {
+        return ZStack {
             Design.Colors.backgroundPrimary.ignoresSafeArea()
 
             ScrollView {

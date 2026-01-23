@@ -50,6 +50,9 @@ enum SheetType: Identifiable, Equatable {
     // MARK: - POS Settings
     case posSettings
 
+    // MARK: - Alerts & Errors
+    case errorAlert(title: String, message: String)
+
     // MARK: - Identifiable
 
     var id: String {
@@ -76,6 +79,7 @@ enum SheetType: Identifiable, Equatable {
         case .bulkProductLabels: return "bulkProductLabels"
         case .printerSettings: return "printerSettings"
         case .posSettings: return "posSettings"
+        case .errorAlert(let title, _): return "errorAlert-\(title)"
         }
     }
 
@@ -118,7 +122,11 @@ enum SheetType: Identifiable, Equatable {
             return .medium
         case .posSettings:
             return .large
-        default:
+        case .errorAlert:
+            return .fitted  // Content-fitted for simple error messages
+        case .idScanner, .bulkProductLabels:
+            return .full  // Full screen
+        case .packageReceive, .inventoryUnitScan, .qrCodeScan:
             return .large
         }
     }
@@ -133,19 +141,23 @@ enum SheetType: Identifiable, Equatable {
 // MARK: - Sheet Detents
 
 enum SheetDetents {
-    case small
-    case medium
-    case mediumLarge
-    case large
-    case full
+    case small           // ~30% height
+    case medium          // ~50% height
+    case mediumLarge     // Medium + Large options
+    case large           // Full height
+    case fitted          // Auto-size to content (ideal for simple sheets on mobile)
+    case full            // Full height, non-dismissable
 }
 
 // MARK: - SwiftUI Detents Extension
 
 extension View {
     /// Apply presentation detents based on SheetDetents enum
+    /// Adapts to device size - on compact (iPhone), sheets fit content better
     @ViewBuilder
     func applyDetents(_ detents: SheetDetents) -> some View {
+        let isCompact = UIScreen.main.bounds.width < 500  // iPhone portrait
+
         switch detents {
         case .small:
             self.presentationDetents([.fraction(0.3)])
@@ -154,10 +166,16 @@ extension View {
             self.presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
         case .mediumLarge:
-            self.presentationDetents([.medium, .large])
+            // On iPhone, start at medium; on iPad, offer both options
+            self.presentationDetents(isCompact ? [.medium, .large] : [.medium, .large])
                 .presentationDragIndicator(.visible)
         case .large:
-            self.presentationDetents([.large])
+            // On iPhone, allow medium as an option so content doesn't feel empty
+            self.presentationDetents(isCompact ? [.medium, .large] : [.large])
+                .presentationDragIndicator(.visible)
+        case .fitted:
+            // Content-fitted - on iPhone use height, on iPad use medium
+            self.presentationDetents(isCompact ? [.height(400), .medium, .large] : [.medium, .large])
                 .presentationDragIndicator(.visible)
         case .full:
             self.presentationDetents([.large])

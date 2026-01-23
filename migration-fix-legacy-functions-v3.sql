@@ -1,0 +1,372 @@
+-- Migration: Fix legacy functions to use Oracle+Apple schema
+-- Drop exact signatures first, then recreate
+
+-- =============================================================================
+-- 1. Drop existing functions with their exact signatures
+-- =============================================================================
+
+DROP FUNCTION IF EXISTS get_order_for_printing(uuid);
+DROP FUNCTION IF EXISTS get_orders_for_location(uuid, uuid, text, text, text, text, timestamp with time zone, timestamp with time zone, numeric, numeric, boolean, integer);
+DROP FUNCTION IF EXISTS get_revenue_by_location(uuid, integer);
+DROP FUNCTION IF EXISTS get_revenue_by_location(uuid, timestamp, timestamp);
+
+-- =============================================================================
+-- 2. Recreate get_order_for_printing (uses fulfillments instead of pickup_location_id)
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION get_order_for_printing(
+  p_order_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_result JSONB;
+BEGIN
+  SELECT jsonb_build_object(
+    'order_id', o.id,
+    'order_number', o.order_number,
+    'store_id', o.store_id,
+    'location_id', o.location_id,
+    'channel', o.channel,
+    'order_type', CASE
+      WHEN o.channel = 'retail' THEN 'walk_in'
+      WHEN f.type = 'pickup' THEN 'pickup'
+      WHEN f.type = 'ship' THEN 'shipping'
+      ELSE 'online'
+    END,
+    'pickup_location_id', f.delivery_location_id,
+    'pickup_location', CASE
+      WHEN fl.id IS NOT NULL THEN
+        jsonb_build_object('id', fl.id, 'name', fl.name)
+      ELSE NULL
+    END,
+    'fulfillments', COALESCE(
+      (
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'id', ff.id,
+            'type', ff.type,
+            'status', ff.status,
+            'delivery_location_id', ff.delivery_location_id,
+            'delivery_location', CASE
+              WHEN ffl.id IS NOT NULL THEN
+                jsonb_build_object('id', ffl.id, 'name', ffl.name)
+              ELSE NULL
+            END
+          )
+        )
+        FROM fulfillments ff
+        LEFT JOIN locations ffl ON ffl.id = ff.delivery_location_id
+        WHERE ff.order_id = o.id
+      ),
+      '[]'::jsonb
+    ),
+    'created_at', o.created_at,
+    'items', COALESCE(
+      (
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'id', oi.id,
+            'product_id', oi.product_id,
+            'quantity', oi.quantity,
+            'tier_label', oi.tier_label,
+            'variant_name', oi.variant_name,
+            'product', jsonb_build_object(
+              'id', p.id,
+              'name', p.name,
+              'description', p.description,
+              'sku', p.sku,
+              'featured_image', p.featured_image,
+              'custom_fields', p.custom_fields,
+              'pricing_data', p.pricing_data,
+              'store_id', p.store_id,
+              'primary_category_id', p.primary_category_id,
+              'status', p.status,
+              'coa', CASE
+                WHEN coa.id IS NOT NULL THEN
+                  jsonb_build_object(
+                    'id', coa.id,
+                    'file_url', coa.file_url,
+                    'lab_name', coa.lab_name,
+                    'test_date', coa.test_date,
+                    'batch_number', coa.batch_number
+                  )
+                ELSE NULL
+              END
+            )
+          )
+        )
+        FROM order_items oi
+        LEFT JOIN products p ON p.id = oi.product_id
+        LEFT JOIN store_coas coa ON coa.product_id = p.id AND coa.is_active = true
+        WHERE oi.order_id = o.id
+      ),
+      '[]'::jsonb
+    )
+  ) INTO v_result
+  FROM orders o
+  LEFT JOIN LATERAL (
+    SELECT * FROM fulfillments
+    WHERE order_id = o.id
+    ORDER BY created_at ASC
+    LIMIT 1
+  ) f ON true
+  LEFT JOIN locations fl ON fl.id = f.delivery_location_id
+  WHERE o.id = p_order_id;
+
+  IF v_result IS NULL THEN
+    RETURN jsonb_build_object('error', 'Order not found');
+  END IF;
+
+  RETURN v_result;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_order_for_printing(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_order_for_printing(UUID) TO service_role;
+
+
+-- =============================================================================
+-- 3. Recreate get_orders_for_location (uses channel + fulfillments)
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION get_orders_for_location(
+  p_store_id UUID,
+  p_location_id UUID,
+  p_status_group TEXT DEFAULT NULL,
+  p_order_type TEXT DEFAULT NULL,
+  p_payment_status TEXT DEFAULT NULL,
+  p_search TEXT DEFAULT NULL,
+  p_date_start TIMESTAMPTZ DEFAULT NULL,
+  p_date_end TIMESTAMPTZ DEFAULT NULL,
+  p_amount_min NUMERIC DEFAULT NULL,
+  p_amount_max NUMERIC DEFAULT NULL,
+  p_online_only BOOLEAN DEFAULT FALSE,
+  p_limit INTEGER DEFAULT 200
+)
+RETURNS TABLE(order_data JSONB)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_status_filters TEXT[];
+BEGIN
+  IF p_status_group IS NOT NULL THEN
+    CASE p_status_group
+      WHEN 'active' THEN
+        v_status_filters := ARRAY['pending', 'processing', 'confirmed'];
+      WHEN 'in_progress' THEN
+        v_status_filters := ARRAY['ready_for_pickup', 'out_for_delivery', 'in_transit'];
+      WHEN 'completed' THEN
+        v_status_filters := ARRAY['completed', 'delivered'];
+      WHEN 'cancelled' THEN
+        v_status_filters := ARRAY['cancelled', 'refunded'];
+      ELSE
+        v_status_filters := NULL;
+    END CASE;
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    jsonb_build_object(
+      'id', o.id,
+      'order_number', o.order_number,
+      'store_id', o.store_id,
+      'location_id', o.location_id,
+      'customer_id', o.customer_id,
+      'user_id', o.user_id,
+      'status', o.status,
+      'channel', o.channel,
+      'order_type', CASE
+        WHEN o.channel = 'retail' THEN 'walk_in'
+        WHEN f.type = 'pickup' THEN 'pickup'
+        WHEN f.type = 'ship' THEN 'shipping'
+        WHEN f.type = 'immediate' THEN 'walk_in'
+        ELSE 'online'
+      END,
+      'payment_status', o.payment_status,
+      'subtotal', o.subtotal,
+      'tax_amount', o.tax_amount,
+      'discount_amount', o.discount_amount,
+      'total_amount', o.total_amount,
+      'notes', o.notes,
+      'created_at', o.created_at,
+      'updated_at', o.updated_at,
+      'fulfillments', COALESCE(
+        (
+          SELECT jsonb_agg(
+            jsonb_build_object(
+              'id', ff.id,
+              'order_id', ff.order_id,
+              'type', ff.type,
+              'status', ff.status,
+              'delivery_location_id', ff.delivery_location_id,
+              'delivery_address', ff.delivery_address,
+              'carrier', ff.carrier,
+              'tracking_number', ff.tracking_number,
+              'tracking_url', ff.tracking_url,
+              'shipping_cost', ff.shipping_cost,
+              'created_at', ff.created_at,
+              'shipped_at', ff.shipped_at,
+              'delivered_at', ff.delivered_at,
+              'delivery_location', CASE
+                WHEN ffl.id IS NOT NULL THEN
+                  jsonb_build_object('id', ffl.id, 'name', ffl.name)
+                ELSE NULL
+              END
+            )
+          )
+          FROM fulfillments ff
+          LEFT JOIN locations ffl ON ffl.id = ff.delivery_location_id
+          WHERE ff.order_id = o.id
+        ),
+        '[]'::jsonb
+      ),
+      'customer', CASE
+        WHEN c.id IS NOT NULL THEN
+          jsonb_build_object(
+            'id', c.id,
+            'first_name', c.first_name,
+            'last_name', c.last_name,
+            'email', c.email,
+            'phone', c.phone
+          )
+        ELSE NULL
+      END,
+      'items', COALESCE(
+        (
+          SELECT jsonb_agg(
+            jsonb_build_object(
+              'id', oi.id,
+              'product_id', oi.product_id,
+              'product_name', p.name,
+              'quantity', oi.quantity,
+              'unit_price', oi.unit_price,
+              'total', oi.total,
+              'tier_label', oi.tier_label,
+              'variant_name', oi.variant_name
+            )
+          )
+          FROM order_items oi
+          LEFT JOIN products p ON p.id = oi.product_id
+          WHERE oi.order_id = o.id
+        ),
+        '[]'::jsonb
+      ),
+      'location', CASE
+        WHEN l.id IS NOT NULL THEN
+          jsonb_build_object(
+            'id', l.id,
+            'name', l.name,
+            'store_id', l.store_id
+          )
+        ELSE NULL
+      END
+    ) AS order_data
+  FROM orders o
+  LEFT JOIN customers c ON c.id = o.customer_id
+  LEFT JOIN locations l ON l.id = o.location_id
+  LEFT JOIN LATERAL (
+    SELECT * FROM fulfillments
+    WHERE order_id = o.id
+    ORDER BY created_at ASC
+    LIMIT 1
+  ) f ON true
+  WHERE o.store_id = p_store_id
+    AND o.location_id = p_location_id
+    AND (
+      p_status_group IS NULL
+      OR o.status = ANY(v_status_filters)
+    )
+    AND (
+      p_order_type IS NULL
+      OR (p_order_type = 'walk_in' AND (o.channel = 'retail' OR f.type = 'immediate'))
+      OR (p_order_type = 'pickup' AND o.channel = 'online' AND f.type = 'pickup')
+      OR (p_order_type = 'shipping' AND o.channel = 'online' AND f.type = 'ship')
+      OR (p_order_type = 'direct' AND o.channel = 'online' AND f.type IS NULL)
+    )
+    AND (
+      p_payment_status IS NULL
+      OR o.payment_status = p_payment_status
+    )
+    AND (
+      p_search IS NULL
+      OR o.order_number ILIKE '%' || p_search || '%'
+      OR c.first_name ILIKE '%' || p_search || '%'
+      OR c.last_name ILIKE '%' || p_search || '%'
+      OR (c.first_name || ' ' || c.last_name) ILIKE '%' || p_search || '%'
+    )
+    AND (
+      p_date_start IS NULL
+      OR o.created_at >= p_date_start
+    )
+    AND (
+      p_date_end IS NULL
+      OR o.created_at <= p_date_end
+    )
+    AND (
+      p_amount_min IS NULL
+      OR o.total_amount >= p_amount_min
+    )
+    AND (
+      p_amount_max IS NULL
+      OR o.total_amount <= p_amount_max
+    )
+    AND (
+      NOT p_online_only
+      OR o.channel = 'online'
+    )
+  ORDER BY o.created_at DESC
+  LIMIT p_limit;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_orders_for_location(UUID, UUID, TEXT, TEXT, TEXT, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, NUMERIC, NUMERIC, BOOLEAN, INTEGER) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_orders_for_location(UUID, UUID, TEXT, TEXT, TEXT, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, NUMERIC, NUMERIC, BOOLEAN, INTEGER) TO service_role;
+
+
+-- =============================================================================
+-- 4. Recreate get_revenue_by_location (p_days signature for backward compat)
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION get_revenue_by_location(
+  p_store_id UUID,
+  p_days INTEGER DEFAULT 30
+)
+RETURNS TABLE(
+  location_id UUID,
+  location_name TEXT,
+  total_revenue NUMERIC,
+  order_count BIGINT,
+  avg_order_value NUMERIC
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_start_date TIMESTAMPTZ;
+BEGIN
+  v_start_date := NOW() - (p_days || ' days')::interval;
+
+  RETURN QUERY
+  SELECT
+    l.id as location_id,
+    l.name as location_name,
+    COALESCE(SUM(o.total_amount), 0) as total_revenue,
+    COUNT(o.id) as order_count,
+    COALESCE(AVG(o.total_amount), 0) as avg_order_value
+  FROM locations l
+  LEFT JOIN orders o ON o.location_id = l.id
+    AND o.store_id = p_store_id
+    AND o.status NOT IN ('cancelled', 'refunded')
+    AND o.created_at >= v_start_date
+  WHERE l.store_id = p_store_id
+  GROUP BY l.id, l.name
+  ORDER BY total_revenue DESC;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_revenue_by_location(UUID, INTEGER) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_revenue_by_location(UUID, INTEGER) TO service_role;

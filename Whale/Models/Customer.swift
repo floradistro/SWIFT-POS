@@ -92,7 +92,7 @@ struct Customer: Identifiable, Codable, Sendable, Hashable {
     }
 
     // Custom decoder to handle Postgres timestamp formats with timezone offsets
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(UUID.self, forKey: .id)

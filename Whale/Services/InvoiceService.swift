@@ -36,7 +36,7 @@ struct InvoiceLineItem: Codable, Identifiable, Sendable {
     }
 
     // Custom decoder to handle missing id in JSON from database
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         // Generate id if not present (DB line_items don't have id)
         self.id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
@@ -266,7 +266,7 @@ struct Invoice: Identifiable, Codable, Sendable {
     }
 
     // Custom decoder to handle date-only format for dueDate
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(UUID.self, forKey: .id)

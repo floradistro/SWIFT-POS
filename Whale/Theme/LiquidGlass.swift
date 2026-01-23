@@ -107,14 +107,16 @@ struct LiquidGlassSearchBar: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(isFocused ? .primary : .secondary)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(isFocused ? .white : .white.opacity(0.5))
 
             TextField(placeholder, text: $text)
-                .font(.system(size: 14))
+                .font(.system(size: 17))
+                .foregroundStyle(.white)
                 .focused($isFocused)
+                .submitLabel(.search)
 
             if !text.isEmpty {
                 Button {
@@ -123,14 +125,17 @@ struct LiquidGlassSearchBar: View {
                     onClear?()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 18))
+                        .foregroundStyle(.white.opacity(0.4))
                 }
                 .buttonStyle(.plain)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.leading, 14)
+        .padding(.trailing, text.isEmpty ? 14 : 4)
+        .frame(height: 44)
         .glassEffect(.regular.interactive(), in: .capsule)
     }
 }

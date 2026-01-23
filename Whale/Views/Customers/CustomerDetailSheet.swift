@@ -50,7 +50,6 @@ struct CustomerDetailSheet: View {
             sheetHeader
             sheetContent
         }
-        .frame(maxWidth: 580)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
@@ -144,9 +143,9 @@ struct CustomerDetailSheet: View {
 
     private func tierBadge(_ tier: String) -> some View {
         Text(tier.uppercased())
-            .font(.system(size: 11, weight: .bold))
+            .font(.system(size: 12, weight: .bold))
             .foregroundStyle(tierColor(for: tier))
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(tierColor(for: tier).opacity(0.15), in: Capsule())
     }
@@ -294,12 +293,12 @@ struct CustomerDetailSheet: View {
 
     private func contactRowContent(label: String, value: String, hasAction: Bool) -> some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.5))
                 Text(value)
-                    .font(.system(size: 15))
+                    .font(.system(size: 16))
                     .foregroundStyle(.white)
             }
 
@@ -307,12 +306,13 @@ struct CustomerDetailSheet: View {
 
             if hasAction {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.3))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.4))
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .frame(minHeight: 54)
     }
 
     // MARK: - Preferred Location Section
@@ -560,11 +560,11 @@ struct CustomerDetailSheet: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(.system(size: 11, weight: .bold))
-            .foregroundStyle(.white.opacity(0.4))
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(.white.opacity(0.5))
             .tracking(0.5)
-            .padding(.horizontal, 14)
-            .padding(.top, 14)
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
             .padding(.bottom, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -637,7 +637,7 @@ struct CustomerDetailSheet: View {
         var locationCounts: [String: (name: String, count: Int)] = [:]
 
         for order in orders {
-            if let locationName = order.pickupLocationName {
+            if let locationName = order.deliveryLocationName {
                 let existing = locationCounts[locationName] ?? (name: locationName, count: 0)
                 locationCounts[locationName] = (name: locationName, count: existing.count + 1)
             }

@@ -21,15 +21,21 @@ struct GridCardPressStyle: ButtonStyle {
 }
 
 /// Native iOS-style press animation for list rows
-/// More subtle than grid cards - just opacity dimming
+/// Subtle scale + opacity with haptic feedback
 struct ListRowPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.8 : 1.0)
             .background(
                 configuration.isPressed ? Color.white.opacity(0.08) : Color.clear
             )
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed {
+                    Haptics.light()
+                }
+            }
     }
 }
 

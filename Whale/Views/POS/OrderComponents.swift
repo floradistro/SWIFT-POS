@@ -20,79 +20,106 @@ struct OrderListRow: View {
     let onViewDetails: () -> Void
     let onSelectMultiple: () -> Void
 
+    @State private var isPressed = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    /// Horizontal padding - less on compact (iPhone), more on regular (iPad)
+    private var horizontalPadding: CGFloat {
+        sizeClass == .compact ? 16 : 40
+    }
+
     private var needsAttention: Bool {
         order.status == .pending || order.status == .preparing || order.paymentStatus == .pending
+    }
+
+    private var isComplete: Bool {
+        order.status == .completed || order.status == .delivered
+    }
+
+    /// Status color for the center line
+    private var statusColor: Color {
+        if order.paymentStatus == .pending {
+            return .orange
+        } else if needsAttention {
+            return .orange
+        } else if isComplete {
+            return Design.Colors.Semantic.success
+        } else {
+            return .white.opacity(0.15)
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             Button {
-                Haptics.light()
-                onTap()
+                onTap()  // Haptics handled by caller if needed
             } label: {
-                HStack(spacing: 14) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(order.displayCustomerName)
-                            .font(.system(size: 17, weight: .medium))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
+                ZStack {
+                    // Status line - centered, fades at edges
+                    statusLine
 
-                        HStack(spacing: 6) {
-                            Text("#\(order.shortOrderNumber)")
-                                .font(.system(size: 13, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.4))
+                    // Content
+                    HStack(spacing: 14) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(order.displayCustomerName)
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
 
-                            Text("•")
-                                .font(.system(size: 8))
-                                .foregroundStyle(.white.opacity(0.2))
+                            HStack(spacing: 6) {
+                                Text("#\(order.shortOrderNumber)")
+                                    .font(.system(size: 13, design: .monospaced))
+                                    .foregroundStyle(.white.opacity(0.4))
 
-                            Text(order.orderType.displayName)
-                                .font(.system(size: 13))
-                                .foregroundStyle(.white.opacity(0.4))
+                                Text("•")
+                                    .font(.system(size: 8))
+                                    .foregroundStyle(.white.opacity(0.2))
 
-                            Text("•")
-                                .font(.system(size: 8))
-                                .foregroundStyle(.white.opacity(0.2))
+                                Text(order.orderType.displayName)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(.white.opacity(0.4))
 
-                            Text(order.timeAgo)
-                                .font(.system(size: 13))
-                                .foregroundStyle(.white.opacity(0.4))
+                                Text("•")
+                                    .font(.system(size: 8))
+                                    .foregroundStyle(.white.opacity(0.2))
+
+                                Text(order.timeAgo)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(.white.opacity(0.4))
+                            }
+                        }
+
+                        Spacer()
+
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text(order.formattedTotal)
+                                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white)
+
+                            OrderListStatusPill(order: order)
+                        }
+
+                        if isMultiSelectMode {
+                            Image(systemName: isMultiSelected ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 22))
+                                .foregroundStyle(isMultiSelected ? Design.Colors.Semantic.accent : .white.opacity(0.3))
+                                .scaleEffect(isMultiSelected ? 1.0 : 0.9)
                         }
                     }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text(order.formattedTotal)
-                            .font(.system(size: 17, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white)
-
-                        OrderListStatusPill(order: order)
-                    }
-
-                    if isMultiSelectMode {
-                        Image(systemName: isMultiSelected ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 22))
-                            .foregroundStyle(isMultiSelected ? Design.Colors.Semantic.accent : .white.opacity(0.3))
-                            .scaleEffect(isMultiSelected ? 1.0 : 0.9)
-                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isMultiSelected)
-                    }
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.vertical, 14)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
                 .background(isMultiSelected ? Color.white.opacity(0.06) : Color.clear)
             }
-            .buttonStyle(ListRowPressStyle())
+            .buttonStyle(OrderListRowButtonStyle(isPressed: $isPressed))
             .contextMenu {
                 Button {
-                    Haptics.light()
                     onOpenInDock()
                 } label: {
                     Label("Open in Dock", systemImage: "dock.arrow.down.rectangle")
                 }
 
                 Button {
-                    Haptics.light()
                     onViewDetails()
                 } label: {
                     Label("View Details", systemImage: "info.circle")
@@ -101,7 +128,6 @@ struct OrderListRow: View {
                 Divider()
 
                 Button {
-                    Haptics.light()
                     onSelectMultiple()
                 } label: {
                     Label("Select Multiple", systemImage: "checkmark.circle")
@@ -110,12 +136,54 @@ struct OrderListRow: View {
 
             if !isLast {
                 Rectangle()
-                    .fill(Color.white.opacity(0.15))
+                    .fill(Color.white.opacity(0.08))
                     .frame(height: 0.5)
-                    .padding(.leading, 16)
+                    .padding(.horizontal, horizontalPadding)
             }
         }
         .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isMultiSelected)
+    }
+
+    /// Sleek status line that connects left and right content (iPad only)
+    @ViewBuilder
+    private var statusLine: some View {
+        if sizeClass != .compact {
+            GeometryReader { geo in
+                let lineWidth = geo.size.width * 0.35
+
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            stops: [
+                                .init(color: statusColor.opacity(0), location: 0),
+                                .init(color: statusColor.opacity(0.4), location: 0.3),
+                                .init(color: statusColor.opacity(0.4), location: 0.7),
+                                .init(color: statusColor.opacity(0), location: 1)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: lineWidth, height: 1)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            }
+        }
+    }
+}
+
+// MARK: - Order List Row Button Style
+
+struct OrderListRowButtonStyle: ButtonStyle {
+    @Binding var isPressed: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.85 : 1.0)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, pressed in
+                isPressed = pressed
+            }
     }
 }
 

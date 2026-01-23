@@ -227,18 +227,19 @@ struct TierSelectorSheet: View {
 
             // Reason chips
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     ForEach(QuickAuditReason.allCases, id: \.self) { reason in
                         Button {
                             Haptics.light()
                             auditReason = reason
                         } label: {
                             Text(reason.displayName)
-                                .font(.system(size: 12, weight: auditReason == reason ? .semibold : .medium))
-                                .foregroundStyle(auditReason == reason ? .white : .white.opacity(0.5))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(Capsule().fill(.white.opacity(auditReason == reason ? 0.2 : 0.06)))
+                                .font(.system(size: 14, weight: auditReason == reason ? .semibold : .medium))
+                                .foregroundStyle(auditReason == reason ? .white : .white.opacity(0.6))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                                .frame(minHeight: 44)
+                                .background(Capsule().fill(.white.opacity(auditReason == reason ? 0.2 : 0.08)))
                         }
                         .buttonStyle(.plain)
                     }
@@ -282,10 +283,11 @@ struct TierSelectorSheet: View {
     private func variantChip(name: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(name)
-                .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
+                .font(.system(size: 15, weight: isSelected ? .semibold : .medium))
                 .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+                .frame(minHeight: 44)
                 .contentShape(Capsule())
         }
         .buttonStyle(ScaleButtonStyle())

@@ -391,7 +391,7 @@ struct POSMainView: View {
                 showRegisterPicker: $showRegisterPicker
             )
 
-            // Floating cart at bottom
+            // Floating cart at bottom with page indicator
             FloatingCart(
                 posStore: productStore,
                 onScanID: {
@@ -403,35 +403,23 @@ struct POSMainView: View {
                     if let storeId = effectiveStoreId {
                         SheetCoordinator.shared.present(.customerSearch(storeId: storeId))
                     }
-                }
+                },
+                selectedTab: $selectedTab
             )
 
-            // Error banner at top
-            if let error = cartError {
-                VStack {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.yellow)
-                        Text(error)
-                            .font(.subheadline)
-                        Spacer()
-                        Button {
-                            if isMultiWindowSession {
-                                windowSession?.clearCartError()
-                            } else {
-                                productStore.clearCartError()
-                            }
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
+            // Error sheet (shown via SheetCoordinator)
+            EmptyView()
+                .onChange(of: cartError) { _, error in
+                    if let error = error {
+                        SheetCoordinator.shared.showError(title: "Cart Error", message: error)
+                        // Clear the error after showing
+                        if isMultiWindowSession {
+                            windowSession?.clearCartError()
+                        } else {
+                            productStore.clearCartError()
                         }
                     }
-                    .padding()
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                    .padding()
-                    Spacer()
                 }
-            }
         }
         .background(Color.black)
         .ignoresSafeArea()
@@ -458,6 +446,9 @@ struct POSMainView: View {
 
                 // Configure stores with this window's location
                 if let locationId = effectiveLocationId {
+                    // Connect to EventBus for realtime cart/queue updates
+                    await RealtimeEventBus.shared.connect(to: locationId)
+
                     // Configure both stores - POSStore as fallback, orderStore for orders view
                     productStore.configure(storeId: storeId, locationId: locationId)
                     orderStore.configure(storeId: storeId, locationId: locationId)
@@ -480,6 +471,9 @@ struct POSMainView: View {
 
                 let locationId = session.selectedLocation?.id
                 if let locationId = locationId {
+                    // Connect to EventBus for realtime cart/queue updates
+                    await RealtimeEventBus.shared.connect(to: locationId)
+
                     productStore.configure(storeId: storeId, locationId: locationId)
                     orderStore.configure(storeId: storeId, locationId: locationId)
 

@@ -532,6 +532,24 @@ final class POSWindowSession: ObservableObject, Identifiable {
                 return false
             }
 
+            // Fetch and cache customer if cart has a customer ID
+            if let customerId = cart.customerId, let storeId = storeId {
+                do {
+                    let customer: Customer = try await supabase
+                        .from("v_store_customers")
+                        .select()
+                        .eq("id", value: customerId.uuidString)
+                        .eq("store_id", value: storeId.uuidString)
+                        .single()
+                        .execute()
+                        .value
+                    _customerCache[customerId] = customer
+                    print("🪟 POSWindowSession: loadCartById - Cached customer \(customer.displayName) for cart \(cartId)")
+                } catch {
+                    print("🪟 POSWindowSession: loadCartById - Failed to fetch customer \(customerId): \(error)")
+                }
+            }
+
             let newIndex = carts.count
             carts.append(cart)
             activeCartIndex = newIndex

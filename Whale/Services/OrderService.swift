@@ -45,7 +45,7 @@ enum OrderServiceError: LocalizedError {
 
 enum OrderService {
 
-    /// Fetch a single order by ID with all joins (v_store_customers, items, locations, order_locations)
+    /// Fetch a single order by ID with all joins (v_store_customers, items, fulfillments, order_locations)
     static func fetchOrder(orderId: UUID) async throws -> Order? {
         Log.network.debug("Fetching order: \(orderId.uuidString)")
 
@@ -59,8 +59,27 @@ enum OrderService {
                     email,
                     phone
                 ),
-                pickup_location:pickup_location_id(
-                    name
+                fulfillments(
+                    id,
+                    order_id,
+                    type,
+                    status,
+                    delivery_location_id,
+                    delivery_address,
+                    carrier,
+                    tracking_number,
+                    tracking_url,
+                    shipping_cost,
+                    created_at,
+                    shipped_at,
+                    delivered_at,
+                    delivery_location:delivery_location_id(
+                        id,
+                        name,
+                        address_line1,
+                        city,
+                        state
+                    )
                 ),
                 order_items(
                     id,
@@ -69,12 +88,7 @@ enum OrderService {
                     product_name,
                     quantity,
                     unit_price,
-                    line_total,
-                    location_id,
-                    pickup_location_name,
-                    location:location_id(
-                        name
-                    )
+                    line_total
                 ),
                 order_locations(
                     id,
@@ -121,7 +135,7 @@ enum OrderService {
 
         // Debug: Log parsed order
         if let order = orders.first {
-            Log.network.debug("OrderService.fetchOrder parsed: items=\(order.items?.count ?? 0), pickupLocation=\(order.pickupLocation?.name ?? "nil"), firstItemLocation=\(order.items?.first?.pickupLocationName ?? "nil")")
+            Log.network.debug("OrderService.fetchOrder parsed: items=\(order.items?.count ?? 0), channel=\(order.channel.rawValue), fulfillmentType=\(order.fulfillmentType.rawValue)")
         }
 
         return orders.first

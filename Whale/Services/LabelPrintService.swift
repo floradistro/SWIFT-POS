@@ -580,8 +580,8 @@ final class LabelPrinterManager {
 
         let config = LabelConfig(
             storeId: order.storeId,
-            locationId: order.pickupLocationId,
-            locationName: order.pickupLocation?.name ?? "Licensed Dispensary",
+            locationId: order.deliveryLocationId,
+            locationName: order.primaryFulfillment?.deliveryLocation?.name ?? "Licensed Dispensary",
             locationLicense: nil,
             distributorLicense: nil,
             storeLogoUrl: storeLogoUrl,
@@ -608,11 +608,15 @@ final class LabelPrinterManager {
 enum LabelPrintError: LocalizedError {
     case noPrinterConfigured
     case printFailed
+    case noItems
+    case orderFetchFailed(String)
 
     var errorDescription: String? {
         switch self {
-        case .noPrinterConfigured: return "No label printer configured"
-        case .printFailed: return "Label printing failed"
+        case .noPrinterConfigured: return "No label printer configured. Go to Settings > Label Printer to set up."
+        case .printFailed: return "Label printing failed. Check printer is on and connected to WiFi."
+        case .noItems: return "No items to print"
+        case .orderFetchFailed(let reason): return "Failed to fetch order: \(reason)"
         }
     }
 }

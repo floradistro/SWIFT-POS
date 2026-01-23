@@ -21,6 +21,7 @@ struct FloatingCart: View {
 
     var onScanID: () -> Void
     var onFindCustomer: (() -> Void)?
+    @Binding var selectedTab: POSTab
 
     // MARK: - State
 
@@ -96,9 +97,12 @@ struct FloatingCart: View {
 
             // Floating cart pill
             floatingCartPill
+
+            // Swipe indicator below cart
+            pageIndicator
         }
         .padding(.horizontal, 16)
-        .padding(.bottom, SafeArea.bottom + 12)
+        .padding(.bottom, SafeArea.bottom + 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         .offset(y: shouldHide ? 200 : 0)
         .opacity(shouldHide ? 0 : 1)
@@ -160,7 +164,6 @@ struct FloatingCart: View {
 
                 // Add customer button
                 Button {
-                    Haptics.light()
                     onFindCustomer?()
                 } label: {
                     Image(systemName: "plus")
@@ -180,7 +183,7 @@ struct FloatingCart: View {
         let isActive = entry.cartId == selectedCartId
 
         return Button {
-            Haptics.light()
+            Haptics.selection()  // Subtle selection feedback for tab switch
             queueStore?.selectCart(entry.cartId)
             Task { await loadAndSelectCart(cartId: entry.cartId) }
         } label: {
@@ -199,9 +202,8 @@ struct FloatingCart: View {
                         .foregroundStyle(.white.opacity(0.8))
                 }
 
-                // Remove button
+                // Remove button - no haptic, just visual
                 Button {
-                    Haptics.light()
                     Task { await removeFromQueue(cartId: entry.cartId) }
                 } label: {
                     Image(systemName: "xmark")
@@ -231,14 +233,12 @@ struct FloatingCart: View {
                     }
 
                     Button(role: .destructive) {
-                        Haptics.light()
                         clearCurrentCart()
                     } label: {
                         Label("Clear Cart", systemImage: "trash")
                     }
 
                     Button(role: .destructive) {
-                        Haptics.light()
                         Task { await removeFromQueue(cartId: entry.cartId) }
                     } label: {
                         Label("Remove Customer", systemImage: "person.badge.minus")
@@ -309,9 +309,8 @@ struct FloatingCart: View {
 
                 Spacer()
 
-                // Add customer button
+                // Add customer button - no haptic, just visual
                 Button {
-                    Haptics.light()
                     onFindCustomer?()
                 } label: {
                     Image(systemName: "person.badge.plus")
@@ -326,6 +325,22 @@ struct FloatingCart: View {
         .frame(maxWidth: 500)
         .glassEffect(.regular, in: .capsule)
         .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
+    }
+
+    // MARK: - Page Indicator
+
+    private var pageIndicator: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(Color.white.opacity(selectedTab == .products ? 0.9 : 0.3))
+                .frame(width: 7, height: 7)
+
+            Circle()
+                .fill(Color.white.opacity(selectedTab == .orders ? 0.9 : 0.3))
+                .frame(width: 7, height: 7)
+        }
+        .padding(.top, 4)
+        .animation(.easeInOut(duration: 0.2), value: selectedTab)
     }
 
     // MARK: - Actions

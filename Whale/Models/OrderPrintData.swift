@@ -17,13 +17,30 @@ struct OrderPrintData: Codable, Sendable {
     let orderNumber: String
     let storeId: UUID
     let locationId: UUID?  // Optional - orders may not have location_id set
-    let pickupLocationId: UUID?
-    let pickupLocation: PickupLocation?
+    let channel: OrderChannel
     let createdAt: Date
     let items: [OrderPrintItem]
 
-    /// Pickup location summary
-    struct PickupLocation: Codable, Sendable {
+    // Fulfillment data (from joined fulfillments table)
+    let fulfillments: [PrintFulfillment]?
+
+    /// Fulfillment summary for printing
+    struct PrintFulfillment: Codable, Sendable {
+        let id: UUID
+        let type: FulfillmentType
+        let status: FulfillmentStatus
+        let deliveryLocationId: UUID?
+        let deliveryLocation: DeliveryLocation?
+
+        enum CodingKeys: String, CodingKey {
+            case id, type, status
+            case deliveryLocationId = "delivery_location_id"
+            case deliveryLocation = "delivery_location"
+        }
+    }
+
+    /// Delivery location summary
+    struct DeliveryLocation: Codable, Sendable {
         let id: UUID
         let name: String
     }
@@ -33,10 +50,25 @@ struct OrderPrintData: Codable, Sendable {
         case orderNumber = "order_number"
         case storeId = "store_id"
         case locationId = "location_id"
-        case pickupLocationId = "pickup_location_id"
-        case pickupLocation = "pickup_location"
+        case channel
         case createdAt = "created_at"
         case items
+        case fulfillments
+    }
+
+    /// Primary fulfillment (backward compatibility)
+    var primaryFulfillment: PrintFulfillment? {
+        fulfillments?.first
+    }
+
+    /// Delivery location ID from fulfillment (for pickup orders)
+    var deliveryLocationId: UUID? {
+        primaryFulfillment?.deliveryLocationId
+    }
+
+    /// Delivery location name from fulfillment (for pickup orders)
+    var deliveryLocationName: String? {
+        primaryFulfillment?.deliveryLocation?.name
     }
 }
 

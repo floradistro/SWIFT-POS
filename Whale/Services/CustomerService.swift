@@ -172,7 +172,7 @@ enum CustomerService {
             // orders.customer_id references user_creation_relationships.id
             let orders: [Order] = try await supabase
                 .from("orders")
-                .select("*, v_store_customers(first_name, last_name, email, phone), pickup_location:pickup_location_id(name)")
+                .select("*, v_store_customers(first_name, last_name, email, phone), fulfillments(id, type, status, delivery_location_id, carrier, tracking_number, tracking_url, shipping_cost, created_at, shipped_at, delivered_at, delivery_location:delivery_location_id(id, name))")
                 .eq("customer_id", value: customerId.uuidString)
                 .in("status", values: pendingStatuses)
                 .order("created_at", ascending: false)
@@ -195,7 +195,7 @@ enum CustomerService {
             // orders.customer_id references user_creation_relationships.id
             let orders: [Order] = try await supabase
                 .from("orders")
-                .select("*, v_store_customers(first_name, last_name, email, phone), pickup_location:pickup_location_id(name)")
+                .select("*, v_store_customers(first_name, last_name, email, phone), fulfillments(id, type, status, delivery_location_id, carrier, tracking_number, tracking_url, shipping_cost, created_at, shipped_at, delivered_at, delivery_location:delivery_location_id(id, name))")
                 .eq("customer_id", value: customerId.uuidString)
                 .order("created_at", ascending: false)
                 .limit(limit)

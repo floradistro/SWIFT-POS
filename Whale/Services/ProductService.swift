@@ -249,8 +249,9 @@ enum ProductService {
         // Group by product_id, taking most recent (first due to order)
         var coasByProduct: [UUID: ProductCOA] = [:]
         for coa in coas {
-            if coasByProduct[coa.productId] == nil {
-                coasByProduct[coa.productId] = coa
+            guard let productId = coa.productId else { continue }
+            if coasByProduct[productId] == nil {
+                coasByProduct[productId] = coa
             }
         }
 

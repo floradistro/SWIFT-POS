@@ -11,6 +11,7 @@
 import Foundation
 import Combine
 import os.log
+import Supabase
 
 @MainActor
 final class SessionObserver: ObservableObject {
@@ -35,9 +36,13 @@ final class SessionObserver: ObservableObject {
     private(set) var errorMessage: String?
     private(set) var activePOSSession: POSSession?
     private(set) var userStoreAssociations: [UserStoreAssociation] = []  // Multi-store support
+    private(set) var loyaltyProgram: LoyaltyProgram?  // Store's loyalty program settings
 
     /// Whether user has access to multiple stores
     var hasMultipleStores: Bool { userStoreAssociations.count > 1 }
+
+    /// Point value for loyalty redemption (from loyalty program or default)
+    var loyaltyPointValue: Decimal { loyaltyProgram?.pointValue ?? Decimal(string: "0.05")! }
 
     // MARK: - Lock Screen State
     private(set) var isLocked = true
@@ -153,6 +158,9 @@ final class SessionObserver: ObservableObject {
     func sync() async {
         let snapshot = await session.snapshot()
 
+        // Check if store changed (need to reload loyalty program)
+        let storeChanged = storeId != snapshot.storeId
+
         // Update all properties silently
         isAuthenticated = snapshot.isAuthenticated
         userEmail = snapshot.userEmail
@@ -168,6 +176,11 @@ final class SessionObserver: ObservableObject {
         selectedRegister = snapshot.selectedRegister
         activePOSSession = snapshot.activePOSSession
         userStoreAssociations = snapshot.userStoreAssociations
+
+        // Load loyalty program if store changed or not yet loaded
+        if storeChanged || (storeId != nil && loyaltyProgram == nil) {
+            await loadLoyaltyProgram()
+        }
 
         // Single notification for all changes (suppressed during boot)
         notifyChange()
@@ -418,8 +431,32 @@ final class SessionObserver: ObservableObject {
             try await session.fetchStore()
             await sync()
             Log.session.info("Store refreshed - github_repo: \(self.store?.githubRepoFullName ?? "none")")
+            // Also refresh loyalty program when store refreshes
+            await loadLoyaltyProgram()
         } catch {
             Log.session.warning("Failed to refresh store: \(error.localizedDescription)")
+        }
+    }
+
+    /// Load the store's loyalty program settings
+    func loadLoyaltyProgram() async {
+        guard let storeId = self.storeId else { return }
+        do {
+            let programs: [LoyaltyProgram] = try await supabase
+                .from("loyalty_programs")
+                .select()
+                .eq("store_id", value: storeId.uuidString)
+                .eq("is_active", value: true)
+                .limit(1)
+                .execute()
+                .value
+            self.loyaltyProgram = programs.first
+            self.notifyChange()
+            Log.session.info("Loaded loyalty program: point_value=\(self.loyaltyProgram?.pointValue ?? 0)")
+        } catch {
+            Log.session.warning("Failed to load loyalty program: \(error.localizedDescription)")
+            // Use default on error
+            self.loyaltyProgram = nil
         }
     }
 
