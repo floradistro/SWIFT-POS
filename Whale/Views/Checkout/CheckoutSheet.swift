@@ -14,7 +14,7 @@ struct CheckoutSheet: View {
     @ObservedObject var posStore: POSStore
     @ObservedObject var paymentStore: PaymentStore
     @ObservedObject var dealStore: DealStore
-    let totals: CheckoutTotals
+    let initialTotals: CheckoutTotals  // Initial totals (used as fallback)
     let sessionInfo: SessionInfo
     let loyaltyProgram: LoyaltyProgram?  // Store's loyalty program settings
 
@@ -57,6 +57,15 @@ struct CheckoutSheet: View {
     private var isMultiWindowSession: Bool { windowSession?.location != nil }
     private var cartItems: [CartItem] { isMultiWindowSession ? (windowSession?.cartItems ?? []) : posStore.cartItems }
     private var selectedCustomer: Customer? { isMultiWindowSession ? windowSession?.selectedCustomer : posStore.selectedCustomer }
+
+    /// Live totals from current cart state (updates when discounts are applied)
+    private var totals: CheckoutTotals {
+        if isMultiWindowSession {
+            return windowSession?.activeCart?.totals ?? initialTotals
+        } else {
+            return posStore.activeCart?.totals ?? initialTotals
+        }
+    }
 
     private var hasLoyaltyPoints: Bool { (selectedCustomer?.loyaltyPoints ?? 0) > 0 }
 

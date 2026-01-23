@@ -220,7 +220,7 @@ private struct CheckoutSheetWrapper: View {
             posStore: posStore,
             paymentStore: paymentStore,
             dealStore: dealStore,
-            totals: totals,
+            initialTotals: totals,
             sessionInfo: sessionInfo,
             loyaltyProgram: session.loyaltyProgram,
             onScanID: {
