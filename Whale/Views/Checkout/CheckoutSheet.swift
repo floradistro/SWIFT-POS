@@ -199,7 +199,7 @@ struct CheckoutSheet: View {
                             removeLineItemDiscount()
                         } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: "trash")
+                                Image(systemName: "arrow.uturn.backward")
                                     .font(.system(size: 14, weight: .medium))
                                     .frame(width: 20)
 
@@ -211,13 +211,41 @@ struct CheckoutSheet: View {
                                 Text("+\(CurrencyFormatter.format(item.discountAmount))")
                                     .font(.system(size: 13, weight: .medium, design: .rounded))
                             }
-                            .foregroundStyle(.red)
+                            .foregroundStyle(.orange)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 14)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
+
+                    // Remove from cart
+                    Divider().background(.white.opacity(0.15))
+
+                    Button {
+                        Task {
+                            await removeItemFromCart(item)
+                        }
+                        withAnimation(.spring(response: 0.3)) {
+                            showDiscountSheet = false
+                        }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 14, weight: .medium))
+                                .frame(width: 20)
+
+                            Text("Remove from Cart")
+                                .font(.system(size: 15, weight: .medium))
+
+                            Spacer()
+                        }
+                        .foregroundStyle(.red)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
                 .frame(width: 280)
                 .glassEffect(.regular, in: .rect(cornerRadius: 16))
@@ -562,6 +590,29 @@ struct CheckoutSheet: View {
                     Label("Remove Discount", systemImage: "xmark.circle")
                 }
             }
+
+            Divider()
+
+            // Remove item from cart
+            Button(role: .destructive) {
+                Haptics.medium()
+                Task {
+                    await removeItemFromCart(item)
+                }
+            } label: {
+                Label("Remove from Cart", systemImage: "trash")
+            }
+        }
+    }
+
+    private func removeItemFromCart(_ item: CartItem) async {
+        if isMultiWindowSession {
+            // POSWindowSession expects ServerCartItem, so we need to find it
+            if let serverItem = windowSession?.activeCart?.items.first(where: { $0.id == item.id }) {
+                await windowSession?.removeFromCart(serverItem)
+            }
+        } else {
+            posStore.removeFromCart(item.id)
         }
     }
 
