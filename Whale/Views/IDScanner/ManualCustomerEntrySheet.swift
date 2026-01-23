@@ -403,15 +403,31 @@ private struct CustomerSearchContent: View {
                         }
                     }
 
-                    if let phone = match.customer.formattedPhone {
-                        Text(phone)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.45))
-                    } else if let email = match.customer.email, !email.isEmpty {
-                        Text(email)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.45))
-                            .lineLimit(1)
+                    HStack(spacing: 8) {
+                        if let phone = match.customer.formattedPhone {
+                            Text(phone)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.45))
+                        } else if let email = match.customer.email, !email.isEmpty {
+                            Text(email)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.45))
+                                .lineLimit(1)
+                        }
+
+                        // Loyalty points badge
+                        if let points = match.customer.loyaltyPoints {
+                            HStack(spacing: 2) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 8, weight: .bold))
+                                Text("\(points)")
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                            }
+                            .foregroundStyle(points >= 0 ? .yellow.opacity(0.8) : .red.opacity(0.7))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(.white.opacity(0.08), in: .capsule)
+                        }
                     }
                 }
 

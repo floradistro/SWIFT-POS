@@ -9,6 +9,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import Supabase
 
 // MARK: - Environment Key
 
@@ -589,6 +590,31 @@ final class POSWindowSession: ObservableObject, Identifiable {
         isCartLoading = true
 
         do {
+            // Query inventory at this location for this product
+            var inventoryId: UUID? = nil
+            if let locId = locationId {
+                let client = await SupabaseClientWrapper.shared.client()
+
+                // Simple struct just for ID query
+                struct InventoryID: Codable {
+                    let id: UUID
+                }
+
+                let inventory: [InventoryID] = try await client
+                    .from("inventory")
+                    .select("id")
+                    .eq("product_id", value: product.id.uuidString)
+                    .eq("location_id", value: locId.uuidString)
+                    .gt("available_quantity", value: 0)
+                    .order("available_quantity", ascending: false)
+                    .limit(1)
+                    .execute()
+                    .value
+
+                inventoryId = inventory.first?.id
+                print("🛒 POSWindowSession.addToCart(tier) - inventory_id: \(inventoryId?.uuidString ?? "nil")")
+            }
+
             let updatedCart = try await CartService.shared.addToCart(
                 cartId: cart.id,
                 productId: product.id,
@@ -596,7 +622,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
                 unitPrice: tier.defaultPrice,
                 tierLabel: tier.label,
                 tierQuantity: tier.quantity,
-                inventoryId: product.inventory?.id
+                inventoryId: inventoryId
             )
 
             if let index = carts.firstIndex(where: { $0.id == cart.id }) {

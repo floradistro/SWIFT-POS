@@ -54,6 +54,7 @@ struct ServerCartItem: Codable, Identifiable {
     let tierQuantity: Double
     let variantId: UUID?
     let variantName: String?
+    let inventoryId: UUID?
     let lineTotal: Decimal
     let discountAmount: Decimal
     let manualDiscountType: String?
@@ -70,6 +71,7 @@ struct ServerCartItem: Codable, Identifiable {
         case tierQuantity = "tier_quantity"
         case variantId = "variant_id"
         case variantName = "variant_name"
+        case inventoryId = "inventory_id"
         case lineTotal = "line_total"
         case discountAmount = "discount_amount"
         case manualDiscountType = "manual_discount_type"

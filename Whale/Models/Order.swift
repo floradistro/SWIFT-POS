@@ -582,7 +582,12 @@ struct OrderLocationInfo: Codable, Sendable {
 extension Order {
     /// Display name for customer
     var displayCustomerName: String {
-        customers?.fullName ?? "Walk-in Customer"
+        // Prioritize shipping_name (set by backend) over joined customer record
+        // This ensures consistent naming across all order sources
+        if let name = shippingName, !name.isEmpty, name != "Walk-In" {
+            return name
+        }
+        return customers?.fullName ?? "Walk-in Customer"
     }
 
     /// Customer name (for compatibility)
@@ -610,6 +615,7 @@ extension Order {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
+        formatter.timeZone = TimeZone.current  // Explicitly use device timezone
         return formatter.string(from: createdAt)
     }
 

@@ -18,6 +18,7 @@ import Foundation
 import SwiftUI
 import Combine
 import os.log
+import Supabase
 
 // MARK: - POS Store (Migrated)
 
@@ -88,6 +89,12 @@ final class POSStore: ObservableObject {
 
     /// Customer cache (populated when customers are added)
     private var _customerCache: [UUID: Customer] = [:]
+
+    /// Realtime channel for loyalty points updates
+    private var loyaltyChannel: RealtimeChannelV2?
+
+    /// Realtime channel for cart updates
+    private var cartChannel: RealtimeChannelV2?
 
     /// Look up customer by ID from cache
     func customer(for customerId: UUID?) -> Customer? {
@@ -170,6 +177,10 @@ final class POSStore: ObservableObject {
             activeCartIndex = newIndex
             // Explicitly notify observers since customer cache changed (not @Published)
             objectWillChange.send()
+            // Subscribe to loyalty points updates for this customer
+            subscribeToLoyaltyUpdates(for: customer.id)
+            // Subscribe to cart updates for instant sync
+            subscribeToCartUpdates(for: cart.id)
         } catch {
             Log.cart.error("Failed to create cart: \(error)")
             cartError = error.localizedDescription
@@ -182,6 +193,12 @@ final class POSStore: ObservableObject {
     func switchToCustomer(_ customerId: UUID) {
         if let index = carts.firstIndex(where: { $0.customerId == customerId }) {
             activeCartIndex = index
+            // Subscribe to new cart's realtime updates
+            let cart = carts[index]
+            subscribeToCartUpdates(for: cart.id)
+            if let cid = cart.customerId {
+                subscribeToLoyaltyUpdates(for: cid)
+            }
         }
     }
 
@@ -189,6 +206,12 @@ final class POSStore: ObservableObject {
     func switchToCartAtIndex(_ index: Int) {
         guard index >= 0 && index < carts.count else { return }
         activeCartIndex = index
+        // Subscribe to new cart's realtime updates
+        let cart = carts[index]
+        subscribeToCartUpdates(for: cart.id)
+        if let customerId = cart.customerId {
+            subscribeToLoyaltyUpdates(for: customerId)
+        }
     }
 
     /// Remove a customer's cart
@@ -203,6 +226,196 @@ final class POSStore: ObservableObject {
             activeCartIndex = carts.count - 1
         } else if activeCartIndex > index {
             activeCartIndex -= 1
+        }
+
+        // Unsubscribe from loyalty and cart updates when customer is removed
+        unsubscribeFromLoyaltyUpdates()
+        unsubscribeFromCartUpdates()
+    }
+
+    // MARK: - Realtime Loyalty Updates
+
+    /// Subscribe to loyalty points updates for a specific customer
+    private func subscribeToLoyaltyUpdates(for customerId: UUID) {
+        Task {
+            // Unsubscribe from any existing channel
+            unsubscribeFromLoyaltyUpdates()
+
+            let supabase = await supabaseAsync()
+
+            // Create channel for this customer's profile updates
+            let channel = supabase.realtimeV2.channel("loyalty-updates-\(customerId)")
+
+            // Subscribe to UPDATE events on store_customer_profiles
+            let changes = await channel.postgresChange(
+                UpdateAction.self,
+                schema: "public",
+                table: "store_customer_profiles",
+                filter: "relationship_id=eq.\(customerId)"
+            )
+
+            await channel.subscribe()
+
+            // Handle updates in background task
+            Task {
+                for await change in changes {
+                    await handleLoyaltyUpdate(customerId: customerId, record: change.record)
+                }
+            }
+
+            loyaltyChannel = channel
+            Log.cart.info("Subscribed to loyalty updates for customer \(customerId)")
+        }
+    }
+
+    /// Handle loyalty points update from Realtime
+    private func handleLoyaltyUpdate(customerId: UUID, record: [String: AnyJSON]) async {
+        Log.cart.info("Received loyalty update for customer \(customerId)")
+
+        // Extract loyalty_points from record
+        guard let loyaltyPoints = record["loyalty_points"]?.intValue else {
+            Log.cart.warning("Could not parse loyalty_points from Realtime update")
+            return
+        }
+
+        Log.cart.info("New loyalty points value: \(loyaltyPoints)")
+
+        // Refetch customer data from database to get updated points
+        guard let storeId = storeId else {
+            Log.cart.error("Cannot refetch customer - no storeId")
+            return
+        }
+
+        do {
+            let supabase = await supabaseAsync()
+
+            let updatedCustomer: Customer = try await supabase
+                .from("v_store_customers")
+                .select()
+                .eq("id", value: customerId.uuidString)
+                .eq("store_id", value: storeId.uuidString)
+                .single()
+                .execute()
+                .value
+
+            // Update customer in cache
+            _customerCache[customerId] = updatedCustomer
+
+            // Notify observers to refresh UI
+            objectWillChange.send()
+
+            Log.cart.info("Updated customer \(customerId) loyalty points to \(updatedCustomer.loyaltyPoints ?? 0)")
+        } catch {
+            Log.cart.error("Failed to refetch customer: \(error)")
+        }
+    }
+
+    /// Unsubscribe from loyalty updates
+    private func unsubscribeFromLoyaltyUpdates() {
+        if let channel = loyaltyChannel {
+            Task {
+                loyaltyChannel = nil
+                Log.cart.info("Unsubscribed from loyalty updates")
+            }
+        }
+    }
+
+    // MARK: - Realtime Cart Updates
+
+    /// Subscribe to cart updates for instant sync across devices
+    private func subscribeToCartUpdates(for cartId: UUID) {
+        // Unsubscribe from any existing channel
+        unsubscribeFromCartUpdates()
+
+        Task {
+            let supabase = await supabaseAsync()
+            let channelName = "cart-updates-\(cartId.uuidString.prefix(8))-\(UInt64(Date().timeIntervalSince1970 * 1000))"
+
+            Log.cart.info("🔌 Creating realtime channel: \(channelName)")
+
+            // Create channel for this cart's updates
+            let channel = supabase.realtimeV2.channel(channelName)
+
+            // Subscribe to cart table changes (totals, discounts)
+            let cartChanges = await channel.postgresChange(
+                AnyAction.self,
+                schema: "public",
+                table: "carts",
+                filter: "id=eq.\(cartId)"
+            )
+
+            // Subscribe to cart_items table changes (items added/removed/updated)
+            let itemChanges = await channel.postgresChange(
+                AnyAction.self,
+                schema: "public",
+                table: "cart_items",
+                filter: "cart_id=eq.\(cartId)"
+            )
+
+            cartChannel = channel
+
+            do {
+                Log.cart.info("Subscribing to channel...")
+                try await channel.subscribeWithError()
+
+                Log.cart.info("✅ Subscribed to realtime for cart \(cartId)")
+
+                // Listen for both event types concurrently
+                await withTaskGroup(of: Void.self) { group in
+                    // Handle cart changes
+                    group.addTask { [weak self] in
+                        for await _ in cartChanges {
+                            guard !Task.isCancelled else { break }
+                            await self?.handleCartUpdate(cartId: cartId)
+                        }
+                    }
+
+                    // Handle item changes
+                    group.addTask { [weak self] in
+                        for await _ in itemChanges {
+                            guard !Task.isCancelled else { break }
+                            await self?.handleCartUpdate(cartId: cartId)
+                        }
+                    }
+
+                    await group.waitForAll()
+                }
+
+                Log.cart.info("Cart realtime listener loop ended")
+            } catch {
+                Log.cart.error("❌ Cart subscription error: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// Handle cart update from Realtime - refetch cart from server
+    private func handleCartUpdate(cartId: UUID) async {
+        Log.cart.info("🔄 Cart update received for \(cartId) - refetching from server")
+
+        do {
+            guard let updatedCart = try await CartService.shared.getCart(cartId: cartId) else {
+                Log.cart.error("Cart not found on server: \(cartId)")
+                return
+            }
+
+            // Update local cart
+            if let index = carts.firstIndex(where: { $0.id == cartId }) {
+                carts[index] = updatedCart
+                objectWillChange.send()
+                Log.cart.info("✅ Cart \(cartId) updated from realtime")
+            }
+        } catch {
+            Log.cart.error("Failed to refetch cart: \(error)")
+        }
+    }
+
+    /// Unsubscribe from cart updates
+    private func unsubscribeFromCartUpdates() {
+        if let channel = cartChannel {
+            Task {
+                cartChannel = nil
+                Log.cart.info("Unsubscribed from cart updates")
+            }
         }
     }
 
@@ -219,6 +432,14 @@ final class POSStore: ObservableObject {
         // Check if already loaded
         if let existingIndex = carts.firstIndex(where: { $0.id == cartId }) {
             activeCartIndex = existingIndex
+            // CRITICAL: Re-subscribe to realtime even for existing carts
+            // This fixes the bug where remove → add breaks sync
+            let cart = carts[existingIndex]
+            if let customerId = cart.customerId {
+                subscribeToLoyaltyUpdates(for: customerId)
+            }
+            subscribeToCartUpdates(for: cart.id)
+            Log.cart.info("loadCartById: Re-activated existing cart \(cartId) and re-subscribed to realtime")
             return true
         }
 
@@ -238,6 +459,11 @@ final class POSStore: ObservableObject {
             let newIndex = carts.count
             carts.append(cart)
             activeCartIndex = newIndex
+            // Subscribe to cart updates for instant sync
+            if let customerId = cart.customerId {
+                subscribeToLoyaltyUpdates(for: customerId)
+            }
+            subscribeToCartUpdates(for: cart.id)
             Log.cart.info("loadCartById: Loaded cart \(cartId) from server, now at index \(newIndex)")
             return true
         } catch {
@@ -328,6 +554,28 @@ final class POSStore: ObservableObject {
         cartError = nil
 
         do {
+            // Query inventory at this location for this product
+            var inventoryId: UUID? = nil
+            let client = await SupabaseClientWrapper.shared.client()
+
+            // Simple struct just for ID query
+            struct InventoryID: Codable {
+                let id: UUID
+            }
+
+            let inventory: [InventoryID] = try await client
+                .from("inventory")
+                .select("id")
+                .eq("product_id", value: product.id.uuidString)
+                .eq("location_id", value: cart.locationId.uuidString)
+                .gt("available_quantity", value: 0)
+                .order("available_quantity", ascending: false)
+                .limit(1)
+                .execute()
+                .value
+
+            inventoryId = inventory.first?.id
+
             let updatedCart = try await CartService.shared.addToCart(
                 cartId: cart.id,
                 productId: product.id,
@@ -335,7 +583,7 @@ final class POSStore: ObservableObject {
                 unitPrice: tier.defaultPrice,
                 tierLabel: tier.label,
                 tierQuantity: tier.quantity,
-                inventoryId: product.inventory?.id
+                inventoryId: inventoryId
             )
             updateLocalCart(updatedCart)
         } catch {
@@ -570,7 +818,7 @@ struct CartItem: Identifiable, Sendable, Equatable {
         self.tierQuantity = server.tierQuantity
         self.sku = server.sku
         self.tierLabel = server.tierLabel
-        self.inventoryId = nil  // Not in server response
+        self.inventoryId = server.inventoryId
         self.variantId = server.variantId
         self.variantName = server.variantName
         self.conversionRatio = nil  // Not in server response

@@ -993,7 +993,7 @@ private struct CartItemPayload: Encodable {
     let lineTotal: Double
     let discountAmount: Double
     let inventoryId: String?
-    let gramsToDeduct: Double
+    let tierQuantity: Double
     let locationId: String?
     let variantTemplateId: String?
     let variantName: String?
@@ -1049,7 +1049,7 @@ private struct IntentStatus: Decodable {
 extension CartItem {
     fileprivate func toPayload(locationId: UUID) -> CartItemPayload {
         CartItemPayload(
-            productId: productId.uuidString.lowercased(),
+            productId: productId.uuidString,
             productName: productName,
             productSku: sku,
             quantity: quantity,
@@ -1058,10 +1058,10 @@ extension CartItem {
             unitPrice: NSDecimalNumber(decimal: effectiveUnitPrice).doubleValue,
             lineTotal: NSDecimalNumber(decimal: lineTotal).doubleValue,
             discountAmount: NSDecimalNumber(decimal: discountAmount).doubleValue,
-            inventoryId: inventoryId?.uuidString.lowercased(),
-            gramsToDeduct: inventoryDeduction,
-            locationId: locationId.uuidString.lowercased(),
-            variantTemplateId: variantId?.uuidString.lowercased(),
+            inventoryId: inventoryId?.uuidString,
+            tierQuantity: tierQuantity,
+            locationId: locationId.uuidString,
+            variantTemplateId: variantId?.uuidString,
             variantName: variantName,
             conversionRatio: conversionRatio
         )

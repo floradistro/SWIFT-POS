@@ -494,6 +494,20 @@ struct DockCustomerOnlyContent: View {
             Text(customer.firstName ?? "Guest")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(.white)
+
+            // Loyalty points badge
+            if let points = customer.loyaltyPoints {
+                HStack(spacing: 3) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 10, weight: .bold))
+                    Text("\(points)")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                }
+                .foregroundStyle(points >= 0 ? .yellow.opacity(0.9) : .red.opacity(0.8))
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(.white.opacity(0.15), in: .capsule)
+            }
         }
         .padding(.horizontal, 18)
         .frame(height: 52)
