@@ -25,12 +25,12 @@ import Supabase
 @MainActor
 final class POSStore: ObservableObject {
 
-    // MARK: - Products State (unchanged)
+    // MARK: - Products State
 
-    private(set) var products: [Product] = []
-    private(set) var categories: [ProductCategory] = []
-    private(set) var isLoadingProducts = false
-    private(set) var productsError: String?
+    @Published private(set) var products: [Product] = []
+    @Published private(set) var categories: [ProductCategory] = []
+    @Published private(set) var isLoadingProducts = false
+    @Published private(set) var productsError: String?
 
     @Published var searchText = ""
     @Published var selectedCategoryId: UUID?

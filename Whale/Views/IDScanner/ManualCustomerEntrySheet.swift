@@ -90,6 +90,7 @@ private struct CustomerSearchContent: View {
     }
 
     @State private var mode: Mode = .search
+    @State private var detailAppearAnimation = false
     @State private var searchQuery = ""
     @State private var searchResults: [Customer] = []
     @State private var isSearching = false
@@ -113,42 +114,119 @@ private struct CustomerSearchContent: View {
 
 
     var body: some View {
-        NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 16) {
-                    switch mode {
-                    case .search:
-                        searchContent
-                    case .create:
-                        createContent
-                    case .scanner:
-                        scannerContent
-                    case .detail(let customer):
-                        customerDetailContent(customer)
+        Group {
+            if case .detail(let customer) = mode {
+                // Full-height customer detail (no NavigationStack header)
+                customerDetailFullScreen(customer)
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.94).combined(with: .opacity),
+                        removal: .scale(scale: 0.98).combined(with: .opacity)
+                    ))
+            } else {
+                // Standard navigation for search/create/scanner
+                NavigationStack {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 16) {
+                            switch mode {
+                            case .search:
+                                searchContent
+                            case .create:
+                                createContent
+                            case .scanner:
+                                scannerContent
+                            case .detail:
+                                EmptyView()
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, 24)
                     }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            .navigationTitle(navigationTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { onDismiss() }
-                        .foregroundStyle(.white.opacity(0.7))
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    toolbarActions
+                    .scrollBounceBehavior(.basedOnSize)
+                    .navigationTitle(navigationTitle)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") { onDismiss() }
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                        ToolbarItem(placement: .primaryAction) {
+                            toolbarActions
+                        }
+                    }
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .preferredColorScheme(.dark)
         .onAppear {
             print("📋 CustomerSearchContent appeared - isScannedMode: \(isScannedMode), scannedID: \(scannedID?.fullDisplayName ?? "nil"), matches: \(scannedMatches?.count ?? 0)")
+        }
+    }
+
+    // MARK: - Full Screen Customer Detail
+
+    @ViewBuilder
+    private func customerDetailFullScreen(_ customer: Customer) -> some View {
+        VStack(spacing: 0) {
+            // Custom header with liquid glass back button
+            HStack(spacing: 14) {
+                // Back button with liquid glass
+                Button {
+                    Haptics.light()
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        detailAppearAnimation = false
+                        mode = .search
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Back")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .foregroundStyle(.white.opacity(0.8))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: Capsule())
+
+                Spacer()
+
+                // Done button
+                Button {
+                    Haptics.light()
+                    onDismiss()
+                } label: {
+                    Text("Done")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            // Scrollable content
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    customerDetailContent(customer)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 34)
+                .scaleEffect(detailAppearAnimation ? 1 : 0.96)
+                .opacity(detailAppearAnimation ? 1 : 0)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                detailAppearAnimation = true
+            }
         }
     }
 
@@ -161,7 +239,7 @@ private struct CustomerSearchContent: View {
         case .scanner:
             return "Scan ID"
         case .detail:
-            return "Customer"
+            return ""  // Breadcrumb shows the name
         }
     }
 
@@ -194,7 +272,7 @@ private struct CustomerSearchContent: View {
                         .foregroundStyle(.white.opacity(0.6))
                 }
             }
-        case .create, .detail:
+        case .create:
             Button {
                 mode = .search
             } label: {
@@ -202,6 +280,8 @@ private struct CustomerSearchContent: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.6))
             }
+        case .detail:
+            EmptyView()  // Breadcrumb handles navigation
         case .scanner:
             EmptyView()
         }
@@ -323,7 +403,13 @@ private struct CustomerSearchContent: View {
                         ForEach(searchResults.prefix(5)) { customer in
                             CustomerRow(
                                 customer: customer,
-                                onSelect: { selectCustomer(customer) }
+                                onSelect: { selectCustomer(customer) },
+                                onViewProfile: {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                        detailAppearAnimation = false
+                                        mode = .detail(customer)
+                                    }
+                                }
                             )
                         }
                     }
@@ -379,8 +465,12 @@ private struct CustomerSearchContent: View {
 
     private func scannedMatchRow(_ match: CustomerMatch) -> some View {
         Button {
-            Haptics.medium()
-            selectScannedMatch(match)
+            Haptics.light()
+            // Tap row to view profile
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                detailAppearAnimation = false
+                mode = .detail(match.customer)
+            }
         } label: {
             HStack(spacing: 12) {
                 // Avatar with glass
@@ -432,6 +522,17 @@ private struct CustomerSearchContent: View {
                 }
 
                 Spacer()
+
+                // Quick select button
+                Button {
+                    Haptics.medium()
+                    selectScannedMatch(match)
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .buttonStyle(.plain)
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
@@ -1312,13 +1413,18 @@ private struct OrderRowButtonStyle: ButtonStyle {
 private struct CustomerRow: View {
     let customer: Customer
     let onSelect: () -> Void
+    var onViewProfile: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 10) {
-            // Main content - tappable to select
+            // Main content - tappable to view profile (or select if no profile handler)
             Button {
                 Haptics.light()
-                onSelect()
+                if let viewProfile = onViewProfile {
+                    viewProfile()
+                } else {
+                    onSelect()
+                }
             } label: {
                 HStack(spacing: 12) {
                     // Monochrome avatar
@@ -1383,6 +1489,19 @@ private struct CustomerRow: View {
                             .padding(.vertical, 3)
                             .background(.white.opacity(0.08), in: .capsule)
                         }
+                    }
+
+                    // Quick select button (only if profile view is available)
+                    if onViewProfile != nil {
+                        Button {
+                            Haptics.medium()
+                            onSelect()
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 24, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.6))
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     // Chevron inline with the row

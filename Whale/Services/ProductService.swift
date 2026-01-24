@@ -132,58 +132,6 @@ enum ProductService {
         return products
     }
 
-    /// Legacy two-query method for backwards compatibility or fallback
-    /// Use fetchProducts() instead - this is kept for reference
-    @available(*, deprecated, message: "Use fetchProducts() which uses the optimized view")
-    static func fetchProductsLegacy(storeId: UUID, locationId: UUID) async throws -> [Product] {
-        // Original two-query implementation
-        let response = try await supabase
-            .from("products")
-            .select("""
-                id,
-                name,
-                description,
-                sku,
-                featured_image,
-                custom_fields,
-                pricing_data,
-                store_id,
-                primary_category_id,
-                pricing_schema_id,
-                primary_category:categories!primary_category_id(id, name),
-                pricing_schema:pricing_schemas(id, name, tiers)
-            """)
-            .eq("store_id", value: storeId.uuidString)
-            .order("name")
-            .execute()
-
-        let productData = response.data
-        var products: [Product] = try await Task.detached {
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode([Product].self, from: productData)
-        }.value
-
-        guard !products.isEmpty else { return [] }
-
-        let productIds = products.map { $0.id.uuidString }
-        let invResponse = try await supabase
-            .from("inventory_with_holds")
-            .select("id, product_id, location_id, total_quantity, held_quantity, available_quantity")
-            .eq("location_id", value: locationId.uuidString)
-            .in("product_id", values: productIds)
-            .execute()
-
-        let inventory: [ProductInventory] = try JSONDecoder().decode([ProductInventory].self, from: invResponse.data)
-        let inventoryByProduct = Dictionary(inventory.map { ($0.productId, $0) }, uniquingKeysWith: { first, _ in first })
-
-        for i in products.indices {
-            products[i].inventory = inventoryByProduct[products[i].id]
-        }
-
-        return products.filter { $0.availableStock > 0 }
-    }
-
     /// Fetch all categories for a store
     static func fetchCategories(storeId: UUID) async throws -> [ProductCategory] {
         let categories: [ProductCategory] = try await supabase

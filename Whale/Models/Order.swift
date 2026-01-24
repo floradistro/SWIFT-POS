@@ -20,11 +20,13 @@ import Foundation
 enum OrderChannel: String, Codable, CaseIterable, Sendable {
     case online
     case retail
+    case invoice
 
     var displayName: String {
         switch self {
         case .online: return "Online"
         case .retail: return "In-Store"
+        case .invoice: return "Invoice"
         }
     }
 
@@ -32,6 +34,7 @@ enum OrderChannel: String, Codable, CaseIterable, Sendable {
         switch self {
         case .online: return "globe"
         case .retail: return "storefront"
+        case .invoice: return "doc.text"
         }
     }
 }
@@ -816,6 +819,8 @@ enum OrderType: String, Codable, CaseIterable, Sendable {
             case .pickup: return .pickup
             case .immediate: return .walkIn
             }
+        case .invoice:
+            return .direct
         }
     }
 }

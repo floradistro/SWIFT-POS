@@ -96,9 +96,10 @@ final class PaymentStore: ObservableObject {
         campaignDiscountAmount: Decimal = 0, campaignId: UUID? = nil
     ) async throws -> SaleCompletion {
 
-        // Calculate adjusted total after loyalty discount
+        // Calculate adjusted total and change
         let adjustedTotal = totals.total - loyaltyDiscountAmount
-        guard let change = CheckoutCalculator.calculateChange(tendered: cashTendered, total: adjustedTotal) else {
+        let change = (cashTendered - adjustedTotal).rounded()
+        guard change >= 0 else {
             throw PaymentError.insufficientCash
         }
 
