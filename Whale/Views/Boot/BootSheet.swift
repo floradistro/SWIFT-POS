@@ -869,10 +869,10 @@ private struct StartShiftContent: View {
                     Text("Start Shift")
                         .font(.system(size: 16, weight: .semibold))
                 }
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                .background(Color.white)
+                .background(Color.white.opacity(0.15))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .contentShape(RoundedRectangle(cornerRadius: 14))
             }
@@ -1263,10 +1263,10 @@ struct BootEndSessionSheet: View {
                 } label: {
                     Text("End Shift")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(Color.white)
+                        .background(Color.white.opacity(0.15))
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .contentShape(RoundedRectangle(cornerRadius: 14))
                 }

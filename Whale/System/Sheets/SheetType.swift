@@ -14,6 +14,7 @@ import SwiftUI
 enum SheetType: Identifiable, Equatable {
     // MARK: - Location & Store
     case locationPicker
+    case storePicker
     case registerPicker
 
     // MARK: - Customer
@@ -41,6 +42,9 @@ enum SheetType: Identifiable, Equatable {
     case inventoryUnitScan(unit: InventoryUnit, lookupResult: LookupResult, storeId: UUID)
     case qrCodeScan(qrCode: ScannedQRCode, storeId: UUID)
 
+    // MARK: - Product
+    case productDetail(product: Product)
+
     // MARK: - Labels & Printing
     case labelTemplate(products: [Product])
     case orderLabelTemplate(orders: [Order])
@@ -58,6 +62,7 @@ enum SheetType: Identifiable, Equatable {
     var id: String {
         switch self {
         case .locationPicker: return "locationPicker"
+        case .storePicker: return "storePicker"
         case .registerPicker: return "registerPicker"
         case .customerSearch: return "customerSearch"
         case .customerDetail(let c): return "customerDetail-\(c.id)"
@@ -74,6 +79,7 @@ enum SheetType: Identifiable, Equatable {
         case .packageReceive(let t, _, _): return "packageReceive-\(t.id)"
         case .inventoryUnitScan(let u, _, _): return "inventoryUnitScan-\(u.id)"
         case .qrCodeScan: return "qrCodeScan"
+        case .productDetail(let p): return "productDetail-\(p.id)"
         case .labelTemplate: return "labelTemplate"
         case .orderLabelTemplate: return "orderLabelTemplate"
         case .bulkProductLabels: return "bulkProductLabels"
@@ -98,7 +104,7 @@ enum SheetType: Identifiable, Equatable {
     /// Preferred detents for this sheet type
     var detents: SheetDetents {
         switch self {
-        case .locationPicker, .registerPicker:
+        case .locationPicker, .storePicker, .registerPicker:
             return .mediumLarge
         case .customerSearch, .customerDetail:
             return .large
@@ -110,6 +116,8 @@ enum SheetType: Identifiable, Equatable {
             return .large
         case .tierSelector:
             return .mediumLarge
+        case .productDetail:
+            return .large
         case .safeDrop, .openCashDrawer:
             return .medium
         case .orderFilters:

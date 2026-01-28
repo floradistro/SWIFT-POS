@@ -9,7 +9,6 @@ import SwiftUI
 
 struct OrdersView: View {
     @ObservedObject private var store = OrderStore.shared
-    private let tabManager = DockTabManager.shared
     @State private var showAdvancedFilters = false
 
     var body: some View {

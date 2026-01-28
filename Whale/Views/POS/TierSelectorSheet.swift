@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import Supabase
+import os.log
 
 struct TierSelectorSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -17,6 +19,7 @@ struct TierSelectorSheet: View {
     let onInventoryUpdated: ((UUID, Int) -> Void)?
     let onPrintLabels: (() -> Void)?
     let onViewCOA: (() -> Void)?
+    let onShowDetail: (() -> Void)?
 
     @State private var localStock: Int
     @State private var selectedVariantId: UUID? = nil
@@ -39,7 +42,8 @@ struct TierSelectorSheet: View {
         onSelectVariantTier: ((PricingTier, ProductVariant) -> Void)? = nil,
         onInventoryUpdated: ((UUID, Int) -> Void)? = nil,
         onPrintLabels: (() -> Void)? = nil,
-        onViewCOA: (() -> Void)? = nil
+        onViewCOA: (() -> Void)? = nil,
+        onShowDetail: (() -> Void)? = nil
     ) {
         self.product = product
         self.onSelectTier = onSelectTier
@@ -47,6 +51,7 @@ struct TierSelectorSheet: View {
         self.onInventoryUpdated = onInventoryUpdated
         self.onPrintLabels = onPrintLabels
         self.onViewCOA = onViewCOA
+        self.onShowDetail = onShowDetail
         self._localStock = State(initialValue: product.availableStock)
     }
 
@@ -57,7 +62,8 @@ struct TierSelectorSheet: View {
         onSelectVariantTier: ((PricingTier, ProductVariant) -> Void)? = nil,
         onInventoryUpdated: ((UUID, Int) -> Void)? = nil,
         onPrintLabels: (() -> Void)? = nil,
-        onViewCOA: (() -> Void)? = nil
+        onViewCOA: (() -> Void)? = nil,
+        onShowDetail: (() -> Void)? = nil
     ) {
         self.product = product
         self.onSelectTier = onSelectTier
@@ -65,6 +71,7 @@ struct TierSelectorSheet: View {
         self.onInventoryUpdated = onInventoryUpdated
         self.onPrintLabels = onPrintLabels
         self.onViewCOA = onViewCOA
+        self.onShowDetail = onShowDetail
         self._localStock = State(initialValue: product.availableStock)
     }
 
@@ -125,7 +132,21 @@ struct TierSelectorSheet: View {
                         .foregroundStyle(.white.opacity(0.7))
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    toolbarMenu
+                    HStack(spacing: 12) {
+                        Button {
+                            Haptics.light()
+                            dismiss()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                onShowDetail?()
+                            }
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .font(.system(size: 17))
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+
+                        toolbarMenu
+                    }
                 }
             }
             }
@@ -218,9 +239,9 @@ struct TierSelectorSheet: View {
                     Button { submitAudit() } label: {
                         Image(systemName: "checkmark")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.white)
                             .frame(width: 44, height: 44)
-                            .background(Circle().fill(.white))
+                            .background(Circle().fill(.white.opacity(0.15)))
                     }
                 }
             }
@@ -273,6 +294,12 @@ struct TierSelectorSheet: View {
                         withAnimation(.spring(response: 0.3)) {
                             selectedVariantId = variant.id
                             variantTiers = variant.pricingTiers
+                        }
+                        // If no tiers loaded, fetch schema on-demand
+                        if variant.pricingTiers.isEmpty, let schemaId = variant.pricingSchemaId {
+                            Task {
+                                await loadVariantSchema(schemaId: schemaId)
+                            }
                         }
                     }
                 }
@@ -354,6 +381,16 @@ struct TierSelectorSheet: View {
                 Label("Print Labels", systemImage: "printer")
             }
 
+            Button {
+                Haptics.light()
+                dismiss()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    onShowDetail?()
+                }
+            } label: {
+                Label("View Details", systemImage: "info.circle")
+            }
+
             if product.hasCOA {
                 Button {
                     if let url = product.coaUrl {
@@ -372,6 +409,26 @@ struct TierSelectorSheet: View {
 
     // MARK: - Actions
 
+    private func loadVariantSchema(schemaId: UUID) async {
+        do {
+            let client = await supabaseAsync()
+            let response = try await client
+                .from("pricing_schemas")
+                .select("id, name, tiers")
+                .eq("id", value: schemaId.uuidString)
+                .execute()
+
+            let schemas = try JSONDecoder().decode([PricingSchema].self, from: response.data)
+            if let schema = schemas.first {
+                await MainActor.run {
+                    variantTiers = schema.defaultTiers ?? []
+                }
+            }
+        } catch {
+            Log.network.error("⚠️ Failed to load variant schema \(schemaId): \(error.localizedDescription)")
+        }
+    }
+
     private func submitAudit() {
         guard let qty = Double(auditQuantity), qty >= 0 else {
             auditError = "Invalid quantity"
@@ -387,13 +444,12 @@ struct TierSelectorSheet: View {
 
         Task {
             do {
-                _ = try await InventoryService.createAdjustment(
+                _ = try await InventoryService.createAbsoluteAdjustment(
                     storeId: storeId,
                     productId: product.id,
                     locationId: locationId,
                     adjustmentType: auditReason.toAdjustmentType,
-                    newQuantity: qty,
-                    currentQuantity: Double(localStock),
+                    absoluteQuantity: qty,
                     reason: auditReason.displayName,
                     notes: "Quick audit from POS"
                 )

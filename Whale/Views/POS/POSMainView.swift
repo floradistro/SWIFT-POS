@@ -37,7 +37,7 @@ struct POSMainView: View {
     @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
     @ObservedObject private var productStore = POSStore.shared
     @ObservedObject private var orderStore = OrderStore.shared
-    private let tabManager = DockTabManager.shared
+    @ObservedObject private var multiSelect = MultiSelectManager.shared
 
     @State private var selectedTab: POSTab = .products
     @State private var searchText = ""
@@ -110,247 +110,168 @@ struct POSMainView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            VStack {
-                Spacer()
+            VStack(spacing: 0) {
+                // Top nav bar
+                locationNavBar
 
-                // Modal card
-                VStack(spacing: 0) {
-                    // Store logo
-                    StoreLogo(
-                        url: session.store?.fullLogoUrl,
-                        size: 88,
-                        storeName: session.store?.businessName
-                    )
-                    .shadow(color: .white.opacity(0.08), radius: 20)
-                    .padding(.top, 32)
-                    .padding(.bottom, 20)
+                // Location cards — vertically centered
+                Spacer(minLength: 24)
 
-                    // Content
-                    VStack(spacing: 20) {
-                        // Title
-                        VStack(spacing: 6) {
-                            Text("Welcome")
-                                .font(.title2.bold())
-                                .foregroundStyle(.white)
+                locationCardGrid
+                    .frame(maxWidth: 720)
 
-                            if let storeName = session.store?.businessName {
-                                Text(storeName)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-
-                        // Multi-store selector (if applicable)
-                        if session.hasMultipleStores {
-                            storeSelector
-                        }
-
-                        // Location selector
-                        locationSelector
-
-                        // Continue button
-                        if session.selectedLocation != nil {
-                            Button {
-                                Haptics.medium()
-                                // Location is selected, view will update
-                            } label: {
-                                Text("Continue")
-                                    .font(.headline)
-                                    .foregroundStyle(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                                    .background(Color.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 14))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                                    )
-                            }
-                            .padding(.top, 8)
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 32)
-                }
-                .frame(maxWidth: 400)
-                .background(setupBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 36, style: .continuous))
-                .shadow(color: .black.opacity(0.8), radius: 60, y: 25)
-                .padding(.horizontal, 40)
-
-                Spacer()
+                Spacer(minLength: 24)
             }
         }
         .preferredColorScheme(.dark)
         .task {
-            // Load locations when view appears
             await session.fetchLocations()
         }
     }
 
-    // MARK: - Store Selector
+    // MARK: - Location Nav Bar
 
-    private var storeSelector: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("STORE")
-                .font(.caption.bold())
-                .foregroundStyle(.secondary)
-                .padding(.leading, 4)
+    private var locationNavBar: some View {
+        HStack {
+            // Left: orders-style icon button (settings on location screen)
+            LiquidGlassIconButton(icon: "gearshape") {
+                SheetCoordinator.shared.present(.posSettings)
+            }
 
-            Menu {
-                ForEach(session.userStoreAssociations) { association in
-                    Button {
-                        Haptics.light()
-                        Task {
-                            await session.selectStore(association.storeId)
-                            await session.fetchLocations()
-                        }
-                    } label: {
-                        HStack {
-                            Text(association.displayName)
-                            if association.storeId == session.storeId {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
+            Spacer()
+
+            // Right: store logo button — same as POS homeMenuButton
+            // Tap = switch store (if multi-store), long press = settings
+            Button {
+                Haptics.light()
+                if session.hasMultipleStores {
+                    SheetCoordinator.shared.present(.storePicker)
                 }
             } label: {
-                HStack {
+                if let logoUrl = session.store?.fullLogoUrl {
+                    CachedAsyncImage(url: logoUrl, placeholderLogoUrl: nil, dimAmount: 0)
+                        .frame(width: 28, height: 28)
+                        .clipShape(Circle())
+                        .frame(width: 44, height: 44)
+                } else {
                     Image(systemName: "building.2")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 24)
-
-                    Text(session.store?.businessName ?? "Select Store")
-                        .font(.body)
-                        .foregroundStyle(.white)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .frame(width: 44, height: 44)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                )
             }
+            .buttonStyle(LiquidPressStyle())
+            .glassEffect(.regular.interactive(), in: .circle)
         }
+        .padding(.horizontal, 20)
+        .padding(.top, SafeArea.top + 10)
     }
 
-    // MARK: - Location Selector
+    // MARK: - Location Card Grid
 
-    private var locationSelector: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("LOCATION")
-                .font(.caption.bold())
-                .foregroundStyle(.secondary)
-                .padding(.leading, 4)
+    private var locationCardGrid: some View {
+        VStack(spacing: 24) {
+            // Title
+            VStack(spacing: 6) {
+                Text("Select Location")
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundStyle(.white)
+
+                if let storeName = session.store?.businessName {
+                    Text(storeName)
+                        .font(.system(size: 15))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+            }
 
             if session.locations.isEmpty {
-                HStack {
-                    Image(systemName: "mappin.circle")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 24)
-
+                VStack(spacing: 12) {
+                    Image(systemName: "mappin.slash")
+                        .font(.system(size: 36))
+                        .foregroundStyle(.white.opacity(0.2))
                     Text("No locations available")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
+                        .font(.system(size: 15))
+                        .foregroundStyle(.white.opacity(0.4))
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+                .padding(.top, 40)
             } else {
-                VStack(spacing: 8) {
+                VStack(spacing: 12) {
                     ForEach(session.locations) { location in
-                        let isSelected = session.selectedLocation?.id == location.id
-
-                        Button {
-                            Haptics.light()
-                            Task {
-                                await session.selectLocation(location)
-                            }
-                        } label: {
-                            HStack {
-                                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 18))
-                                    .foregroundStyle(isSelected ? .white : .secondary)
-                                    .frame(width: 24)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(location.name)
-                                        .font(.body)
-                                        .foregroundStyle(.white)
-
-                                    if let address = location.displayAddress {
-                                        Text(address)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-
-                                Spacer()
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(
-                                isSelected ? Color.white.opacity(0.12) : Color.white.opacity(0.06),
-                                in: RoundedRectangle(cornerRadius: 12)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(isSelected ? Color.white.opacity(0.2) : Color.white.opacity(0.08), lineWidth: 1)
-                            )
-                        }
+                        locationCard(location)
                     }
                 }
+                .padding(.horizontal, 24)
             }
         }
     }
 
-    // MARK: - Modal Background
+    private func locationCard(_ location: Location) -> some View {
+        let isSelected = session.selectedLocation?.id == location.id
 
-    private var setupBackground: some View {
-        ZStack {
-            // Dark base
-            RoundedRectangle(cornerRadius: 36, style: .continuous)
-                .fill(Color(white: 0.08))
+        return Button {
+            Haptics.medium()
+            Task {
+                await session.selectLocation(location)
+            }
+        } label: {
+            HStack(spacing: 16) {
+                // Store logo
+                StoreLogo(
+                    url: session.store?.fullLogoUrl,
+                    size: 44,
+                    storeName: session.store?.businessName
+                )
 
-            // Subtle gradient overlay
-            RoundedRectangle(cornerRadius: 36, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.06),
-                            Color.white.opacity(0.02),
-                            Color.clear
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                // Text
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(location.name)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+
+                    if let address = location.displayAddress {
+                        Text(address)
+                            .font(.system(size: 13))
+                            .foregroundStyle(.white.opacity(0.4))
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                // Type pill
+                Text(location.type.capitalized)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.4))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.06), in: Capsule())
+
+                // Checkmark
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(isSelected ? .white : .white.opacity(0.2))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(isSelected ? Color.white.opacity(0.08) : Color.white.opacity(0.04))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(
+                        isSelected ? Color.white.opacity(0.2) : Color.white.opacity(0.06),
+                        lineWidth: 1
                     )
-                )
-
-            // Border
-            RoundedRectangle(cornerRadius: 36, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.15),
-                            Color.white.opacity(0.05),
-                            Color.white.opacity(0.08)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
+            )
         }
+        .buttonStyle(GridCardPressStyle())
+    }
+
+    private func locationIcon(for location: Location) -> String {
+        if location.isWarehouse { return "shippingbox.fill" }
+        if location.isRetail { return "storefront.fill" }
+        return "mappin.circle.fill"
     }
 
     // MARK: - Main POS View
@@ -391,21 +312,29 @@ struct POSMainView: View {
                 showRegisterPicker: $showRegisterPicker
             )
 
-            // Floating cart at bottom with page indicator
-            FloatingCart(
-                posStore: productStore,
-                onScanID: {
-                    if let storeId = effectiveStoreId {
-                        SheetCoordinator.shared.present(.idScanner(storeId: storeId))
-                    }
-                },
-                onFindCustomer: {
-                    if let storeId = effectiveStoreId {
-                        SheetCoordinator.shared.present(.customerSearch(storeId: storeId))
-                    }
-                },
-                selectedTab: $selectedTab
-            )
+            // Floating cart or bulk actions at bottom
+            if multiSelect.isMultiSelectMode && multiSelect.hasSelection {
+                floatingBulkActions
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .bottom)),
+                        removal: .opacity
+                    ))
+            } else {
+                FloatingCart(
+                    posStore: productStore,
+                    onScanID: {
+                        if let storeId = effectiveStoreId {
+                            SheetCoordinator.shared.present(.idScanner(storeId: storeId))
+                        }
+                    },
+                    onFindCustomer: {
+                        if let storeId = effectiveStoreId {
+                            SheetCoordinator.shared.present(.customerSearch(storeId: storeId))
+                        }
+                    },
+                    selectedTab: $selectedTab
+                )
+            }
 
             // Error sheet (shown via SheetCoordinator)
             EmptyView()
@@ -483,6 +412,178 @@ struct POSMainView: View {
                     _ = await (products, orders)
                 }
             }
+        }
+    }
+
+    // MARK: - Floating Bulk Actions
+
+    private var floatingBulkActions: some View {
+        VStack(spacing: 8) {
+            Spacer()
+
+            HStack(spacing: 12) {
+                // Selection count
+                Text("\(multiSelect.selectedCount) selected")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                if multiSelect.isProductSelectMode {
+                    // Print labels
+                    Button {
+                        Haptics.medium()
+                        let selected = productStore.products.filter { multiSelect.isProductSelected($0.id) }
+                        SheetCoordinator.shared.present(.labelTemplate(products: selected)) {
+                            multiSelect.exitMultiSelect()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "printer.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Print")
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 10)
+                    }
+                    .buttonStyle(LiquidPressStyle())
+                    .glassEffect(.regular.interactive(), in: .capsule)
+
+                    // Export CSV
+                    Button {
+                        Haptics.medium()
+                        exportSelectedProducts()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Export")
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 10)
+                    }
+                    .buttonStyle(LiquidPressStyle())
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                } else {
+                    // Order bulk actions
+                    Button {
+                        Haptics.medium()
+                        let selected = orderStore.orders.filter { multiSelect.isSelected($0.id) }
+                        SheetCoordinator.shared.present(.orderLabelTemplate(orders: selected)) {
+                            multiSelect.exitMultiSelect()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "printer.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Print")
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 10)
+                    }
+                    .buttonStyle(LiquidPressStyle())
+                    .glassEffect(.regular.interactive(), in: .capsule)
+
+                    Button {
+                        Haptics.medium()
+                        bulkMarkReady()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Ready")
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 10)
+                    }
+                    .buttonStyle(LiquidPressStyle())
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                }
+
+                // Cancel
+                Button {
+                    Haptics.light()
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        multiSelect.exitMultiSelect()
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .frame(width: 36, height: 36)
+                }
+                .buttonStyle(LiquidPressStyle())
+                .glassEffect(.regular.interactive(), in: .circle)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(maxWidth: 500)
+            .glassEffect(.regular, in: .capsule)
+            .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
+
+            // Page indicator
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Color.white.opacity(selectedTab == .products ? 0.9 : 0.3))
+                    .frame(width: 7, height: 7)
+                Circle()
+                    .fill(Color.white.opacity(selectedTab == .orders ? 0.9 : 0.3))
+                    .frame(width: 7, height: 7)
+            }
+            .padding(.top, 4)
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, SafeArea.bottom + 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: multiSelect.selectedCount)
+    }
+
+    private func exportSelectedProducts() {
+        let selectedProducts = productStore.products.filter { multiSelect.isProductSelected($0.id) }
+        var csv = "Name,SKU,Price,Category\n"
+        for product in selectedProducts {
+            let name = product.name.replacingOccurrences(of: ",", with: ";")
+            let sku = product.sku ?? ""
+            let price = CurrencyFormatter.format(product.displayPrice)
+            let category = product.categoryName ?? ""
+            csv += "\(name),\(sku),\(price),\(category)\n"
+        }
+
+        let data = csv.data(using: .utf8) ?? Data()
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("products_export.csv")
+        try? data.write(to: url)
+
+        let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            if let popover = activityVC.popoverPresentationController {
+                popover.sourceView = rootVC.view
+                popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            rootVC.present(activityVC, animated: true)
+        }
+
+        Haptics.success()
+        multiSelect.exitMultiSelect()
+    }
+
+    private func bulkMarkReady() {
+        Task {
+            let selectedIds = Array(multiSelect.selectedOrderIds)
+            for orderId in selectedIds {
+                await orderStore.updateStatus(orderId: orderId, status: .ready)
+            }
+            Haptics.success()
+            multiSelect.exitMultiSelect()
         }
     }
 

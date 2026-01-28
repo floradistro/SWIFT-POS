@@ -42,7 +42,7 @@ final class SessionObserver: ObservableObject {
     var hasMultipleStores: Bool { userStoreAssociations.count > 1 }
 
     /// Point value for loyalty redemption (from loyalty program or default)
-    var loyaltyPointValue: Decimal { loyaltyProgram?.pointValue ?? Decimal(string: "0.05")! }
+    var loyaltyPointValue: Decimal { loyaltyProgram?.pointValue ?? Decimal(sign: .plus, exponent: -2, significand: 5) }
 
     // MARK: - Lock Screen State
     private(set) var isLocked = true

@@ -120,17 +120,19 @@ struct ModalActionButton: View {
 
         var backgroundColor: Color {
             switch self {
-            case .primary: return .white
-            case .success: return Color(red: 0.2, green: 0.78, blue: 0.35)
-            case .destructive: return Color(red: 0.95, green: 0.3, blue: 0.3)
-            case .glass: return .white.opacity(0.15)
+            case .primary: return .white.opacity(0.15)
+            case .success: return Color(red: 0.2, green: 0.78, blue: 0.35).opacity(0.25)
+            case .destructive: return Color(red: 0.95, green: 0.3, blue: 0.3).opacity(0.25)
+            case .glass: return .white.opacity(0.1)
             }
         }
 
         var foregroundColor: Color {
             switch self {
-            case .primary: return .black
-            case .success, .destructive, .glass: return .white
+            case .primary: return .white
+            case .success: return Color(red: 0.3, green: 0.95, blue: 0.5)
+            case .destructive: return Color(red: 1.0, green: 0.4, blue: 0.4)
+            case .glass: return .white.opacity(0.8)
             }
         }
     }

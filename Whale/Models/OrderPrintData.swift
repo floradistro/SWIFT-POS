@@ -182,7 +182,6 @@ struct ProductPrintData: Codable, Sendable, Identifiable {
             sku: sku,
             featuredImage: featuredImage,
             customFields: customFields,
-            pricingData: pricingData,
             storeId: storeId,
             primaryCategoryId: primaryCategoryId
         )

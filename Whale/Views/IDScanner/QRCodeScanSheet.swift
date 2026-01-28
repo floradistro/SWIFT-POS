@@ -886,11 +886,11 @@ struct QRCodeScanSheet: View {
                             .font(.system(size: 17, weight: .semibold))
                     }
                 }
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
                 .contentShape(RoundedRectangle(cornerRadius: 16))
-                .background(Color.white)
+                .background(Color.white.opacity(0.15))
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(.plain)
@@ -1035,11 +1035,11 @@ struct QRCodeScanSheet: View {
         } label: {
             Text("Done")
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
                 .contentShape(RoundedRectangle(cornerRadius: 14))
-                .background(Color.white)
+                .background(Color.white.opacity(0.15))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)

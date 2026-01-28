@@ -77,7 +77,7 @@ final class OrderStore: ObservableObject {
     private var isSubscribing = false  // Prevent concurrent subscription attempts
 
     /// Callback for new orders that belong to the current location
-    /// Used by DockTabManager to auto-add order tabs
+    /// Callback when a new order arrives for the current location
     var onNewOrderForLocation: ((Order) -> Void)?
 
     // MARK: - Synchronization
@@ -111,8 +111,14 @@ final class OrderStore: ObservableObject {
 
     private func withMutationLock<T>(_ block: () async throws -> T) async rethrows -> T {
         await mutationLock.acquire()
-        defer { Task { await mutationLock.release() } }
-        return try await block()
+        do {
+            let result = try await block()
+            await mutationLock.release()
+            return result
+        } catch {
+            await mutationLock.release()
+            throw error
+        }
     }
 
     // MARK: - Singleton
@@ -121,6 +127,42 @@ final class OrderStore: ObservableObject {
     private init() {
         setupScenePhaseObserver()
         setupFilterObservers()
+        setupStoreChangeObserver()
+    }
+
+    /// Observe store changes to clear data when user switches stores
+    private func setupStoreChangeObserver() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleStoreChange),
+            name: .storeDidChange,
+            object: nil
+        )
+    }
+
+    /// Clear all store-specific data when switching stores
+    /// This prevents data from one store "flowing over" into another
+    @objc private func handleStoreChange() {
+        Log.ui.info("OrderStore: Store changed - clearing all data")
+        clearAllStoreData()
+    }
+
+    /// Clear ALL store-specific data
+    func clearAllStoreData() {
+        orders = []
+        selectedOrderId = nil
+        storeId = nil
+        locationId = nil
+        error = nil
+        clearFilters()
+
+        // Clean up realtime subscription
+        Task {
+            await cleanupRealtimeSubscription()
+        }
+
+        objectWillChange.send()
+        Log.ui.info("OrderStore: All store data cleared")
     }
 
     // MARK: - Filter Change Observers

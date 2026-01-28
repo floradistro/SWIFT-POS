@@ -46,6 +46,7 @@ struct LoyaltyProgram: Codable, Identifiable, Sendable {
     /// Calculate max points that can be redeemed for a given order total
     /// Never allow redeeming more than the order total
     func maxRedeemablePoints(forTotal total: Decimal, availablePoints: Int) -> Int {
+        guard pointValue > 0 else { return 0 }
         // Max points based on order total: total / pointValue
         let maxByTotal = Int(truncating: (total / pointValue) as NSDecimalNumber)
         // Never exceed available points or order total
@@ -59,7 +60,7 @@ struct LoyaltyProgram: Codable, Identifiable, Sendable {
         name: "Rewards",
         description: nil,
         pointsPerDollar: 1,
-        pointValue: Decimal(string: "0.05")!, // $0.05 per point default
+        pointValue: Decimal(sign: .plus, exponent: -2, significand: 5), // $0.05 per point default
         minRedemptionPoints: 100,
         pointsExpiryDays: nil,
         allowPointsOnDiscountedItems: true,

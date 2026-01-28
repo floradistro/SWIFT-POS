@@ -15,6 +15,7 @@ struct Product: Identifiable, Hashable, Sendable {
     let name: String
     let description: String?
     let sku: String?
+    let type: String?  // simple, variable, service, bundle, subscription
 
     // Images
     let imageUrl: String?
@@ -29,9 +30,8 @@ struct Product: Identifiable, Hashable, Sendable {
     // Stock
     let stockQuantity: Int?
 
-    // Custom fields & pricing data (JSONB - decoded as raw)
+    // Custom fields (JSONB - decoded as raw)
     let customFields: [String: AnyCodable]?
-    let pricingData: [AnyCodable]?  // Array of pricing tiers from database
 
     // Joined data (set after fetch)
     var inventory: ProductInventory?
@@ -53,13 +53,13 @@ extension Product: Codable {
         case name
         case description
         case sku
+        case type
         case imageUrl = "image_url"
         case featuredImage = "featured_image"
         case primaryCategoryId = "primary_category_id"
         case pricingSchemaId = "pricing_schema_id"
         case stockQuantity = "stock_quantity"
         case customFields = "custom_fields"
-        case pricingData = "pricing_data"
         case primaryCategory = "primary_category"
         case pricingSchema = "pricing_schema"
         case inventory = "inventory"
@@ -73,6 +73,7 @@ extension Product: Codable {
         name = try container.decode(String.self, forKey: .name)
         description = try container.decodeIfPresent(String.self, forKey: .description)
         sku = try container.decodeIfPresent(String.self, forKey: .sku)
+        type = try container.decodeIfPresent(String.self, forKey: .type)
 
         imageUrl = try? container.decodeIfPresent(String.self, forKey: .imageUrl)
         featuredImage = try? container.decodeIfPresent(String.self, forKey: .featuredImage)
@@ -80,7 +81,6 @@ extension Product: Codable {
         pricingSchemaId = try? container.decodeIfPresent(UUID.self, forKey: .pricingSchemaId)
         stockQuantity = Self.decodeInt(from: container, forKey: .stockQuantity)
         customFields = try? container.decodeIfPresent([String: AnyCodable].self, forKey: .customFields)
-        pricingData = try? container.decodeIfPresent([AnyCodable].self, forKey: .pricingData)
 
         // Nested objects from joins
         primaryCategory = try? container.decodeIfPresent(ProductCategory.self, forKey: .primaryCategory)
@@ -124,7 +124,6 @@ extension Product: Codable {
         try container.encodeIfPresent(pricingSchemaId, forKey: .pricingSchemaId)
         try container.encodeIfPresent(stockQuantity, forKey: .stockQuantity)
         try container.encodeIfPresent(customFields, forKey: .customFields)
-        try container.encodeIfPresent(pricingData, forKey: .pricingData)
     }
 
     /// Minimal init for creating placeholder products (e.g., for label printing)
@@ -134,13 +133,13 @@ extension Product: Codable {
         self.name = name
         self.description = nil
         self.sku = nil
+        self.type = nil
         self.imageUrl = nil
         self.featuredImage = nil
         self.primaryCategoryId = nil
         self.pricingSchemaId = nil
         self.stockQuantity = nil
         self.customFields = nil
-        self.pricingData = nil
         self.primaryCategory = nil
         self.pricingSchema = nil
         self.coa = nil
@@ -157,7 +156,6 @@ extension Product: Codable {
         sku: String? = nil,
         featuredImage: String? = nil,
         customFields: [String: AnyCodable]? = nil,
-        pricingData: [AnyCodable]? = nil,  // Array of pricing tiers
         storeId: UUID,
         primaryCategoryId: UUID? = nil,
         pricingSchemaId: UUID? = nil,
@@ -169,13 +167,13 @@ extension Product: Codable {
         self.name = name
         self.description = description
         self.sku = sku
+        self.type = nil
         self.imageUrl = nil
         self.featuredImage = featuredImage
         self.primaryCategoryId = primaryCategoryId
         self.pricingSchemaId = pricingSchemaId
         self.stockQuantity = nil
         self.customFields = customFields
-        self.pricingData = pricingData
         self.primaryCategory = nil
         self.pricingSchema = pricingSchema
         self.coa = nil
@@ -271,8 +269,15 @@ extension Product {
     }
 
     /// Current stock at location (from inventory or denormalized field)
+    /// Is this a service product (non-inventory)
+    var isService: Bool {
+        type == "service"
+    }
+
     var availableStock: Int {
-        inventory?.quantity ?? stockQuantity ?? 0
+        // Service products are always available (no inventory tracking)
+        if isService { return 999 }
+        return inventory?.quantity ?? stockQuantity ?? 0
     }
 
     /// Is in stock
@@ -535,11 +540,11 @@ struct ProductCOA: Codable, Sendable, Identifiable {
     let productId: UUID?  // Optional - not included in RPC responses
     let fileUrl: String?
     let fileName: String?
-    let labName: String?
-    let testDate: Date?
+    let labName: String?      // mapped from source_name in store_documents
+    let testDate: Date?       // mapped from document_date in store_documents
     let expiryDate: Date?
-    let batchNumber: String?
-    let testResults: COATestResults?
+    let batchNumber: String?  // mapped from reference_number in store_documents
+    let testResults: COATestResults?  // mapped from data in store_documents
     let isActive: Bool
 
     enum CodingKeys: String, CodingKey {
@@ -547,11 +552,11 @@ struct ProductCOA: Codable, Sendable, Identifiable {
         case productId = "product_id"
         case fileUrl = "file_url"
         case fileName = "file_name"
-        case labName = "lab_name"
-        case testDate = "test_date"
+        case labName = "source_name"        // was lab_name in store_coas
+        case testDate = "document_date"     // was test_date in store_coas
         case expiryDate = "expiry_date"
-        case batchNumber = "batch_number"
-        case testResults = "test_results"
+        case batchNumber = "reference_number"  // was batch_number in store_coas
+        case testResults = "data"           // was test_results in store_coas
         case isActive = "is_active"
     }
 
@@ -644,22 +649,30 @@ struct COATestResults: Codable, Sendable {
         strainType = Self.decodeString(from: container, keys: ["strain_type", "strainType", "strain", "type"])
 
         // Terpenes
-        terpenes = try? container.decodeIfPresent([String: Double].self, forKey: FlexibleCodingKeys(stringValue: "terpenes")!)
+        if let key = FlexibleCodingKeys(stringValue: "terpenes") {
+            terpenes = try? container.decodeIfPresent([String: Double].self, forKey: key)
+        } else {
+            terpenes = nil
+        }
 
         // Contaminants
-        contaminants = try? container.decodeIfPresent(ContaminantResults.self, forKey: FlexibleCodingKeys(stringValue: "contaminants")!)
+        if let key = FlexibleCodingKeys(stringValue: "contaminants") {
+            contaminants = try? container.decodeIfPresent(ContaminantResults.self, forKey: key)
+        } else {
+            contaminants = nil
+        }
     }
 
     nonisolated func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: FlexibleCodingKeys.self)
-        try container.encodeIfPresent(thcTotal, forKey: FlexibleCodingKeys(stringValue: "thc_total")!)
-        try container.encodeIfPresent(thca, forKey: FlexibleCodingKeys(stringValue: "thca")!)
-        try container.encodeIfPresent(d9Thc, forKey: FlexibleCodingKeys(stringValue: "d9_thc")!)
-        try container.encodeIfPresent(cbdTotal, forKey: FlexibleCodingKeys(stringValue: "cbd_total")!)
-        try container.encodeIfPresent(cbda, forKey: FlexibleCodingKeys(stringValue: "cbda")!)
-        try container.encodeIfPresent(strainType, forKey: FlexibleCodingKeys(stringValue: "strain_type")!)
-        try container.encodeIfPresent(terpenes, forKey: FlexibleCodingKeys(stringValue: "terpenes")!)
-        try container.encodeIfPresent(contaminants, forKey: FlexibleCodingKeys(stringValue: "contaminants")!)
+        if let key = FlexibleCodingKeys(stringValue: "thc_total") { try container.encodeIfPresent(thcTotal, forKey: key) }
+        if let key = FlexibleCodingKeys(stringValue: "thca") { try container.encodeIfPresent(thca, forKey: key) }
+        if let key = FlexibleCodingKeys(stringValue: "d9_thc") { try container.encodeIfPresent(d9Thc, forKey: key) }
+        if let key = FlexibleCodingKeys(stringValue: "cbd_total") { try container.encodeIfPresent(cbdTotal, forKey: key) }
+        if let key = FlexibleCodingKeys(stringValue: "cbda") { try container.encodeIfPresent(cbda, forKey: key) }
+        if let key = FlexibleCodingKeys(stringValue: "strain_type") { try container.encodeIfPresent(strainType, forKey: key) }
+        if let key = FlexibleCodingKeys(stringValue: "terpenes") { try container.encodeIfPresent(terpenes, forKey: key) }
+        if let key = FlexibleCodingKeys(stringValue: "contaminants") { try container.encodeIfPresent(contaminants, forKey: key) }
     }
 
     // Helper to decode Double from multiple possible keys

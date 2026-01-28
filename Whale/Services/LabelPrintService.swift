@@ -416,7 +416,7 @@ final class LabelRenderer: UIPrintPageRenderer {
         // Dates
         let testedX = inset.maxX - 115
         "TESTED".draw(at: CGPoint(x: testedX, y: footerY1), withAttributes: footerLabelAttrs)
-        let testDateStr = product.coa?.testDate != nil ? dateFormatter.string(from: product.coa!.testDate!) : "—"
+        let testDateStr = product.coa?.testDate.map { dateFormatter.string(from: $0) } ?? "—"
         testDateStr.draw(at: CGPoint(x: testedX + 32, y: footerY1), withAttributes: footerValueAttrs)
 
         "PACKED".draw(at: CGPoint(x: testedX, y: footerY2), withAttributes: footerLabelAttrs)

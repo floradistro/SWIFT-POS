@@ -70,7 +70,7 @@ struct CheckoutSheet: View {
     private var hasLoyaltyPoints: Bool { (selectedCustomer?.loyaltyPoints ?? 0) > 0 }
 
     /// Point value from loyalty program (defaults to $0.05 per point)
-    private var pointValue: Decimal { loyaltyProgram?.pointValue ?? Decimal(string: "0.05")! }
+    private var pointValue: Decimal { loyaltyProgram?.pointValue ?? Decimal(sign: .plus, exponent: -2, significand: 5) }
 
     /// Calculate loyalty discount based on actual point value from settings
     private var calculatedLoyaltyDiscount: Decimal { Decimal(pointsToRedeem) * pointValue }

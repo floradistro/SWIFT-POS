@@ -55,6 +55,7 @@ struct ProductGridCard: View {
     let onAddToCart: (() -> Void)?
     let onPrintLabels: (() -> Void)?
     let onSelectMultiple: (() -> Void)?
+    let onShowDetail: (() -> Void)?
 
     private var hasTiers: Bool {
         product.hasTieredPricing
@@ -154,6 +155,13 @@ struct ProductGridCard: View {
                 onPrintLabels?()
             } label: {
                 Label("Print Labels", systemImage: "printer.fill")
+            }
+
+            Button {
+                Haptics.light()
+                onShowDetail?()
+            } label: {
+                Label("View Details", systemImage: "info.circle")
             }
 
             Button {

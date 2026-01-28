@@ -16,7 +16,6 @@ struct POSContentBrowser: View {
     @Binding var searchText: String
     @ObservedObject var productStore: POSStore
     @ObservedObject var orderStore: OrderStore
-    private let tabManager = DockTabManager.shared
     @ObservedObject private var multiSelect = MultiSelectManager.shared
 
     // Callbacks from POSMainView for menu actions
@@ -30,6 +29,8 @@ struct POSContentBrowser: View {
 
     // Track windowSession changes to trigger re-renders when products load
     @State private var windowSessionTrigger = UUID()
+    // Track product count to force TabView page re-evaluation
+    @State private var productCountTrigger: Int = 0
 
     @Namespace private var animation
 
@@ -131,7 +132,9 @@ struct POSContentBrowser: View {
             }
         }
         .onChange(of: products) { _, newProducts in
-            let urls = products.prefix(20).compactMap { $0.iconUrl }
+            // Bump trigger so TabView page re-evaluates productContent
+            productCountTrigger = newProducts.count
+            let urls = newProducts.prefix(20).compactMap { $0.iconUrl }
             Task(priority: .background) {
                 await ImageCache.shared.prefetch(urls: urls)
             }
@@ -178,6 +181,9 @@ struct POSContentBrowser: View {
                     if let coaUrl = product.coaUrl {
                         UIApplication.shared.open(coaUrl)
                     }
+                },
+                onShowDetail: {
+                    SheetCoordinator.shared.present(.productDetail(product: product))
                 }
             )
         }
@@ -455,9 +461,15 @@ struct POSContentBrowser: View {
 
     // MARK: - Product Content
 
+    private var hasLoadedProducts: Bool {
+        isMultiWindowSession ? (windowSession?.hasLoadedProducts ?? false) : productStore.hasLoadedProducts
+    }
+
     private var productContent: some View {
-        Group {
-            if isLoadingProducts {
+        // Reference productCountTrigger so SwiftUI re-evaluates when products load
+        let _ = productCountTrigger
+        return Group {
+            if isLoadingProducts || !hasLoadedProducts {
                 loadingState("Loading products...")
             } else if let error = productsError {
                 errorState(error) {
@@ -504,11 +516,15 @@ struct POSContentBrowser: View {
                         onPrintLabels: {
                             SheetCoordinator.shared.present(.labelTemplate(products: [product]))
                         },
-                        onSelectMultiple: { multiSelect.startProductMultiSelect(product.id) }
+                        onSelectMultiple: { multiSelect.startProductMultiSelect(product.id) },
+                        onShowDetail: {
+                            SheetCoordinator.shared.present(.productDetail(product: product))
+                        }
                     )
                 }
             }
             .background(Color.black)
+            .overlay(Color.black.opacity(0.15).allowsHitTesting(false))
             .mask(RoundedRectangle(cornerRadius: 32, style: .continuous))
             .padding(.horizontal, 12)
             .padding(.top, showSearchAndFilters ? 140 : 80)

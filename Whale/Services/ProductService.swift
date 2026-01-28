@@ -84,7 +84,43 @@ enum ProductService {
         }
 
         Log.network.info("✅ Fetched \(inStockProducts.count) in-stock products at location \(locationId.uuidString)")
-        return inStockProducts
+
+        // Also fetch service products (non-inventory items like lab testing services)
+        let serviceProducts = try await fetchServiceProducts(storeId: storeId)
+        Log.network.info("✅ Fetched \(serviceProducts.count) service products")
+
+        return inStockProducts + serviceProducts
+    }
+
+    /// Fetch service products (non-inventory) for a store
+    /// Service products don't require inventory - they're always available
+    static func fetchServiceProducts(storeId: UUID) async throws -> [Product] {
+        let response = try await supabase
+            .from("products")
+            .select("""
+                id,
+                name,
+                description,
+                sku,
+                type,
+                featured_image,
+                custom_fields,
+                pricing_data,
+                store_id,
+                primary_category_id,
+                pricing_schema_id,
+                status,
+                primary_category:categories!primary_category_id(id, name),
+                pricing_schema:pricing_schemas(id, name, tiers)
+            """)
+            .eq("store_id", value: storeId.uuidString)
+            .eq("type", value: "service")
+            .eq("status", value: "published")
+            .order("name")
+            .execute()
+
+        let decoder = JSONDecoder()
+        return try decoder.decode([Product].self, from: response.data)
     }
 
     /// Fetch specific products by their IDs (for label printing, etc.)
@@ -156,19 +192,20 @@ enum ProductService {
         Log.network.info("🔬 Fetching COAs for \(productIds.count) products")
 
         let response = try await supabase
-            .from("store_coas")
+            .from("store_documents")
             .select("""
                 id,
                 product_id,
                 file_url,
                 file_name,
-                lab_name,
-                test_date,
+                source_name,
+                document_date,
                 expiry_date,
-                batch_number,
-                test_results,
+                reference_number,
+                data,
                 is_active
             """)
+            .eq("document_type", value: "coa")
             .in("product_id", values: productIds.map { $0.uuidString })
             .eq("is_active", value: true)
             .order("created_at", ascending: false)
@@ -211,19 +248,20 @@ enum ProductService {
         Log.network.info("🔬 Fetching COA for product: \(productId.uuidString)")
 
         let response = try await supabase
-            .from("store_coas")
+            .from("store_documents")
             .select("""
                 id,
                 product_id,
                 file_url,
                 file_name,
-                lab_name,
-                test_date,
+                source_name,
+                document_date,
                 expiry_date,
-                batch_number,
-                test_results,
+                reference_number,
+                data,
                 is_active
             """)
+            .eq("document_type", value: "coa")
             .eq("product_id", value: productId.uuidString)
             .eq("is_active", value: true)
             .order("created_at", ascending: false)
@@ -307,6 +345,8 @@ enum ProductService {
 
             let schemas = try decoder.decode([PricingSchema].self, from: schemasResponse.data)
             let schemasById = Dictionary(uniqueKeysWithValues: schemas.map { ($0.id, $0) })
+
+            Log.network.info("🔀 Fetched \(schemas.count) pricing schemas for \(pricingSchemaIds.count) variant schema IDs")
 
             // Attach schemas to variants
             for i in variants.indices {

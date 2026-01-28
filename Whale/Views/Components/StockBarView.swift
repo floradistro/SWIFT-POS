@@ -140,9 +140,9 @@ struct StockBarRow: View {
                     Button(action: onSave) {
                         Image(systemName: "checkmark")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.white)
                             .frame(width: 44, height: 44)
-                            .background(Circle().fill(Color.white))
+                            .background(Circle().fill(Color.white.opacity(0.15)))
                     }
                 }
             }

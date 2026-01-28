@@ -164,16 +164,22 @@ enum CustomerService {
 
     // MARK: - Pending Orders (direct query for single customer)
 
-    static func fetchPendingOrders(for customerId: UUID) async -> [Order] {
+    static func fetchPendingOrders(for customerId: UUID, platformUserId: UUID? = nil) async -> [Order] {
         do {
             let pendingStatuses = ["pending", "confirmed", "preparing", "packing", "packed", "ready", "ready_to_ship"]
 
-            // customerId is the relationship ID (from user_creation_relationships.id)
-            // orders.customer_id references user_creation_relationships.id
-            let orders: [Order] = try await supabase
+            let idStr = customerId.uuidString
+            var query = supabase
                 .from("orders")
-                .select("*, v_store_customers(first_name, last_name, email, phone), fulfillments(id, type, status, delivery_location_id, carrier, tracking_number, tracking_url, shipping_cost, created_at, shipped_at, delivered_at, delivery_location:delivery_location_id(id, name))")
-                .eq("customer_id", value: customerId.uuidString)
+                .select("*, order_items(*), fulfillments(id, order_id, type, status, delivery_location_id, carrier, tracking_number, tracking_url, shipping_cost, created_at, shipped_at, delivered_at, delivery_location:delivery_location_id(id, name))")
+
+            if let platformId = platformUserId {
+                query = query.or("customer_id.eq.\(idStr),platform_user_id.eq.\(platformId.uuidString)")
+            } else {
+                query = query.eq("customer_id", value: idStr)
+            }
+
+            let orders: [Order] = try await query
                 .in("status", values: pendingStatuses)
                 .order("created_at", ascending: false)
                 .limit(10)
@@ -189,22 +195,30 @@ enum CustomerService {
 
     // MARK: - Order History
 
-    static func fetchOrderHistory(for customerId: UUID, limit: Int = 10) async -> [Order] {
+    static func fetchOrderHistory(for customerId: UUID, platformUserId: UUID? = nil, limit: Int = 10) async -> [Order] {
         do {
-            // customerId is the relationship ID (from user_creation_relationships.id)
-            // orders.customer_id references user_creation_relationships.id
-            let orders: [Order] = try await supabase
+            let idStr = customerId.uuidString
+            var query = supabase
                 .from("orders")
-                .select("*, v_store_customers(first_name, last_name, email, phone), fulfillments(id, type, status, delivery_location_id, carrier, tracking_number, tracking_url, shipping_cost, created_at, shipped_at, delivered_at, delivery_location:delivery_location_id(id, name))")
-                .eq("customer_id", value: customerId.uuidString)
+                .select("*, order_items(*)")
+
+            // Try both customer_id (relationship ID) and platform_user_id
+            if let platformId = platformUserId {
+                query = query.or("customer_id.eq.\(idStr),platform_user_id.eq.\(platformId.uuidString)")
+            } else {
+                query = query.eq("customer_id", value: idStr)
+            }
+
+            let orders: [Order] = try await query
                 .order("created_at", ascending: false)
                 .limit(limit)
                 .execute()
                 .value
 
+            Log.scanner.info("Order history: fetched \(orders.count) orders for customer \(idStr.prefix(8))")
             return orders
         } catch {
-            Log.scanner.error("Order history fetch failed: \(error.localizedDescription)")
+            Log.scanner.error("Order history fetch failed: \(error)")
             return []
         }
     }

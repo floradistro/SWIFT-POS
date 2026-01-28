@@ -573,3 +573,130 @@ struct InvoicePaymentInput: View {
         }
     }
 }
+
+// MARK: - Slide To Pay Button
+
+struct SlideToPayButton: View {
+    let text: String
+    let icon: String
+    let isEnabled: Bool
+    let onComplete: () -> Void
+
+    private let trackHeight: CGFloat = 62
+    private let thumbDiameter: CGFloat = 52
+    private let trackPadding: CGFloat = 5
+    private let completionThreshold: CGFloat = 0.80
+
+    @State private var dragOffset: CGFloat = 0
+    @State private var isCompleted = false
+    @State private var shimmerPhase: CGFloat = 0
+    @GestureState private var isDragging = false
+
+    private let successGreen = Color(red: 52/255, green: 199/255, blue: 89/255)
+
+    var body: some View {
+        GeometryReader { geometry in
+            let trackWidth = geometry.size.width
+            let maxOffset = trackWidth - thumbDiameter - (trackPadding * 2)
+            let progress = maxOffset > 0 ? min(max(dragOffset / maxOffset, 0), 1.0) : 0
+
+            ZStack(alignment: .leading) {
+                IOSShimmerText(text: text, phase: shimmerPhase)
+                    .opacity(1.0 - Double(progress) * 2.0)
+                    .frame(maxWidth: .infinity)
+                    .padding(.leading, thumbDiameter + trackPadding + 8)
+
+                ZStack {
+                    Image(systemName: isCompleted ? "checkmark" : icon)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(isCompleted ? successGreen : .white.opacity(0.9))
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .frame(width: thumbDiameter, height: thumbDiameter)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                .padding(.leading, trackPadding)
+                .offset(x: dragOffset)
+                .scaleEffect(isDragging ? 0.95 : 1.0)
+                .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isDragging)
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .updating($isDragging) { _, state, _ in
+                            state = true
+                        }
+                        .onChanged { value in
+                            guard isEnabled && !isCompleted else { return }
+                            dragOffset = max(0, min(value.translation.width, maxOffset))
+                        }
+                        .onEnded { _ in
+                            guard isEnabled && !isCompleted else { return }
+                            let finalProgress = maxOffset > 0 ? dragOffset / maxOffset : 0
+
+                            if finalProgress >= completionThreshold {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    dragOffset = maxOffset
+                                    isCompleted = true
+                                }
+                                ScanFeedback.shared.paymentProcessing()
+                                onComplete()
+                            } else {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.65)) {
+                                    dragOffset = 0
+                                }
+                            }
+                        }
+                )
+            }
+            .frame(height: trackHeight)
+            .glassEffect(.regular, in: .capsule)
+            .opacity(isEnabled ? 1.0 : 0.5)
+            .allowsHitTesting(isEnabled && !isCompleted)
+        }
+        .frame(height: trackHeight)
+        .onAppear {
+            withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
+                shimmerPhase = 1.0
+            }
+        }
+        .onChange(of: text) { _, _ in
+            if !isCompleted {
+                withAnimation(.spring(response: 0.3)) {
+                    dragOffset = 0
+                }
+            }
+        }
+    }
+}
+
+private struct IOSShimmerText: View {
+    let text: String
+    let phase: CGFloat
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 18, weight: .regular))
+            .foregroundStyle(.white.opacity(0.4))
+            .overlay(
+                Text(text)
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundStyle(.white)
+                    .mask(
+                        GeometryReader { geo in
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .clear, location: 0),
+                                    .init(color: .clear, location: 0.3),
+                                    .init(color: .white, location: 0.5),
+                                    .init(color: .clear, location: 0.7),
+                                    .init(color: .clear, location: 1)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                            .frame(width: geo.size.width * 0.6)
+                            .offset(x: -geo.size.width * 0.3 + geo.size.width * 1.3 * phase)
+                        }
+                    )
+            )
+    }
+}

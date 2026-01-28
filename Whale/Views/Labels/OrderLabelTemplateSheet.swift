@@ -14,7 +14,6 @@ struct OrderLabelTemplateSheet: View {
     let location: Location?
     @Binding var isPrinting: Bool
     let onDismiss: () -> Void
-    var embedded: Bool = false  // Legacy parameter, now always uses NavigationStack
 
     @Environment(\.dismiss) private var dismiss
     @State private var storeLogoImage: UIImage?

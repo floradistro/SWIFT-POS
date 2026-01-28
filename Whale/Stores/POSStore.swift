@@ -30,6 +30,7 @@ final class POSStore: ObservableObject {
     @Published private(set) var products: [Product] = []
     @Published private(set) var categories: [ProductCategory] = []
     @Published private(set) var isLoadingProducts = false
+    @Published private(set) var hasLoadedProducts = false
     @Published private(set) var productsError: String?
 
     @Published var searchText = ""
@@ -125,7 +126,45 @@ final class POSStore: ObservableObject {
     // MARK: - Singleton
 
     static let shared = POSStore()
-    private init() {}
+    private init() {
+        // Observe store changes to clear data when user switches stores
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleStoreChange),
+            name: .storeDidChange,
+            object: nil
+        )
+    }
+
+    /// Clear all store-specific data when switching stores
+    /// This prevents data from one store "flowing over" into another
+    @objc private func handleStoreChange() {
+        Log.cart.info("POSStore: Store changed - clearing all data")
+        clearAllStoreData()
+    }
+
+    /// Clear ALL store-specific data (products, carts, customer cache)
+    func clearAllStoreData() {
+        products = []
+        categories = []
+        carts = []
+        activeCartIndex = -1
+        _customerCache = [:]
+        searchText = ""
+        selectedCategoryId = nil
+        storeId = nil
+        locationId = nil
+        productsError = nil
+        hasLoadedProducts = false
+        cartError = nil
+
+        // Unsubscribe from realtime updates
+        unsubscribeFromLoyaltyUpdates()
+        unsubscribeFromCartUpdates()
+        unsubscribeFromInventoryUpdates()
+
+        Log.cart.info("POSStore: All store data cleared")
+    }
 
     // MARK: - Configuration
 
@@ -766,6 +805,7 @@ final class POSStore: ObservableObject {
         }
 
         isLoadingProducts = false
+        hasLoadedProducts = true
     }
 
     func refresh() async {

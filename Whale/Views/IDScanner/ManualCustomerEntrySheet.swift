@@ -599,10 +599,10 @@ private struct CustomerSearchContent: View {
                     Text("Create Customer")
                         .font(.system(size: 16, weight: .semibold))
                 }
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(.white, in: RoundedRectangle(cornerRadius: 12))
+                .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
             }
             .buttonStyle(ScaleButtonStyle())
         }
@@ -782,7 +782,7 @@ private struct CustomerSearchContent: View {
                 if isCreating {
                     ProgressView()
                         .scaleEffect(0.8)
-                        .tint(.black)
+                        .tint(.white)
                 } else {
                     Image(systemName: "person.badge.plus")
                         .font(.system(size: 16, weight: .semibold))
@@ -790,10 +790,10 @@ private struct CustomerSearchContent: View {
                         .font(.system(size: 16, weight: .semibold))
                 }
             }
-            .foregroundStyle(isCreateValid ? .black : .black.opacity(0.5))
+            .foregroundStyle(isCreateValid ? .white : .white.opacity(0.4))
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(isCreateValid ? .white : .white.opacity(0.5), in: RoundedRectangle(cornerRadius: 14))
+            .background(.white.opacity(isCreateValid ? 0.15 : 0.08), in: RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
         .disabled(!isCreateValid || isCreating)
@@ -870,12 +870,12 @@ private struct CustomerSearchContent: View {
                 Text("Select Customer")
                     .font(.system(size: 16, weight: .semibold))
             }
-            .foregroundStyle(.black)
+            .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(.white, in: RoundedRectangle(cornerRadius: 14))
+            .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 14))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScaleButtonStyle())
         .onAppear {
             loadCustomerOrders(for: customer)
         }
@@ -988,7 +988,7 @@ private struct CustomerSearchContent: View {
                 }
 
                 // Always show at least one row
-                if customer.formattedPhone == nil && (customer.email == nil || customer.email!.isEmpty) {
+                if customer.formattedPhone == nil && (customer.email ?? "").isEmpty {
                     HStack {
                         Spacer()
                         Text("No contact info on file")

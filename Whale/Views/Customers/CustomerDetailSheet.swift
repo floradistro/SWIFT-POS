@@ -19,6 +19,7 @@ struct CustomerDetailSheet: View {
     @State private var favoriteProducts: [FavoriteProduct] = []
     @State private var preferredLocation: PreferredLocation?
     @State private var staffInteractions: [StaffInteraction] = []
+    @State private var loyaltyTransactions: [LoyaltyTransaction] = []
 
     // Animation states
     @State private var showStats = false
@@ -27,6 +28,12 @@ struct CustomerDetailSheet: View {
     // Notes
     @State private var showAddNote = false
     @State private var newNoteText = ""
+
+    // Points editing
+    @State private var showEditPoints = false
+
+    // Order detail overlay
+    @State private var selectedOrder: Order?
 
     private var currentCustomer: Customer {
         store.filteredCustomers.first(where: { $0.id == customer.id }) ?? customer
@@ -54,7 +61,6 @@ struct CustomerDetailSheet: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .task {
-            // Stagger animations
             try? await Task.sleep(nanoseconds: 100_000_000)
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 showStats = true
@@ -65,11 +71,35 @@ struct CustomerDetailSheet: View {
             }
             await loadAllData()
         }
+        .sheet(item: $selectedOrder) { order in
+            OrderDetailOverlay(
+                order: order,
+                customerName: currentCustomer.displayName,
+                loyaltyTransactions: loyaltyTransactions
+            )
+        }
         .sheet(isPresented: $showAddNote) {
             AddCustomerNoteSheet(
                 customerName: currentCustomer.displayName,
                 noteText: $newNoteText,
                 onSave: { await saveNote() }
+            )
+        }
+        .sheet(isPresented: $showEditPoints) {
+            EditPointsSheet(
+                customerName: currentCustomer.displayName,
+                currentPoints: currentCustomer.loyaltyPoints ?? 0,
+                onSave: { newPoints in
+                    Task {
+                        do {
+                            try await LoyaltyService.shared.setPoints(customerId: currentCustomer.id, points: newPoints)
+                            await store.refreshCustomer(customerId: currentCustomer.id)
+                            Haptics.success()
+                        } catch {
+                            Haptics.error()
+                        }
+                    }
+                }
             )
         }
     }
@@ -191,6 +221,11 @@ struct CustomerDetailSheet: View {
                     // Order history
                     orderHistorySection
 
+                    // Loyalty transaction history
+                    if !loyaltyTransactions.isEmpty {
+                        loyaltyHistorySection
+                    }
+
                     // Staff interactions
                     if !staffInteractions.isEmpty {
                         staffInteractionsSection
@@ -236,12 +271,24 @@ struct CustomerDetailSheet: View {
                     delay: 0.2
                 )
 
-                AnimatedKPICard(
-                    value: Decimal(currentCustomer.loyaltyPoints ?? 0),
-                    label: "Points",
-                    format: .number,
-                    delay: 0.3
-                )
+                Button {
+                    Haptics.light()
+                    showEditPoints = true
+                } label: {
+                    AnimatedKPICard(
+                        value: Decimal(currentCustomer.loyaltyPoints ?? 0),
+                        label: "Points",
+                        format: .number,
+                        delay: 0.3
+                    )
+                    .overlay(alignment: .topTrailing) {
+                        Image(systemName: "pencil.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.white.opacity(0.4))
+                            .padding(8)
+                    }
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -422,8 +469,14 @@ struct CustomerDetailSheet: View {
                     .foregroundStyle(.white.opacity(0.4))
                     .padding(14)
             } else {
-                ForEach(orderHistory.prefix(10)) { order in
-                    orderRow(order)
+                ForEach(orderHistory) { order in
+                    Button {
+                        Haptics.light()
+                        selectedOrder = order
+                    } label: {
+                        orderRow(order)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -431,58 +484,71 @@ struct CustomerDetailSheet: View {
     }
 
     private func orderRow(_ order: Order) -> some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                // Order info
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text("#\(order.shortOrderNumber)")
-                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.white)
-
-                        // Status indicator
-                        Circle()
-                            .fill(statusColor(for: order.status))
-                            .frame(width: 6, height: 6)
-
-                        Text(order.status.displayName)
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white.opacity(0.5))
-                    }
-
-                    HStack(spacing: 8) {
-                        Text(order.formattedDate)
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white.opacity(0.4))
-
-                        if let items = order.items {
-                            Text("•")
-                                .font(.system(size: 8))
-                                .foregroundStyle(.white.opacity(0.2))
-
-                            Text("\(items.count) item\(items.count == 1 ? "" : "s")")
-                                .font(.system(size: 12))
-                                .foregroundStyle(.white.opacity(0.4))
-                        }
-                    }
-                }
-
-                Spacer()
-
-                // Total
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(order.formattedTotal)
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+        HStack(spacing: 12) {
+            // Order info
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text("#\(order.shortOrderNumber)")
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
                         .foregroundStyle(.white)
 
+                    // Status indicator
+                    Circle()
+                        .fill(statusColor(for: order.status))
+                        .frame(width: 6, height: 6)
+
+                    Text(order.status.displayName)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+
+                HStack(spacing: 8) {
+                    Text(order.formattedDate)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.4))
+
+                    if let items = order.items {
+                        Text("•")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.white.opacity(0.2))
+
+                        Text("\(items.count) item\(items.count == 1 ? "" : "s")")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+                }
+            }
+
+            Spacer()
+
+            // Total + loyalty info
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(order.formattedTotal)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+
+                // Show loyalty points earned/redeemed for this order
+                let orderTxns = loyaltyTransactions.filter { $0.referenceId == order.id.uuidString }
+                if !orderTxns.isEmpty {
+                    ForEach(orderTxns) { txn in
+                        Text("\(txn.transactionType == "earn" ? "+" : "-")\(txn.points) pts")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(txn.transactionType == "earn" ? .green : .orange)
+                    }
+                } else {
                     Text(order.orderType.displayName)
                         .font(.system(size: 11))
                         .foregroundStyle(.white.opacity(0.4))
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white.opacity(0.3))
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
     }
 
     private func statusColor(for status: OrderStatus) -> Color {
@@ -493,6 +559,59 @@ struct CustomerDetailSheet: View {
         case .cancelled: return .red.opacity(0.7)
         default: return .white.opacity(0.4)
         }
+    }
+
+    // MARK: - Loyalty History Section
+
+    private var loyaltyHistorySection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            sectionHeader("LOYALTY HISTORY")
+
+            ForEach(loyaltyTransactions.prefix(20)) { txn in
+                HStack(spacing: 12) {
+                    // Icon
+                    Image(systemName: txn.transactionType == "earn" ? "plus.circle.fill" : "minus.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(txn.transactionType == "earn" ? .green : .orange)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(txn.transactionType == "earn" ? "Points Earned" : "Points Redeemed")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.white)
+
+                        HStack(spacing: 6) {
+                            if let desc = txn.description, !desc.isEmpty {
+                                Text(desc)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.white.opacity(0.4))
+                                    .lineLimit(1)
+                            }
+
+                            Text(txn.formattedDate)
+                                .font(.system(size: 12))
+                                .foregroundStyle(.white.opacity(0.3))
+                        }
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("\(txn.transactionType == "earn" ? "+" : "-")\(txn.points) pts")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(txn.transactionType == "earn" ? .green : .orange)
+
+                        if let after = txn.balanceAfter {
+                            Text("bal: \(after)")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.white.opacity(0.3))
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+            }
+        }
+        .glassEffect(.regular, in: .rect(cornerRadius: 14))
     }
 
     // MARK: - Staff Interactions Section
@@ -584,15 +703,17 @@ struct CustomerDetailSheet: View {
     private func loadAllData() async {
         isLoadingOrders = true
 
-        async let orders = CustomerService.fetchOrderHistory(for: currentCustomer.platformUserId, limit: 20)
+        async let orders = CustomerService.fetchOrderHistory(for: currentCustomer.id, platformUserId: currentCustomer.platformUserId, limit: 100)
         async let favorites = loadFavoriteProducts()
         async let location = loadPreferredLocation()
         async let staff = loadStaffInteractions()
+        async let loyalty = loadLoyaltyTransactions()
 
         orderHistory = await orders
         favoriteProducts = await favorites
         preferredLocation = await location
         staffInteractions = await staff
+        loyaltyTransactions = await loyalty
 
         isLoadingOrders = false
     }
@@ -601,7 +722,7 @@ struct CustomerDetailSheet: View {
         // Aggregate from order history
         guard !orderHistory.isEmpty else {
             // Wait for orders first, then calculate
-            let orders = await CustomerService.fetchOrderHistory(for: currentCustomer.platformUserId, limit: 50)
+            let orders = await CustomerService.fetchOrderHistory(for: currentCustomer.id, platformUserId: currentCustomer.platformUserId, limit: 50)
             return aggregateFavorites(from: orders)
         }
         return aggregateFavorites(from: orderHistory)
@@ -631,7 +752,7 @@ struct CustomerDetailSheet: View {
     private func loadPreferredLocation() async -> PreferredLocation? {
         // Aggregate location visits from orders
         let orders = orderHistory.isEmpty
-            ? await CustomerService.fetchOrderHistory(for: currentCustomer.platformUserId, limit: 50)
+            ? await CustomerService.fetchOrderHistory(for: currentCustomer.id, platformUserId: currentCustomer.platformUserId, limit: 50)
             : orderHistory
 
         var locationCounts: [String: (name: String, count: Int)] = [:]
@@ -654,6 +775,14 @@ struct CustomerDetailSheet: View {
         // This would come from order.staff_id relationships
         // For now, return empty - would need to query orders with staff info
         return []
+    }
+
+    private func loadLoyaltyTransactions() async -> [LoyaltyTransaction] {
+        do {
+            return try await LoyaltyService.shared.getTransactionHistory(customerId: currentCustomer.id, limit: 50)
+        } catch {
+            return []
+        }
     }
 
     private func saveNote() async {
@@ -848,6 +977,369 @@ struct AddCustomerNoteSheet: View {
         .presentationDragIndicator(.visible)
         .onAppear {
             isTextFieldFocused = true
+        }
+    }
+}
+
+// MARK: - Edit Points Sheet
+
+struct EditPointsSheet: View {
+    let customerName: String
+    let currentPoints: Int
+    let onSave: (Int) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var pointsText = ""
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack(alignment: .center) {
+                ModalCloseButton { dismiss() }
+
+                Spacer()
+
+                VStack(spacing: 4) {
+                    Text("EDIT POINTS")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .tracking(0.5)
+
+                    Text(customerName)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+
+                Spacer()
+
+                Color.clear.frame(width: 44, height: 44)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 16)
+
+            // Current points
+            Text("Current balance: \(currentPoints) pts")
+                .font(.system(size: 14))
+                .foregroundStyle(.white.opacity(0.5))
+                .padding(.bottom, 12)
+
+            // Input
+            TextField("New points balance", text: $pointsText)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .keyboardType(.numberPad)
+                .padding(16)
+                .glassEffect(.regular, in: .rect(cornerRadius: 14))
+                .padding(.horizontal, 20)
+                .focused($isFocused)
+
+            Spacer()
+
+            // Save button
+            Button {
+                Haptics.medium()
+                if let pts = Int(pointsText) {
+                    onSave(pts)
+                    dismiss()
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("Save Points")
+                        .font(.system(size: 15, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+            }
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
+            .disabled(Int(pointsText) == nil)
+            .opacity(Int(pointsText) == nil ? 0.5 : 1)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+        .onAppear {
+            pointsText = "\(currentPoints)"
+            isFocused = true
+        }
+    }
+}
+
+// MARK: - Order Detail Overlay
+
+struct OrderDetailOverlay: View {
+    let order: Order
+    let customerName: String
+    let loyaltyTransactions: [LoyaltyTransaction]
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack(alignment: .center) {
+                ModalCloseButton { dismiss() }
+
+                Spacer()
+
+                VStack(spacing: 2) {
+                    Text(customerName)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .tracking(0.5)
+
+                    Text("Order #\(order.shortOrderNumber)")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+
+                Spacer()
+
+                Color.clear.frame(width: 44, height: 44)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            // Content
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    // Status + totals card
+                    VStack(spacing: 12) {
+                        HStack {
+                            HStack(spacing: 8) {
+                                Circle()
+                                    .fill(orderStatusColor(order.status))
+                                    .frame(width: 8, height: 8)
+                                Text(order.status.displayName)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                            Spacer()
+                            Text(order.channel.displayName)
+                                .font(.system(size: 13))
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+
+                        Divider().overlay(Color.white.opacity(0.1))
+
+                        VStack(spacing: 8) {
+                            detailRow("Created", value: order.formattedDate)
+                            if let completedAt = order.completedAt {
+                                detailRow("Completed", value: completedDateString(completedAt))
+                            }
+                            detailRow("Payment", value: order.paymentStatus.displayName)
+                            if let method = order.paymentMethod {
+                                detailRow("Method", value: method.capitalized)
+                            }
+                        }
+
+                        Divider().overlay(Color.white.opacity(0.1))
+
+                        VStack(spacing: 6) {
+                            detailRow("Subtotal", value: currencyString(order.subtotal))
+                            if order.discountAmount > 0 {
+                                detailRow("Discount", value: "-\(currencyString(order.discountAmount))")
+                            }
+                            if order.taxAmount > 0 {
+                                detailRow("Tax", value: currencyString(order.taxAmount))
+                            }
+                            HStack {
+                                Text("Total")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                Text(order.formattedTotal)
+                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+
+                        // Loyalty
+                        let orderTxns = loyaltyTransactions.filter { $0.referenceId == order.id.uuidString }
+                        if !orderTxns.isEmpty {
+                            Divider().overlay(Color.white.opacity(0.1))
+                            VStack(spacing: 6) {
+                                ForEach(orderTxns) { txn in
+                                    HStack {
+                                        Text(txn.transactionType == "earn" ? "Points Earned" : "Points Redeemed")
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(.white.opacity(0.6))
+                                        Spacer()
+                                        Text("\(txn.transactionType == "earn" ? "+" : "-")\(txn.points) pts")
+                                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                            .foregroundStyle(txn.transactionType == "earn" ? .green : .orange)
+                                    }
+                                    if let before = txn.balanceBefore, let after = txn.balanceAfter {
+                                        HStack {
+                                            Text("Balance")
+                                                .font(.system(size: 12))
+                                                .foregroundStyle(.white.opacity(0.3))
+                                            Spacer()
+                                            Text("\(before) → \(after)")
+                                                .font(.system(size: 12, design: .rounded))
+                                                .foregroundStyle(.white.opacity(0.3))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(14)
+                    .glassEffect(.regular, in: .rect(cornerRadius: 14))
+
+                    // Line items
+                    if let items = order.items, !items.isEmpty {
+                        VStack(alignment: .leading, spacing: 0) {
+                            sectionLabel("ITEMS")
+
+                            ForEach(items) { item in
+                                HStack(spacing: 12) {
+                                    Text("\(item.quantity)×")
+                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(.white.opacity(0.5))
+                                        .frame(width: 30, alignment: .trailing)
+
+                                    Text(item.productName)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(.white)
+                                        .lineLimit(2)
+
+                                    Spacer()
+
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text(currencyString(item.lineTotal))
+                                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                            .foregroundStyle(.white)
+                                        if item.quantity > 1 {
+                                            Text("@ \(currencyString(item.unitPrice))")
+                                                .font(.system(size: 11))
+                                                .foregroundStyle(.white.opacity(0.4))
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                            }
+                        }
+                        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+                    }
+
+                    // Fulfillment info
+                    if let fulfillments = order.fulfillments, !fulfillments.isEmpty {
+                        VStack(alignment: .leading, spacing: 0) {
+                            sectionLabel("FULFILLMENT")
+
+                            ForEach(fulfillments) { f in
+                                VStack(spacing: 6) {
+                                    HStack {
+                                        Image(systemName: f.type.icon)
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(.white.opacity(0.5))
+                                        Text(f.type.displayName)
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundStyle(.white)
+                                        Spacer()
+                                        Text(f.status.displayName)
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(.white.opacity(0.5))
+                                    }
+                                    if let loc = f.locationName {
+                                        HStack {
+                                            Text(loc)
+                                                .font(.system(size: 13))
+                                                .foregroundStyle(.white.opacity(0.4))
+                                            Spacer()
+                                        }
+                                    }
+                                    if let tracking = f.trackingNumber {
+                                        HStack {
+                                            Text("Tracking: \(tracking)")
+                                                .font(.system(size: 12, design: .monospaced))
+                                                .foregroundStyle(.white.opacity(0.4))
+                                            Spacer()
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                            }
+                        }
+                        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+                    }
+
+                    // Notes
+                    if let notes = order.staffNotes, !notes.isEmpty {
+                        VStack(alignment: .leading, spacing: 0) {
+                            sectionLabel("NOTES")
+                            Text(notes)
+                                .font(.system(size: 14))
+                                .foregroundStyle(.white.opacity(0.7))
+                                .padding(14)
+                        }
+                        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(.white.opacity(0.4))
+            .tracking(1)
+            .padding(.horizontal, 14)
+            .padding(.top, 14)
+            .padding(.bottom, 8)
+    }
+
+    private func detailRow(_ label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 14))
+                .foregroundStyle(.white.opacity(0.5))
+            Spacer()
+            Text(value)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.white)
+        }
+    }
+
+    private func currencyString(_ value: Decimal) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        return formatter.string(from: value as NSDecimalNumber) ?? "$0.00"
+    }
+
+    private func completedDateString(_ date: Date) -> String {
+        let fmt = DateFormatter()
+        fmt.dateStyle = .medium
+        fmt.timeStyle = .short
+        return fmt.string(from: date)
+    }
+
+    private func orderStatusColor(_ status: OrderStatus) -> Color {
+        switch status {
+        case .pending, .preparing: return .orange
+        case .ready, .readyToShip: return .green
+        case .completed, .delivered, .shipped: return .white.opacity(0.4)
+        case .cancelled: return .red.opacity(0.7)
+        default: return .white.opacity(0.4)
         }
     }
 }

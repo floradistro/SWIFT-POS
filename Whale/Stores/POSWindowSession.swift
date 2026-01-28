@@ -293,6 +293,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
     @Published private(set) var products: [Product] = []
     @Published private(set) var categories: [ProductCategory] = []
     @Published private(set) var isLoadingProducts = false
+    @Published private(set) var hasLoadedProducts = false
     @Published private(set) var productsError: String?
     @Published var searchText = ""
     @Published var selectedCategoryId: UUID?
@@ -424,6 +425,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
             products = loadedProducts
             categories = loadedCategories
             isLoadingProducts = false
+            hasLoadedProducts = true
 
             // Cache for other windows at same location
             POSWindowSessionManager.shared.cacheProducts(loadedProducts, categories: loadedCategories, for: locationId)
@@ -431,6 +433,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
             objectWillChange.send()
             productsError = error.localizedDescription
             isLoadingProducts = false
+            hasLoadedProducts = true
         }
     }
 

@@ -247,7 +247,7 @@ struct OrderCustomer: Codable, Sendable {
 /// Fulfillment record from fulfillments table
 struct OrderFulfillment: Identifiable, Codable, Sendable {
     let id: UUID
-    let orderId: UUID
+    let orderId: UUID?
     let type: FulfillmentType
     var status: FulfillmentStatus
     let deliveryLocationId: UUID?
@@ -404,14 +404,14 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         storeId = Self.decodeOptionalUUID(from: container, forKey: .storeId)
         customerId = Self.decodeOptionalUUID(from: container, forKey: .customerId)
 
-        channel = try container.decode(OrderChannel.self, forKey: .channel)
+        channel = (try? container.decode(OrderChannel.self, forKey: .channel)) ?? .retail
         status = try container.decode(OrderStatus.self, forKey: .status)
-        paymentStatus = try container.decode(PaymentStatus.self, forKey: .paymentStatus)
+        paymentStatus = (try? container.decode(PaymentStatus.self, forKey: .paymentStatus)) ?? .pending
 
-        subtotal = try container.decode(Decimal.self, forKey: .subtotal)
-        taxAmount = try container.decode(Decimal.self, forKey: .taxAmount)
-        discountAmount = try container.decode(Decimal.self, forKey: .discountAmount)
-        totalAmount = try container.decode(Decimal.self, forKey: .totalAmount)
+        subtotal = (try? container.decode(Decimal.self, forKey: .subtotal)) ?? 0
+        taxAmount = (try? container.decode(Decimal.self, forKey: .taxAmount)) ?? 0
+        discountAmount = (try? container.decode(Decimal.self, forKey: .discountAmount)) ?? 0
+        totalAmount = (try? container.decode(Decimal.self, forKey: .totalAmount)) ?? 0
         paymentMethod = try container.decodeIfPresent(String.self, forKey: .paymentMethod)
 
         createdAt = try Self.parseDate(from: container, forKey: .createdAt)

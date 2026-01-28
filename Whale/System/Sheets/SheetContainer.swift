@@ -30,6 +30,9 @@ struct SheetContainer: View {
         case .locationPicker:
             LocationPickerSheet()
 
+        case .storePicker:
+            StorePickerSheet()
+
         case .registerPicker:
             RegisterPickerSheet()
 
@@ -146,6 +149,10 @@ struct SheetContainer: View {
                 storeId: storeId,
                 onDismiss: { SheetCoordinator.shared.dismiss() }
             )
+
+        // MARK: Product Detail
+        case .productDetail(let product):
+            ProductDetailSheetWrapper(product: product)
 
         // MARK: Labels & Printing
         case .labelTemplate(let products):
@@ -271,7 +278,10 @@ private struct TierSelectorSheetWrapper: View {
                 // Present label template sheet for this product
                 SheetCoordinator.shared.present(.labelTemplate(products: [product]))
             },
-            onViewCOA: nil
+            onViewCOA: nil,
+            onShowDetail: {
+                SheetCoordinator.shared.present(.productDetail(product: product))
+            }
         )
         .environmentObject(POSStore.shared)
     }
@@ -758,6 +768,27 @@ private struct InvoiceDetailSheetWrapper: View {
 }
 
 /// Label template wrapper
+/// Product detail sheet
+private struct ProductDetailSheetWrapper: View {
+    let product: Product
+
+    var body: some View {
+        NavigationStack {
+            ProductDetailsCard(product: product)
+                .navigationTitle(product.name)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") {
+                            SheetCoordinator.shared.dismiss()
+                        }
+                    }
+                }
+        }
+    }
+}
+
+/// Label template wrapper
 private struct LabelTemplateSheetWrapper: View {
     let products: [Product]
     @EnvironmentObject private var session: SessionObserver
@@ -769,8 +800,7 @@ private struct LabelTemplateSheetWrapper: View {
             store: session.store,
             location: session.selectedLocation,
             isPrinting: $isPrinting,
-            onDismiss: { SheetCoordinator.shared.dismiss() },
-            embedded: true
+            onDismiss: { SheetCoordinator.shared.dismiss() }
         )
     }
 }
@@ -787,8 +817,7 @@ private struct OrderLabelTemplateSheetWrapper: View {
             store: session.store,
             location: session.selectedLocation,
             isPrinting: $isPrinting,
-            onDismiss: { SheetCoordinator.shared.dismiss() },
-            embedded: true
+            onDismiss: { SheetCoordinator.shared.dismiss() }
         )
     }
 }
@@ -800,6 +829,7 @@ private struct POSSettingsSheet: View {
     @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var printerSettings = LabelPrinterSettings.shared
+    @State private var showPrinterPicker = false
 
     private var currentLocation: Location? {
         windowSession?.location ?? session.selectedLocation
@@ -812,40 +842,37 @@ private struct POSSettingsSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 20) {
-                    // Location Section
-                    locationSection
+                VStack(spacing: 24) {
+                    // Store profile header
+                    profileHeader
 
-                    // Printer Section
+                    // Grouped sections
+                    locationAndRegisterSection
+
                     printerSection
 
-                    // Label Position Section
                     labelPositionSection
 
-                    // Cash Drawer Section (if available)
                     if currentRegister != nil, windowSession?.posSession != nil {
                         drawerSection
                     }
 
-                    // Actions Section
                     actionsSection
 
-                    // End Session
                     endSessionButton
+                        .padding(.top, 8)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
             }
             .scrollBounceBehavior(.basedOnSize)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .foregroundStyle(.white.opacity(0.7))
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
                 }
             }
         }
@@ -854,130 +881,134 @@ private struct POSSettingsSheet: View {
         .preferredColorScheme(.dark)
     }
 
-    // MARK: - Location Section
+    // MARK: - Profile Header
 
-    private var locationSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ModalSectionLabel("Location")
+    private var profileHeader: some View {
+        VStack(spacing: 12) {
+            StoreLogo(
+                url: session.store?.fullLogoUrl,
+                size: 64,
+                storeName: session.store?.businessName
+            )
 
-            ModalSection {
-                VStack(spacing: 0) {
-                    if let location = currentLocation {
-                        HStack(spacing: 12) {
-                            Image(systemName: "storefront.fill")
-                                .font(.system(size: 16))
-                                .foregroundStyle(.white.opacity(0.6))
-                                .frame(width: 32)
+            VStack(spacing: 4) {
+                Text(session.store?.businessName ?? "Store")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.white)
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(location.name)
-                                    .font(.system(size: 15, weight: .medium))
-                                    .foregroundStyle(.white)
-                                if let register = currentRegister {
-                                    Text("\(register.registerName) #\(register.registerNumber)")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(.white.opacity(0.5))
-                                }
-                            }
-                            Spacer()
-                        }
-                        .padding(.bottom, 12)
+                if let location = currentLocation {
+                    Text(location.name)
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+    }
 
-                        Divider().background(.white.opacity(0.1))
+    // MARK: - Location & Register
 
-                        settingsRow(icon: "desktopcomputer", title: "Change Register") {
-                            dismiss()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                SheetCoordinator.shared.present(.registerPicker)
-                            }
-                        }
-                        .padding(.top, 12)
-                    } else {
-                        settingsRow(icon: "storefront", title: "Select Location") {
-                            dismiss()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                SheetCoordinator.shared.present(.locationPicker)
-                            }
-                        }
+    private var locationAndRegisterSection: some View {
+        settingsGroup {
+            if let location = currentLocation {
+                settingsRow(
+                    icon: "storefront.fill",
+                    iconColor: .blue,
+                    title: location.name,
+                    subtitle: location.displayAddress
+                ) {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        SheetCoordinator.shared.present(.locationPicker)
+                    }
+                }
+
+                settingsDivider
+
+                settingsRow(
+                    icon: "desktopcomputer",
+                    iconColor: .purple,
+                    title: currentRegister.map { "\($0.registerName) #\($0.registerNumber)" } ?? "Select Register",
+                    subtitle: currentRegister != nil ? "Change register" : nil
+                ) {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        SheetCoordinator.shared.present(.registerPicker)
+                    }
+                }
+            } else {
+                settingsRow(
+                    icon: "storefront.fill",
+                    iconColor: .blue,
+                    title: "Select Location"
+                ) {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        SheetCoordinator.shared.present(.locationPicker)
                     }
                 }
             }
         }
     }
 
-    @State private var showPrinterPicker = false
-
     // MARK: - Printer Section
 
     private var printerSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ModalSectionLabel("Printer")
+        settingsGroup {
+            // Printer Selection
+            Button {
+                Haptics.light()
+                showPrinterPicker = true
+            } label: {
+                HStack(spacing: 14) {
+                    settingsIcon("printer.fill", color: .green)
 
-            ModalSection {
-                VStack(spacing: 0) {
-                    // Printer Selection
-                    Button {
-                        Haptics.light()
-                        showPrinterPicker = true
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "printer.fill")
-                                .font(.system(size: 16))
-                                .foregroundStyle(.white.opacity(0.6))
-                                .frame(width: 32)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Label Printer")
-                                    .font(.system(size: 15, weight: .medium))
-                                    .foregroundStyle(.white)
-                                Text(printerSettings.printerName ?? "Tap to select")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(.white.opacity(0.5))
-                            }
-
-                            Spacer()
-
-                            if printerSettings.printerName != nil {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(Design.Colors.Semantic.success)
-                            } else {
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(.white.opacity(0.3))
-                            }
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .background(PrinterPickerPresenter(isPresented: $showPrinterPicker, printerSettings: printerSettings))
-
-                    Divider().background(.white.opacity(0.1)).padding(.vertical, 12)
-
-                    // Auto-Print Toggle
-                    HStack(spacing: 12) {
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 16))
-                            .foregroundStyle(.white.opacity(0.6))
-                            .frame(width: 32)
-
-                        Text("Auto-Print Labels")
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Label Printer")
                             .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(.white)
+                        Text(printerSettings.printerName ?? "Tap to select")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
 
-                        Spacer()
+                    Spacer()
 
-                        Toggle("", isOn: $printerSettings.isAutoPrintEnabled)
-                            .labelsHidden()
-                            .tint(Design.Colors.Semantic.success)
+                    if printerSettings.printerName != nil {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Design.Colors.Semantic.success)
+                    } else {
+                        chevron
                     }
                 }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .background(PrinterPickerPresenter(isPresented: $showPrinterPicker, printerSettings: printerSettings))
 
-            Text("Auto-print creates labels after each sale")
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.4))
-                .padding(.horizontal, 4)
+            settingsDivider
+
+            // Auto-Print Toggle
+            HStack(spacing: 14) {
+                settingsIcon("bolt.fill", color: .yellow)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Auto-Print Labels")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                    Text("Print after each sale")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+
+                Spacer()
+
+                Toggle("", isOn: $printerSettings.isAutoPrintEnabled)
+                    .labelsHidden()
+                    .tint(Design.Colors.Semantic.success)
+            }
         }
     }
 
@@ -985,16 +1016,23 @@ private struct POSSettingsSheet: View {
 
     private var labelPositionSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ModalSectionLabel("Label Start Position")
+            settingsGroup {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 14) {
+                        settingsIcon("rectangle.grid.2x2", color: .orange)
 
-            ModalSection {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Start at position \(printerSettings.startPosition + 1)")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.6))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Label Start Position")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(.white)
+                            Text("Avery 5163 • Position \(printerSettings.startPosition + 1) of 10")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.white.opacity(0.4))
+                        }
+                    }
 
-                    // 2 columns × 5 rows to match Avery 5163 label sheet layout
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 6) {
+                    // 2 columns × 5 rows grid
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
                         ForEach(0..<10, id: \.self) { position in
                             let isSelected = printerSettings.startPosition == position
                             Button {
@@ -1002,17 +1040,17 @@ private struct POSSettingsSheet: View {
                                 printerSettings.startPosition = position
                             } label: {
                                 Text("\(position + 1)")
-                                    .font(.system(size: 14, weight: isSelected ? .bold : .medium))
-                                    .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
+                                    .font(.system(size: 14, weight: isSelected ? .bold : .medium, design: .rounded))
+                                    .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
                                     .frame(maxWidth: .infinity)
-                                    .frame(height: 32)
+                                    .frame(height: 36)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(isSelected ? .white.opacity(0.2) : .white.opacity(0.06))
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(isSelected ? .white.opacity(0.15) : .white.opacity(0.04))
                                     )
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(isSelected ? .white.opacity(0.3) : .clear, lineWidth: 1)
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .stroke(isSelected ? .white.opacity(0.25) : .white.opacity(0.06), lineWidth: 1)
                                     )
                             }
                             .buttonStyle(.plain)
@@ -1020,51 +1058,42 @@ private struct POSSettingsSheet: View {
                     }
                 }
             }
-
-            Text("Avery 5163 • 2×4\" • 10 labels per sheet")
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.4))
-                .padding(.horizontal, 4)
         }
     }
 
     // MARK: - Drawer Section
 
     private var drawerSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ModalSectionLabel("Cash Drawer")
-
-            ModalSection {
-                VStack(spacing: 0) {
-                    settingsRow(icon: "banknote", title: "Safe Drop") {
-                        if let posSession = windowSession?.posSession {
-                            dismiss()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                SheetCoordinator.shared.present(.safeDrop(session: posSession))
-                            }
-                        }
-                    }
-
-                    Divider().background(.white.opacity(0.1)).padding(.vertical, 12)
-
-                    HStack(spacing: 12) {
-                        Image(systemName: "dollarsign.circle")
-                            .font(.system(size: 16))
-                            .foregroundStyle(.white.opacity(0.6))
-                            .frame(width: 32)
-
-                        Text("Drawer Balance")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(.white)
-
-                        Spacer()
-
-                        Text(CurrencyFormatter.format(windowSession?.drawerBalance ?? 0))
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.7))
-                            .monospacedDigit()
+        settingsGroup {
+            settingsRow(
+                icon: "banknote.fill",
+                iconColor: .green,
+                title: "Safe Drop",
+                subtitle: "Record a cash drop"
+            ) {
+                if let posSession = windowSession?.posSession {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        SheetCoordinator.shared.present(.safeDrop(session: posSession))
                     }
                 }
+            }
+
+            settingsDivider
+
+            HStack(spacing: 14) {
+                settingsIcon("dollarsign.circle.fill", color: .mint)
+
+                Text("Drawer Balance")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                Text(CurrencyFormatter.format(windowSession?.drawerBalance ?? 0))
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .monospacedDigit()
             }
         }
     }
@@ -1072,31 +1101,35 @@ private struct POSSettingsSheet: View {
     // MARK: - Actions Section
 
     private var actionsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ModalSectionLabel("Actions")
-
-            ModalSection {
-                VStack(spacing: 0) {
-                    settingsRow(icon: "arrow.clockwise", title: "Refresh Products") {
-                        dismiss()
-                        Task {
-                            if let ws = windowSession {
-                                await ws.refresh()
-                            } else {
-                                await POSStore.shared.refresh()
-                            }
-                        }
+        settingsGroup {
+            settingsRow(
+                icon: "arrow.clockwise",
+                iconColor: .cyan,
+                title: "Refresh Products",
+                subtitle: "Reload menu from server"
+            ) {
+                dismiss()
+                Task {
+                    if let ws = windowSession {
+                        await ws.refresh()
+                    } else {
+                        await POSStore.shared.refresh()
                     }
+                }
+            }
 
-                    if let storeId = session.storeId, let location = currentLocation {
-                        Divider().background(.white.opacity(0.1)).padding(.vertical, 12)
+            if let storeId = session.storeId, let location = currentLocation {
+                settingsDivider
 
-                        settingsRow(icon: "arrow.left.arrow.right", title: "Create Transfer") {
-                            dismiss()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                SheetCoordinator.shared.present(.createTransfer(storeId: storeId, sourceLocation: location))
-                            }
-                        }
+                settingsRow(
+                    icon: "arrow.left.arrow.right",
+                    iconColor: .indigo,
+                    title: "Create Transfer",
+                    subtitle: "Move inventory between locations"
+                ) {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        SheetCoordinator.shared.present(.createTransfer(storeId: storeId, sourceLocation: location))
                     }
                 }
             }
@@ -1113,49 +1146,100 @@ private struct POSSettingsSheet: View {
                 try? await session.signOut()
             }
         } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "power")
-                    .font(.system(size: 14, weight: .semibold))
-                Text("End Session")
+            HStack(spacing: 10) {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
                     .font(.system(size: 15, weight: .semibold))
+                Text("Sign Out")
+                    .font(.system(size: 16, weight: .semibold))
             }
             .foregroundStyle(Design.Colors.Semantic.error)
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .frame(height: 52)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Design.Colors.Semantic.error.opacity(0.15))
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Design.Colors.Semantic.error.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Design.Colors.Semantic.error.opacity(0.2), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
     }
 
-    // MARK: - Helpers
+    // MARK: - Reusable Components
 
-    private func settingsRow(icon: String, title: String, action: @escaping () -> Void) -> some View {
+    private func settingsGroup<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(spacing: 0) {
+            content()
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white.opacity(0.05))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+        )
+    }
+
+    private func settingsIcon(_ name: String, color: Color = .white) -> some View {
+        Image(systemName: name)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(.white.opacity(0.6))
+            .frame(width: 32, height: 32)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(.white.opacity(0.1), lineWidth: 1)
+            )
+    }
+
+    private func settingsRow(
+        icon: String,
+        iconColor: Color = .white,
+        title: String,
+        subtitle: String? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
         Button {
             Haptics.light()
             action()
         } label: {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundStyle(.white.opacity(0.6))
-                    .frame(width: 32)
+            HStack(spacing: 14) {
+                settingsIcon(icon, color: iconColor)
 
-                Text(title)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.white)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+                }
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.3))
+                chevron
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private var settingsDivider: some View {
+        Divider()
+            .background(.white.opacity(0.08))
+            .padding(.leading, 60)
+            .padding(.vertical, 4)
+    }
+
+    private var chevron: some View {
+        Image(systemName: "chevron.right")
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.2))
     }
 }
 
@@ -1367,7 +1451,7 @@ private struct ErrorAlertSheet: View {
             Spacer().frame(height: 24)
         }
         .frame(maxWidth: .infinity)
-        .background(Color.black)
+        .background(Color(.secondarySystemGroupedBackground))
         .preferredColorScheme(.dark)
     }
 }
