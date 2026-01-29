@@ -9,7 +9,6 @@
 import Foundation
 import SwiftUI
 import Combine
-import Supabase
 
 // MARK: - Environment Key
 
@@ -293,7 +292,6 @@ final class POSWindowSession: ObservableObject, Identifiable {
     @Published private(set) var products: [Product] = []
     @Published private(set) var categories: [ProductCategory] = []
     @Published private(set) var isLoadingProducts = false
-    @Published private(set) var hasLoadedProducts = false
     @Published private(set) var productsError: String?
     @Published var searchText = ""
     @Published var selectedCategoryId: UUID?
@@ -425,7 +423,6 @@ final class POSWindowSession: ObservableObject, Identifiable {
             products = loadedProducts
             categories = loadedCategories
             isLoadingProducts = false
-            hasLoadedProducts = true
 
             // Cache for other windows at same location
             POSWindowSessionManager.shared.cacheProducts(loadedProducts, categories: loadedCategories, for: locationId)
@@ -433,7 +430,6 @@ final class POSWindowSession: ObservableObject, Identifiable {
             objectWillChange.send()
             productsError = error.localizedDescription
             isLoadingProducts = false
-            hasLoadedProducts = true
         }
     }
 
@@ -535,24 +531,6 @@ final class POSWindowSession: ObservableObject, Identifiable {
                 return false
             }
 
-            // Fetch and cache customer if cart has a customer ID
-            if let customerId = cart.customerId, let storeId = storeId {
-                do {
-                    let customer: Customer = try await supabase
-                        .from("v_store_customers")
-                        .select()
-                        .eq("id", value: customerId.uuidString)
-                        .eq("store_id", value: storeId.uuidString)
-                        .single()
-                        .execute()
-                        .value
-                    _customerCache[customerId] = customer
-                    print("🪟 POSWindowSession: loadCartById - Cached customer \(customer.displayName) for cart \(cartId)")
-                } catch {
-                    print("🪟 POSWindowSession: loadCartById - Failed to fetch customer \(customerId): \(error)")
-                }
-            }
-
             let newIndex = carts.count
             carts.append(cart)
             activeCartIndex = newIndex
@@ -611,31 +589,6 @@ final class POSWindowSession: ObservableObject, Identifiable {
         isCartLoading = true
 
         do {
-            // Query inventory at this location for this product
-            var inventoryId: UUID? = nil
-            if let locId = locationId {
-                let client = await SupabaseClientWrapper.shared.client()
-
-                // Simple struct just for ID query
-                struct InventoryID: Codable {
-                    let id: UUID
-                }
-
-                let inventory: [InventoryID] = try await client
-                    .from("inventory")
-                    .select("id")
-                    .eq("product_id", value: product.id.uuidString)
-                    .eq("location_id", value: locId.uuidString)
-                    .gt("available_quantity", value: 0)
-                    .order("available_quantity", ascending: false)
-                    .limit(1)
-                    .execute()
-                    .value
-
-                inventoryId = inventory.first?.id
-                print("🛒 POSWindowSession.addToCart(tier) - inventory_id: \(inventoryId?.uuidString ?? "nil")")
-            }
-
             let updatedCart = try await CartService.shared.addToCart(
                 cartId: cart.id,
                 productId: product.id,
@@ -643,7 +596,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
                 unitPrice: tier.defaultPrice,
                 tierLabel: tier.label,
                 tierQuantity: tier.quantity,
-                inventoryId: inventoryId
+                inventoryId: product.inventory?.id
             )
 
             if let index = carts.firstIndex(where: { $0.id == cart.id }) {

@@ -39,13 +39,9 @@ struct FilterChip: View {
                         .background(.fill.tertiary, in: .capsule)
                 }
             }
-            .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
+            .foregroundStyle(.white)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(
-                isSelected ? .white.opacity(0.15) : Color.clear,
-                in: .capsule
-            )
         }
         .tint(.white)
         .glassEffect(.regular.interactive(), in: .capsule)
@@ -115,17 +111,18 @@ struct DateFilterChip: View {
     }
 }
 
-// MARK: - Date Range Picker Sheet
+// MARK: - Date Range Picker Modal
 
-struct DateRangePickerSheet: View {
+struct DateRangePickerModal: View {
     @Binding var startDate: Date?
     @Binding var endDate: Date?
-    @Environment(\.dismiss) private var dismiss
+    @Binding var isPresented: Bool
 
     @State private var selectedStart: Date = Date()
     @State private var selectedEnd: Date = Date()
     @State private var selectedPreset: DatePreset? = nil
     @State private var isSelectingStart = true
+    @State private var animationProgress: CGFloat = 0
 
     enum DatePreset: String, CaseIterable {
         case today = "Today"
@@ -156,35 +153,64 @@ struct DateRangePickerSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
+        GeometryReader { geometry in
+            let modalWidth = min(360, geometry.size.width - 48)
+
+            ZStack {
+                Color.black.opacity(animationProgress * 0.4)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        dismiss()
+                    }
+
+                VStack(spacing: 0) {
+                    // Header
+                    HStack {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 36, height: 36)
+                        }
+                        .tint(.white)
+                        .glassEffect(.regular.interactive(), in: .circle)
+
+                        Spacer()
+
+                        Text("Select Date Range")
+                            .font(.system(size: 17, weight: .semibold))
+
+                        Spacer()
+
+                        Color.clear.frame(width: 44, height: 44)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                    .padding(.bottom, 8)
+
                     // Quick presets
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(DatePreset.allCases, id: \.self) { preset in
-                                Button {
+                                LiquidGlassPill(
+                                    preset.rawValue,
+                                    isSelected: selectedPreset == preset
+                                ) {
                                     let dates = preset.apply()
                                     selectedStart = dates.start
                                     selectedEnd = dates.end
                                     selectedPreset = preset
-                                    Haptics.light()
-                                } label: {
-                                    Text(preset.rawValue)
-                                        .font(.system(size: 13, weight: selectedPreset == preset ? .semibold : .medium))
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(selectedPreset == preset ? Color.accentColor : Color(.tertiarySystemFill))
-                                        .foregroundStyle(selectedPreset == preset ? .white : .primary)
-                                        .clipShape(Capsule())
                                 }
                             }
                         }
                         .padding(.horizontal, 16)
                     }
+                    .padding(.bottom, 10)
 
                     // Date range tabs
-                    HStack(spacing: 12) {
+                    HStack(spacing: 10) {
                         Button {
                             isSelectingStart = true
                             Haptics.light()
@@ -192,20 +218,17 @@ struct DateRangePickerSheet: View {
                             VStack(spacing: 4) {
                                 Text("START")
                                     .font(.system(size: 10, weight: .semibold))
+                                    .tracking(0.5)
                                     .foregroundStyle(.secondary)
                                 Text(selectedStart, format: .dateTime.month(.abbreviated).day().year())
                                     .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(isSelectingStart ? Color.accentColor : .primary)
+                                    .foregroundStyle(isSelectingStart ? Design.Colors.Semantic.accent : .primary)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(isSelectingStart ? Color.accentColor : .clear, lineWidth: 2)
-                            )
                         }
-                        .buttonStyle(.plain)
+                        .tint(.white)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
 
                         Button {
                             isSelectingStart = false
@@ -214,22 +237,20 @@ struct DateRangePickerSheet: View {
                             VStack(spacing: 4) {
                                 Text("END")
                                     .font(.system(size: 10, weight: .semibold))
+                                    .tracking(0.5)
                                     .foregroundStyle(.secondary)
                                 Text(selectedEnd, format: .dateTime.month(.abbreviated).day().year())
                                     .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(!isSelectingStart ? Color.accentColor : .primary)
+                                    .foregroundStyle(!isSelectingStart ? Design.Colors.Semantic.accent : .primary)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(!isSelectingStart ? Color.accentColor : .clear, lineWidth: 2)
-                            )
                         }
-                        .buttonStyle(.plain)
+                        .tint(.white)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
                     }
                     .padding(.horizontal, 16)
+                    .padding(.bottom, 4)
 
                     // Native iOS DatePicker
                     DatePicker(
@@ -239,7 +260,9 @@ struct DateRangePickerSheet: View {
                         displayedComponents: .date
                     )
                     .datePickerStyle(.graphical)
+                    .tint(Design.Colors.Semantic.accent)
                     .labelsHidden()
+                    .frame(width: modalWidth - 32)
                     .padding(.horizontal, 16)
                     .onChange(of: selectedStart) { _, newValue in
                         selectedPreset = nil
@@ -253,45 +276,49 @@ struct DateRangePickerSheet: View {
                             selectedStart = newValue
                         }
                     }
-                }
-                .padding(.top, 16)
-            }
-            .navigationTitle("Date Range")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
+
+                    // Actions
+                    HStack(spacing: 12) {
+                        Button {
+                            Haptics.light()
+                            startDate = nil
+                            endDate = nil
+                            dismiss()
+                        } label: {
+                            Text("Clear")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .tint(.white)
+                        .glassEffect(.regular.interactive(), in: .capsule)
+
+                        Button {
+                            Haptics.medium()
+                            startDate = selectedStart
+                            endDate = selectedEnd
+                            dismiss()
+                        } label: {
+                            Text("Apply")
+                                .font(.system(size: 15, weight: .bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.white)
+                        .foregroundStyle(.black)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+                    .padding(.bottom, 16)
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Apply") {
-                        Haptics.medium()
-                        startDate = selectedStart
-                        endDate = selectedEnd
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                if startDate != nil || endDate != nil {
-                    Button {
-                        Haptics.light()
-                        startDate = nil
-                        endDate = nil
-                        dismiss()
-                    } label: {
-                        Text("Clear Filter")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.bottom, 8)
-                }
+                .frame(width: modalWidth)
+                .glassEffect(.regular, in: .rect(cornerRadius: 32))
+                .scaleEffect(0.9 + (0.1 * animationProgress))
+                .opacity(animationProgress)
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
         .onAppear {
             selectedStart = startDate ?? Date()
             selectedEnd = endDate ?? Date()
@@ -306,6 +333,20 @@ struct DateRangePickerSheet: View {
                     }
                 }
             }
+
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                animationProgress = 1
+            }
+        }
+    }
+
+    private func dismiss() {
+        Haptics.light()
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            animationProgress = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            isPresented = false
         }
     }
 }

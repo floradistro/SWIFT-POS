@@ -342,7 +342,7 @@ struct LineItemResult {
 
 // MARK: - API Response Types
 
-private struct SplitResponse: Sendable {
+private struct SplitResponse: Decodable {
     let isValid: Bool
     let amount1: Double
     let amount2: Double
@@ -352,12 +352,12 @@ private struct SplitResponse: Sendable {
     let label2: String
 }
 
-private struct CashSuggestionsResponse: Sendable {
+private struct CashSuggestionsResponse: Decodable {
     let suggestions: [Double]
     let exactAmount: Double
 }
 
-private struct ValidateResponse: Sendable {
+private struct ValidateResponse: Decodable {
     let isValid: Bool
     let errors: [String]
     let change: Double?
@@ -365,7 +365,7 @@ private struct ValidateResponse: Sendable {
     let calculatedCard2Amount: Double?
 }
 
-private struct LoyaltyResponse: Sendable {
+private struct LoyaltyResponse: Decodable {
     let maxRedeemablePoints: Int
     let redemptionValue: Double
     let newTotal: Double
@@ -373,39 +373,28 @@ private struct LoyaltyResponse: Sendable {
     let errors: [String]
 }
 
-private struct SplitPercentageResponse: Sendable {
+private struct SplitPercentageResponse: Decodable {
     let amount1: Double
     let amount2: Double
     let percentage: Double
     let isValid: Bool
 }
 
-private struct PercentageFromAmountResponse: Sendable {
+private struct PercentageFromAmountResponse: Decodable {
     let percentage: Double
     let amount1: Double
     let amount2: Double
 }
 
-struct LineItemResponse: Sendable {
+struct LineItemResponse: Decodable {
     let subtotal: Double
     let taxAmount: Double
     let total: Double
 }
 
-struct DiscountResponse: Sendable {
+struct DiscountResponse: Decodable {
     let discountAmount: Double
 }
-
-// MARK: - Decodable Conformance (nonisolated)
-
-extension SplitResponse: Decodable {}
-extension CashSuggestionsResponse: Decodable {}
-extension ValidateResponse: Decodable {}
-extension LoyaltyResponse: Decodable {}
-extension SplitPercentageResponse: Decodable {}
-extension PercentageFromAmountResponse: Decodable {}
-extension LineItemResponse: Decodable {}
-extension DiscountResponse: Decodable {}
 
 // MARK: - Errors
 

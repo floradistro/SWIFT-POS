@@ -30,43 +30,43 @@ final class InMemoryLocalStorage: AuthLocalStorage, @unchecked Sendable {
     private let lock = NSLock()
 
     func store(key: String, value: Data) throws {
-        lock.withLock {
-            storage[key] = value
-        }
+        lock.lock()
+        defer { lock.unlock() }
+        storage[key] = value
     }
 
     func retrieve(key: String) throws -> Data? {
-        lock.withLock {
-            storage[key]
-        }
+        lock.lock()
+        defer { lock.unlock() }
+        return storage[key]
     }
 
     func remove(key: String) throws {
-        _ = lock.withLock {
-            storage.removeValue(forKey: key)
-        }
+        lock.lock()
+        defer { lock.unlock() }
+        storage.removeValue(forKey: key)
     }
 }
 
 // MARK: - Configuration
 
-enum SupabaseConfig: Sendable {
+enum SupabaseConfig {
     // Production: floradistro.com
-    nonisolated(unsafe) static let projectRef = "uaednwpxursknmwdeejn"
-    nonisolated(unsafe) static let baseURL = "https://\(projectRef).supabase.co"
-    nonisolated(unsafe) static let functionsBaseURL = "https://\(projectRef).functions.supabase.co"
-    nonisolated(unsafe) static let url = URL(string: baseURL)!
+    static let projectRef = "uaednwpxursknmwdeejn"
+    static let baseURL = "https://\(projectRef).supabase.co"
+    static let functionsBaseURL = "https://\(projectRef).functions.supabase.co"
+    static let url = URL(string: baseURL)!
 
     // Anon key - safe for client-side use (RLS protects data)
-    nonisolated(unsafe) static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhZWRud3B4dXJza25td2RlZWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5OTcyMzMsImV4cCI6MjA3NjU3MzIzM30.N8jPwlyCBB5KJB5I-XaK6m-mq88rSR445AWFJJmwRCg"
+    static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhZWRud3B4dXJza25td2RlZWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5OTcyMzMsImV4cCI6MjA3NjU3MzIzM30.N8jPwlyCBB5KJB5I-XaK6m-mq88rSR445AWFJJmwRCg"
 
     // Service role key for edge functions (build-runner)
-    nonisolated(unsafe) static let serviceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhZWRud3B4dXJza25td2RlZWpuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDk5NzIzMywiZXhwIjoyMDc2NTczMjMzfQ.l0NvBbS2JQWPObtWeVD2M2LD866A2tgLmModARYNnbI"
+    static let serviceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhZWRud3B4dXJza25td2RlZWpuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczMjE1NDU0NywiZXhwIjoyMDQ3NzMwNTQ3fQ.zdHSMFVu8X3BBK3R4d9zg_fY-rCVNqXyYItE3659xyY"
 }
 
 // MARK: - Build Server Configuration
 
-enum BuildServerConfig: Sendable {
+enum BuildServerConfig {
     // Build server URL via Cloudflare Tunnel (permanent)
     static let url = "https://build.wh4le.net"
     static let wsURL = "wss://build.wh4le.net"
@@ -88,11 +88,12 @@ enum BuildServerConfig: Sendable {
 ///
 /// Solution: Initialize on a background thread at app startup.
 /// By the time any code needs the client, it's already ready.
-actor SupabaseClientWrapper {
+final class SupabaseClientWrapper: @unchecked Sendable {
     static let shared = SupabaseClientWrapper()
 
     /// The cached client - nil until initialization completes
     private var _cachedClient: SupabaseClient?
+    private let lock = NSLock()
 
     /// The initialization task - runs once, can be awaited multiple times
     private let initTask: Task<SupabaseClient, Never>
@@ -125,15 +126,29 @@ actor SupabaseClientWrapper {
     /// Subsequent calls return immediately from cache.
     func client() async -> SupabaseClient {
         // Fast path: already cached
+        lock.lock()
         if let cached = _cachedClient {
+            lock.unlock()
             return cached
         }
+        lock.unlock()
 
         // Wait for initialization and cache result
         let client = await initTask.value
+
+        lock.lock()
         _cachedClient = client
+        lock.unlock()
 
         return client
+    }
+
+    /// Synchronous access - returns cached client or nil if not ready.
+    /// NEVER blocks. Returns nil if initialization hasn't completed.
+    var clientIfReady: SupabaseClient? {
+        lock.lock()
+        defer { lock.unlock() }
+        return _cachedClient
     }
 }
 
@@ -143,12 +158,32 @@ func supabaseAsync() async -> SupabaseClient {
     await SupabaseClientWrapper.shared.client()
 }
 
-/// Sync global accessor - creates a fresh client for non-async contexts.
-/// IMPORTANT: Prefer `await supabaseAsync()` in async contexts to reuse the cached client.
-/// This accessor is safe but creates a new client each time (not cached).
+/// Sync global accessor - returns cached client or triggers async initialization.
+/// IMPORTANT: Prefer `await supabaseAsync()` in async contexts.
+/// This accessor is safe to use after app initialization (e.g., in realtime subscriptions).
 var supabase: SupabaseClient {
-    // For sync contexts, we can't await the actor, so create a fresh client
-    // This is expensive but necessary for non-async code paths
+    // Fast path: return cached client immediately (no blocking)
+    if let cached = SupabaseClientWrapper.shared.clientIfReady {
+        return cached
+    }
+
+    // Client not ready - this should only happen during early app startup
+    // Instead of blocking with RunLoop, trigger background init and return placeholder
+    Log.network.warning("⚠️ Supabase accessed before init - triggering async initialization")
+
+    // Trigger the async initialization in background (doesn't block)
+    Task.detached {
+        _ = await SupabaseClientWrapper.shared.client()
+    }
+
+    // Check once more after triggering - may have completed
+    if let cached = SupabaseClientWrapper.shared.clientIfReady {
+        return cached
+    }
+
+    // Last resort: create a fresh client synchronously
+    // This is expensive but won't deadlock - only happens if accessed very early
+    Log.network.error("⚠️ Creating emergency Supabase client - investigate early access pattern")
     return SupabaseClient(
         supabaseURL: SupabaseConfig.url,
         supabaseKey: SupabaseConfig.anonKey,

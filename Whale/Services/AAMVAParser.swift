@@ -232,7 +232,7 @@ enum AAMVAParser {
 
     /// Normalize street address
     private static func normalizeAddress(_ address: String) -> String {
-        let result = address.lowercased()
+        var result = address.lowercased()
 
         // Common abbreviations to keep uppercase
         let abbreviations = [

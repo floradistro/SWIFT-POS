@@ -15,7 +15,13 @@ struct Product: Identifiable, Hashable, Sendable {
     let name: String
     let description: String?
     let sku: String?
-    let type: String?  // simple, variable, service, bundle, subscription
+
+    // Pricing
+    let price: Decimal?
+    let regularPrice: Decimal?
+    let salePrice: Decimal?
+    let costPrice: Decimal?
+    let onSale: Bool?
 
     // Images
     let imageUrl: String?
@@ -30,8 +36,9 @@ struct Product: Identifiable, Hashable, Sendable {
     // Stock
     let stockQuantity: Int?
 
-    // Custom fields (JSONB - decoded as raw)
+    // Custom fields & pricing data (JSONB - decoded as raw)
     let customFields: [String: AnyCodable]?
+    let pricingData: [String: AnyCodable]?
 
     // Joined data (set after fetch)
     var inventory: ProductInventory?
@@ -53,19 +60,24 @@ extension Product: Codable {
         case name
         case description
         case sku
-        case type
+        case price
+        case regularPrice = "regular_price"
+        case salePrice = "sale_price"
+        case costPrice = "cost_price"
+        case onSale = "on_sale"
         case imageUrl = "image_url"
         case featuredImage = "featured_image"
         case primaryCategoryId = "primary_category_id"
         case pricingSchemaId = "pricing_schema_id"
         case stockQuantity = "stock_quantity"
         case customFields = "custom_fields"
+        case pricingData = "pricing_data"
         case primaryCategory = "primary_category"
         case pricingSchema = "pricing_schema"
         case inventory = "inventory"
     }
 
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(UUID.self, forKey: .id)
@@ -73,7 +85,13 @@ extension Product: Codable {
         name = try container.decode(String.self, forKey: .name)
         description = try container.decodeIfPresent(String.self, forKey: .description)
         sku = try container.decodeIfPresent(String.self, forKey: .sku)
-        type = try container.decodeIfPresent(String.self, forKey: .type)
+
+        // Pricing - handle String, Double, or Decimal
+        price = Self.decodePrice(from: container, forKey: .price)
+        regularPrice = Self.decodePrice(from: container, forKey: .regularPrice)
+        salePrice = Self.decodePrice(from: container, forKey: .salePrice)
+        costPrice = Self.decodePrice(from: container, forKey: .costPrice)
+        onSale = try? container.decodeIfPresent(Bool.self, forKey: .onSale)
 
         imageUrl = try? container.decodeIfPresent(String.self, forKey: .imageUrl)
         featuredImage = try? container.decodeIfPresent(String.self, forKey: .featuredImage)
@@ -81,6 +99,7 @@ extension Product: Codable {
         pricingSchemaId = try? container.decodeIfPresent(UUID.self, forKey: .pricingSchemaId)
         stockQuantity = Self.decodeInt(from: container, forKey: .stockQuantity)
         customFields = try? container.decodeIfPresent([String: AnyCodable].self, forKey: .customFields)
+        pricingData = try? container.decodeIfPresent([String: AnyCodable].self, forKey: .pricingData)
 
         // Nested objects from joins
         primaryCategory = try? container.decodeIfPresent(ProductCategory.self, forKey: .primaryCategory)
@@ -92,6 +111,22 @@ extension Product: Codable {
         // PostgREST returns to-many relations as arrays
         inventoryArray = try? container.decodeIfPresent([ProductInventory].self, forKey: .inventory)
         inventory = inventoryArray?.first
+    }
+
+    private static func decodePrice(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) -> Decimal? {
+        // Try Decimal first
+        if let decimal = try? container.decodeIfPresent(Decimal.self, forKey: key) {
+            return decimal
+        }
+        // Try Double
+        if let double = try? container.decodeIfPresent(Double.self, forKey: key) {
+            return Decimal(double)
+        }
+        // Try String
+        if let string = try? container.decodeIfPresent(String.self, forKey: key) {
+            return Decimal(string: string)
+        }
+        return nil
     }
 
     private static func decodeInt(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) -> Int? {
@@ -111,19 +146,25 @@ extension Product: Codable {
     }
 
 
-    nonisolated func encode(to encoder: Encoder) throws {
+    func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encodeIfPresent(storeId, forKey: .storeId)
         try container.encode(name, forKey: .name)
         try container.encodeIfPresent(description, forKey: .description)
         try container.encodeIfPresent(sku, forKey: .sku)
+        try container.encodeIfPresent(price, forKey: .price)
+        try container.encodeIfPresent(regularPrice, forKey: .regularPrice)
+        try container.encodeIfPresent(salePrice, forKey: .salePrice)
+        try container.encodeIfPresent(costPrice, forKey: .costPrice)
+        try container.encodeIfPresent(onSale, forKey: .onSale)
         try container.encodeIfPresent(imageUrl, forKey: .imageUrl)
         try container.encodeIfPresent(featuredImage, forKey: .featuredImage)
         try container.encodeIfPresent(primaryCategoryId, forKey: .primaryCategoryId)
         try container.encodeIfPresent(pricingSchemaId, forKey: .pricingSchemaId)
         try container.encodeIfPresent(stockQuantity, forKey: .stockQuantity)
         try container.encodeIfPresent(customFields, forKey: .customFields)
+        try container.encodeIfPresent(pricingData, forKey: .pricingData)
     }
 
     /// Minimal init for creating placeholder products (e.g., for label printing)
@@ -133,13 +174,18 @@ extension Product: Codable {
         self.name = name
         self.description = nil
         self.sku = nil
-        self.type = nil
+        self.price = nil
+        self.regularPrice = nil
+        self.salePrice = nil
+        self.costPrice = nil
+        self.onSale = nil
         self.imageUrl = nil
         self.featuredImage = nil
         self.primaryCategoryId = nil
         self.pricingSchemaId = nil
         self.stockQuantity = nil
         self.customFields = nil
+        self.pricingData = nil
         self.primaryCategory = nil
         self.pricingSchema = nil
         self.coa = nil
@@ -154,12 +200,16 @@ extension Product: Codable {
         name: String,
         description: String? = nil,
         sku: String? = nil,
+        price: Decimal? = nil,
+        regularPrice: Decimal? = nil,
+        salePrice: Decimal? = nil,
+        onSale: Bool? = nil,
         featuredImage: String? = nil,
         customFields: [String: AnyCodable]? = nil,
+        pricingData: [String: AnyCodable]? = nil,
         storeId: UUID,
         primaryCategoryId: UUID? = nil,
         pricingSchemaId: UUID? = nil,
-        pricingSchema: PricingSchema? = nil,
         status: String? = nil
     ) {
         self.id = id
@@ -167,15 +217,20 @@ extension Product: Codable {
         self.name = name
         self.description = description
         self.sku = sku
-        self.type = nil
+        self.price = price
+        self.regularPrice = regularPrice
+        self.salePrice = salePrice
+        self.costPrice = nil
+        self.onSale = onSale
         self.imageUrl = nil
         self.featuredImage = featuredImage
         self.primaryCategoryId = primaryCategoryId
         self.pricingSchemaId = pricingSchemaId
         self.stockQuantity = nil
         self.customFields = customFields
+        self.pricingData = pricingData
         self.primaryCategory = nil
-        self.pricingSchema = pricingSchema
+        self.pricingSchema = nil
         self.coa = nil
         self.variants = nil
         self.inventory = nil
@@ -186,15 +241,10 @@ extension Product: Codable {
 // MARK: - Computed Properties
 
 extension Product {
-    /// Display price - derived from first tier of pricing schema
-    /// All pricing is now tier-based - this returns the smallest/first tier price for display
+    /// Display price - calculated by backend (sale price if on sale, otherwise regular price)
+    /// Backend handles all pricing logic including template-based pricing
     var displayPrice: Decimal {
-        // Get first tier price from pricing schema (sorted by sort_order)
-        if let tiers = pricingSchema?.defaultTiers,
-           let firstTier = tiers.sorted(by: { ($0.sortOrder ?? 0) < ($1.sortOrder ?? 0) }).first {
-            return firstTier.defaultPrice
-        }
-        return 0
+        price ?? 0
     }
 
     /// Check if product uses tiered pricing
@@ -269,15 +319,8 @@ extension Product {
     }
 
     /// Current stock at location (from inventory or denormalized field)
-    /// Is this a service product (non-inventory)
-    var isService: Bool {
-        type == "service"
-    }
-
     var availableStock: Int {
-        // Service products are always available (no inventory tracking)
-        if isService { return 999 }
-        return inventory?.quantity ?? stockQuantity ?? 0
+        inventory?.quantity ?? stockQuantity ?? 0
     }
 
     /// Is in stock
@@ -465,7 +508,7 @@ extension PricingSchema: Codable {
         case defaultTiers = "tiers"
     }
 
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         // ID can be UUID or String
@@ -501,7 +544,7 @@ extension PricingTier: Codable {
         case sortOrder = "sort_order"
     }
 
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(String.self, forKey: .id)
@@ -537,14 +580,14 @@ extension PricingTier: Codable {
 
 struct ProductCOA: Codable, Sendable, Identifiable {
     let id: UUID
-    let productId: UUID?  // Optional - not included in RPC responses
+    let productId: UUID
     let fileUrl: String?
     let fileName: String?
-    let labName: String?      // mapped from source_name in store_documents
-    let testDate: Date?       // mapped from document_date in store_documents
+    let labName: String?
+    let testDate: Date?
     let expiryDate: Date?
-    let batchNumber: String?  // mapped from reference_number in store_documents
-    let testResults: COATestResults?  // mapped from data in store_documents
+    let batchNumber: String?
+    let testResults: COATestResults?
     let isActive: Bool
 
     enum CodingKeys: String, CodingKey {
@@ -552,19 +595,19 @@ struct ProductCOA: Codable, Sendable, Identifiable {
         case productId = "product_id"
         case fileUrl = "file_url"
         case fileName = "file_name"
-        case labName = "source_name"        // was lab_name in store_coas
-        case testDate = "document_date"     // was test_date in store_coas
+        case labName = "lab_name"
+        case testDate = "test_date"
         case expiryDate = "expiry_date"
-        case batchNumber = "reference_number"  // was batch_number in store_coas
-        case testResults = "data"           // was test_results in store_coas
+        case batchNumber = "batch_number"
+        case testResults = "test_results"
         case isActive = "is_active"
     }
 
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(UUID.self, forKey: .id)
-        productId = try container.decodeIfPresent(UUID.self, forKey: .productId)
+        productId = try container.decode(UUID.self, forKey: .productId)
         fileUrl = try container.decodeIfPresent(String.self, forKey: .fileUrl)
         fileName = try container.decodeIfPresent(String.self, forKey: .fileName)
         labName = try container.decodeIfPresent(String.self, forKey: .labName)
@@ -627,7 +670,7 @@ struct COATestResults: Codable, Sendable {
     let contaminants: ContaminantResults?
 
     // Custom decoding to handle multiple possible key formats from database
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: FlexibleCodingKeys.self)
 
         // THC Total - try multiple key variations
@@ -649,30 +692,22 @@ struct COATestResults: Codable, Sendable {
         strainType = Self.decodeString(from: container, keys: ["strain_type", "strainType", "strain", "type"])
 
         // Terpenes
-        if let key = FlexibleCodingKeys(stringValue: "terpenes") {
-            terpenes = try? container.decodeIfPresent([String: Double].self, forKey: key)
-        } else {
-            terpenes = nil
-        }
+        terpenes = try? container.decodeIfPresent([String: Double].self, forKey: FlexibleCodingKeys(stringValue: "terpenes")!)
 
         // Contaminants
-        if let key = FlexibleCodingKeys(stringValue: "contaminants") {
-            contaminants = try? container.decodeIfPresent(ContaminantResults.self, forKey: key)
-        } else {
-            contaminants = nil
-        }
+        contaminants = try? container.decodeIfPresent(ContaminantResults.self, forKey: FlexibleCodingKeys(stringValue: "contaminants")!)
     }
 
-    nonisolated func encode(to encoder: Encoder) throws {
+    func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: FlexibleCodingKeys.self)
-        if let key = FlexibleCodingKeys(stringValue: "thc_total") { try container.encodeIfPresent(thcTotal, forKey: key) }
-        if let key = FlexibleCodingKeys(stringValue: "thca") { try container.encodeIfPresent(thca, forKey: key) }
-        if let key = FlexibleCodingKeys(stringValue: "d9_thc") { try container.encodeIfPresent(d9Thc, forKey: key) }
-        if let key = FlexibleCodingKeys(stringValue: "cbd_total") { try container.encodeIfPresent(cbdTotal, forKey: key) }
-        if let key = FlexibleCodingKeys(stringValue: "cbda") { try container.encodeIfPresent(cbda, forKey: key) }
-        if let key = FlexibleCodingKeys(stringValue: "strain_type") { try container.encodeIfPresent(strainType, forKey: key) }
-        if let key = FlexibleCodingKeys(stringValue: "terpenes") { try container.encodeIfPresent(terpenes, forKey: key) }
-        if let key = FlexibleCodingKeys(stringValue: "contaminants") { try container.encodeIfPresent(contaminants, forKey: key) }
+        try container.encodeIfPresent(thcTotal, forKey: FlexibleCodingKeys(stringValue: "thc_total")!)
+        try container.encodeIfPresent(thca, forKey: FlexibleCodingKeys(stringValue: "thca")!)
+        try container.encodeIfPresent(d9Thc, forKey: FlexibleCodingKeys(stringValue: "d9_thc")!)
+        try container.encodeIfPresent(cbdTotal, forKey: FlexibleCodingKeys(stringValue: "cbd_total")!)
+        try container.encodeIfPresent(cbda, forKey: FlexibleCodingKeys(stringValue: "cbda")!)
+        try container.encodeIfPresent(strainType, forKey: FlexibleCodingKeys(stringValue: "strain_type")!)
+        try container.encodeIfPresent(terpenes, forKey: FlexibleCodingKeys(stringValue: "terpenes")!)
+        try container.encodeIfPresent(contaminants, forKey: FlexibleCodingKeys(stringValue: "contaminants")!)
     }
 
     // Helper to decode Double from multiple possible keys
@@ -804,7 +839,7 @@ struct StoreProductField: Codable, Sendable, Identifiable {
         case sortOrder = "sort_order"
     }
 
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         storeId = try container.decode(UUID.self, forKey: .storeId)
@@ -838,7 +873,7 @@ struct AnyCodable: Codable, Sendable, Hashable {
         self.value = value
     }
 
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 
         if let string = try? container.decode(String.self) {
@@ -858,7 +893,7 @@ struct AnyCodable: Codable, Sendable, Hashable {
         }
     }
 
-    nonisolated func encode(to encoder: Encoder) throws {
+    func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
 
         switch value {

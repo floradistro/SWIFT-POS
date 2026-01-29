@@ -14,9 +14,8 @@ struct CheckoutSheet: View {
     @ObservedObject var posStore: POSStore
     @ObservedObject var paymentStore: PaymentStore
     @ObservedObject var dealStore: DealStore
-    let initialTotals: CheckoutTotals  // Initial totals (used as fallback)
+    let totals: CheckoutTotals
     let sessionInfo: SessionInfo
-    let loyaltyProgram: LoyaltyProgram?  // Store's loyalty program settings
 
     var onScanID: () -> Void
     var onComplete: (SaleCompletion?) -> Void
@@ -50,6 +49,9 @@ struct CheckoutSheet: View {
     @State private var selectedItemForDiscount: CartItem?
     @State private var showDiscountSheet = false
 
+    // Animation
+    @State private var showContent = false
+
     enum CheckoutPhase { case checkout, processing, success }
 
     // MARK: - Accessors
@@ -58,32 +60,8 @@ struct CheckoutSheet: View {
     private var cartItems: [CartItem] { isMultiWindowSession ? (windowSession?.cartItems ?? []) : posStore.cartItems }
     private var selectedCustomer: Customer? { isMultiWindowSession ? windowSession?.selectedCustomer : posStore.selectedCustomer }
 
-    /// Live totals from current cart state (updates when discounts are applied)
-    private var totals: CheckoutTotals {
-        if isMultiWindowSession {
-            return windowSession?.activeCart?.totals ?? initialTotals
-        } else {
-            return posStore.activeCart?.totals ?? initialTotals
-        }
-    }
-
     private var hasLoyaltyPoints: Bool { (selectedCustomer?.loyaltyPoints ?? 0) > 0 }
-
-    /// Point value from loyalty program (defaults to $0.05 per point)
-    private var pointValue: Decimal { loyaltyProgram?.pointValue ?? Decimal(sign: .plus, exponent: -2, significand: 5) }
-
-    /// Calculate loyalty discount based on actual point value from settings
-    private var calculatedLoyaltyDiscount: Decimal { Decimal(pointsToRedeem) * pointValue }
-
-    /// Max points that can be redeemed (capped at order total)
-    private var maxRedeemablePoints: Int {
-        let availablePoints = selectedCustomer?.loyaltyPoints ?? 0
-        guard pointValue > 0 else { return 0 }
-        // Max points = order total / point value (e.g., $5.33 / $0.05 = 106 points max)
-        let maxByTotal = Int(truncating: (totals.total / pointValue) as NSDecimalNumber)
-        return min(availablePoints, maxByTotal)
-    }
-
+    private var calculatedLoyaltyDiscount: Decimal { Decimal(pointsToRedeem) * Decimal(string: "0.01")! }
     private var displayTotal: Decimal { totals.total - calculatedLoyaltyDiscount }
     private var hasLoyaltyDiscount: Bool { pointsToRedeem > 0 }
 
@@ -105,10 +83,17 @@ struct CheckoutSheet: View {
             case .success: successContent
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: 580)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .preferredColorScheme(.dark)
+        .task {
+            // Stagger animations like other sheets
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                showContent = true
+            }
+        }
         .onChange(of: paymentStore.uiState) { _, state in
             handlePaymentStateChange(state)
         }
@@ -199,7 +184,7 @@ struct CheckoutSheet: View {
                             removeLineItemDiscount()
                         } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: "arrow.uturn.backward")
+                                Image(systemName: "trash")
                                     .font(.system(size: 14, weight: .medium))
                                     .frame(width: 20)
 
@@ -211,41 +196,13 @@ struct CheckoutSheet: View {
                                 Text("+\(CurrencyFormatter.format(item.discountAmount))")
                                     .font(.system(size: 13, weight: .medium, design: .rounded))
                             }
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(.red)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 14)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
-
-                    // Remove from cart
-                    Divider().background(.white.opacity(0.15))
-
-                    Button {
-                        Task {
-                            await removeItemFromCart(item)
-                        }
-                        withAnimation(.spring(response: 0.3)) {
-                            showDiscountSheet = false
-                        }
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 14, weight: .medium))
-                                .frame(width: 20)
-
-                            Text("Remove from Cart")
-                                .font(.system(size: 15, weight: .medium))
-
-                            Spacer()
-                        }
-                        .foregroundStyle(.red)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
                 }
                 .frame(width: 280)
                 .glassEffect(.regular, in: .rect(cornerRadius: 16))
@@ -385,35 +342,44 @@ struct CheckoutSheet: View {
             // Header
             sheetHeader
 
-            // Scrollable content
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 12) {
-                    // Items
-                    itemsSection
+            // Content
+            VStack(spacing: 12) {
+                // Items
+                itemsSection
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : 20)
 
-                    // Totals
-                    totalsSection
+                // Totals
+                totalsSection
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : 20)
 
-                    // Loyalty
-                    if hasLoyaltyPoints {
-                        loyaltySection
-                    }
-
-                    // Payment methods
-                    paymentMethodSection
-
-                    // Payment input
-                    paymentInputSection
+                // Loyalty
+                if hasLoyaltyPoints {
+                    loyaltySection
+                        .opacity(showContent ? 1 : 0)
+                        .offset(y: showContent ? 0 : 20)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
-            }
-            .scrollBounceBehavior(.basedOnSize)
 
-            // Action button pinned at bottom
-            actionButton
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
+                // Payment methods
+                paymentMethodSection
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : 20)
+
+                // Payment input
+                paymentInputSection
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : 20)
+
+                Spacer(minLength: 16)
+
+                // Action
+                actionButton
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : 20)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
         }
     }
 
@@ -474,7 +440,53 @@ struct CheckoutSheet: View {
     private var itemsSection: some View {
         VStack(spacing: 0) {
             ForEach(Array(cartItems.prefix(5).enumerated()), id: \.element.id) { index, item in
-                itemRow(item: item, index: index)
+                HStack(spacing: 10) {
+                    Text("\(item.quantity)×")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .frame(width: 24, alignment: .leading)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.productName)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+
+                        // Show discount badge if item has discount
+                        if item.discountAmount > 0 {
+                            Text("-\(CurrencyFormatter.format(item.discountAmount))")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(.green)
+                        }
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(CurrencyFormatter.format(item.lineTotal))
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.6))
+
+                        // Show original price if discounted
+                        if item.discountAmount > 0 {
+                            Text(CurrencyFormatter.format(item.originalLineTotal))
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.3))
+                                .strikethrough()
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+                .onLongPressGesture {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    selectedItemForDiscount = item
+                    withAnimation(.spring(response: 0.3)) {
+                        showDiscountSheet = true
+                    }
+                }
             }
 
             if cartItems.count > 5 {
@@ -487,133 +499,6 @@ struct CheckoutSheet: View {
             }
         }
         .glassEffect(.regular, in: .rect(cornerRadius: 14))
-    }
-
-    private func itemRow(item: CartItem, index: Int) -> some View {
-        HStack(spacing: 10) {
-            Text("\(item.quantity)×")
-                .font(.system(size: 12, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.4))
-                .frame(width: 24, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.productName)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-
-                // Show discount badge if item has discount
-                if item.discountAmount > 0 {
-                    Text("-\(CurrencyFormatter.format(item.discountAmount))")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.green)
-                }
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(CurrencyFormatter.format(item.lineTotal))
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.6))
-
-                // Show original price if discounted
-                if item.discountAmount > 0 {
-                    Text(CurrencyFormatter.format(item.originalLineTotal))
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.3))
-                        .strikethrough()
-                }
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
-        .onLongPressGesture(minimumDuration: 0.4, maximumDistance: 10) {
-            Haptics.medium()
-            selectedItemForDiscount = item
-            withAnimation(.spring(response: 0.3)) {
-                showDiscountSheet = true
-            }
-        }
-        .contextMenu {
-            // Percentage discounts
-            Menu {
-                ForEach([5, 10, 15, 20, 25, 30, 50], id: \.self) { percent in
-                    Button {
-                        Task {
-                            await applyDiscount(itemId: item.id, type: .percentage, value: Decimal(percent))
-                        }
-                    } label: {
-                        Label("\(percent)% off", systemImage: "percent")
-                    }
-                }
-            } label: {
-                Label("Percentage Off", systemImage: "percent")
-            }
-
-            // Fixed amount discounts
-            Menu {
-                ForEach([1, 2, 5, 10, 20], id: \.self) { amount in
-                    Button {
-                        Task {
-                            await applyDiscount(itemId: item.id, type: .fixed, value: Decimal(amount))
-                        }
-                    } label: {
-                        Label("$\(amount) off", systemImage: "dollarsign")
-                    }
-                }
-            } label: {
-                Label("Amount Off", systemImage: "dollarsign.circle")
-            }
-
-            // Custom price
-            Button {
-                selectedItemForDiscount = item
-                showDiscountInput(type: .customPrice)
-            } label: {
-                Label("Set Custom Price", systemImage: "dollarsign.square")
-            }
-
-            // Remove discount (if exists)
-            if item.discountAmount > 0 {
-                Divider()
-                Button(role: .destructive) {
-                    Task {
-                        if isMultiWindowSession {
-                            await windowSession?.applyManualDiscount(itemId: item.id, type: .fixed, value: 0)
-                        } else {
-                            posStore.removeManualDiscount(itemId: item.id)
-                        }
-                    }
-                } label: {
-                    Label("Remove Discount", systemImage: "xmark.circle")
-                }
-            }
-
-            Divider()
-
-            // Remove item from cart
-            Button(role: .destructive) {
-                Haptics.medium()
-                Task {
-                    await removeItemFromCart(item)
-                }
-            } label: {
-                Label("Remove from Cart", systemImage: "trash")
-            }
-        }
-    }
-
-    private func removeItemFromCart(_ item: CartItem) async {
-        if isMultiWindowSession {
-            // POSWindowSession expects ServerCartItem, so we need to find it
-            if let serverItem = windowSession?.activeCart?.items.first(where: { $0.id == item.id }) {
-                await windowSession?.removeFromCart(serverItem)
-            }
-        } else {
-            posStore.removeFromCart(item.id)
-        }
     }
 
     // MARK: - Totals Section
@@ -675,91 +560,47 @@ struct CheckoutSheet: View {
     // MARK: - Loyalty Section
 
     private var loyaltySection: some View {
-        VStack(spacing: 12) {
-            // Header row
-            HStack(alignment: .center) {
-                // Star icon
+        VStack(spacing: 0) {
+            HStack {
                 Image(systemName: "star.fill")
-                    .font(.system(size: 16))
+                    .font(.system(size: 14))
                     .foregroundStyle(.yellow)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Loyalty Points")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white)
-
-                    Text("\(selectedCustomer?.loyaltyPoints ?? 0) available • \(CurrencyFormatter.format(pointValue)) each")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.5))
-                }
-
+                Text("\(selectedCustomer?.loyaltyPoints ?? 0) points available")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white)
                 Spacer()
-
-                // Discount badge - only shown when redeeming
                 if hasLoyaltyDiscount {
                     Text("-\(CurrencyFormatter.format(calculatedLoyaltyDiscount))")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.green)
                 }
             }
+            .padding(.horizontal, 14)
+            .padding(.top, 14)
+            .padding(.bottom, 8)
 
-            // Slider with labels
-            VStack(spacing: 6) {
-                Slider(
-                    value: Binding(
-                        get: { Double(pointsToRedeem) },
-                        set: { newValue in
-                            withAnimation(.interactiveSpring(response: 0.2, dampingFraction: 0.8)) {
-                                pointsToRedeem = Int(newValue)
-                            }
-                        }
-                    ),
-                    in: 0...Double(max(maxRedeemablePoints, 1)),
-                    step: 10
-                )
-                .tint(.yellow)
-
-                // Labels under slider
-                HStack {
-                    Text("0")
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.3))
-
-                    Spacer()
-
-                    // Current value - centered and prominent
-                    if pointsToRedeem > 0 {
-                        Text("\(pointsToRedeem) pts")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                            .foregroundStyle(.yellow)
-                    } else {
-                        Text("Slide to redeem")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.35))
-                    }
-
-                    Spacer()
-
-                    Text("\(maxRedeemablePoints)")
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.3))
-                }
-            }
+            Slider(
+                value: Binding(
+                    get: { Double(pointsToRedeem) },
+                    set: { pointsToRedeem = Int($0) }
+                ),
+                in: 0...Double(min(selectedCustomer?.loyaltyPoints ?? 0, Int(truncating: (totals.total * 100) as NSDecimalNumber))),
+                step: 10
+            )
+            .tint(.yellow)
+            .padding(.horizontal, 14)
+            .padding(.bottom, 14)
         }
-        .padding(14)
         .glassEffect(.regular, in: .rect(cornerRadius: 14))
     }
 
     // MARK: - Payment Method Section
 
     private var paymentMethodSection: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                ForEach([DockPaymentMethod.card, .cash, .split, .multiCard, .invoice], id: \.self) { method in
-                    paymentMethodButton(method)
-                }
+        HStack(spacing: 8) {
+            ForEach([DockPaymentMethod.card, .cash, .split, .multiCard, .invoice], id: \.self) { method in
+                paymentMethodButton(method)
             }
-            .padding(.horizontal, 2)
         }
     }
 
@@ -772,29 +613,30 @@ struct CheckoutSheet: View {
                 selectedPaymentMethod = method
             }
         } label: {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 Image(systemName: method.icon)
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.system(size: 16, weight: .medium))
                 Text(method.label)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 9, weight: .semibold))
             }
-            .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
-            .frame(width: 72, height: 56)
+            .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 14)
+                    RoundedRectangle(cornerRadius: 12)
                         .fill(Color.white.opacity(0.15))
                 }
             }
-            .glassEffect(.regular, in: .rect(cornerRadius: 14))
+            .glassEffect(.regular, in: .rect(cornerRadius: 12))
             .overlay {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 14)
+                    RoundedRectangle(cornerRadius: 12)
                         .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
                 }
             }
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(.plain)
     }
 
     // MARK: - Payment Input
@@ -854,39 +696,28 @@ struct CheckoutSheet: View {
     // MARK: - Processing Content
 
     private var processingContent: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 24) {
             Spacer()
 
-            VStack(spacing: 28) {
-                // Animated spinner
-                ZStack {
-                    Circle()
-                        .stroke(.white.opacity(0.1), lineWidth: 4)
-                        .frame(width: 80, height: 80)
+            ProgressView()
+                .scaleEffect(1.5)
+                .tint(.accentColor)
 
-                    ProgressView()
-                        .scaleEffect(1.8)
-                        .tint(.accentColor)
-                }
-
-                VStack(spacing: 6) {
-                    Text("Processing...")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(.white)
-                    Text(selectedPaymentMethod.label)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.5))
-                }
-
-                Text(CurrencyFormatter.format(displayTotal))
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
+            VStack(spacing: 4) {
+                Text("Processing...")
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
+                Text(selectedPaymentMethod.label)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.white.opacity(0.5))
             }
 
-            Spacer()
+            Text(CurrencyFormatter.format(displayTotal))
+                .font(.system(size: 36, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+
             Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Success Content
@@ -894,38 +725,39 @@ struct CheckoutSheet: View {
     private var successContent: some View {
         VStack(spacing: 0) {
             // Header
-            HStack(alignment: .center) {
-                ModalCloseButton {
-                    onComplete(completedOrder)
-                    dismiss()
-                }
-
-                Spacer()
-
-                VStack(spacing: 4) {
-                    Text(isInvoice ? "Invoice Sent" : "Payment Complete")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-
-                    if let orderNumber = completedOrder?.orderNumber {
-                        Text(orderNumber)
-                            .font(.system(size: 13, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.4))
+            VStack(spacing: 16) {
+                HStack(alignment: .center) {
+                    ModalCloseButton {
+                        onComplete(completedOrder)
+                        dismiss()
                     }
+
+                    Spacer()
+
+                    VStack(spacing: 4) {
+                        Text(isInvoice ? "Invoice Sent" : "Payment Complete")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+
+                        if let orderNumber = completedOrder?.orderNumber {
+                            Text(orderNumber)
+                                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.4))
+                        }
+                    }
+
+                    Spacer()
+
+                    Color.clear.frame(width: 44, height: 44)
                 }
-
-                Spacer()
-
-                Color.clear.frame(width: 44, height: 44)
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
             .padding(.bottom, 12)
 
-            // Main content - fills space
-            Spacer()
+            VStack(spacing: 20) {
+                Spacer()
 
-            VStack(spacing: 24) {
                 if autoPrintFailed {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -940,12 +772,12 @@ struct CheckoutSheet: View {
                 }
 
                 Image(systemName: isInvoice ? "paperplane.circle.fill" : "checkmark.circle.fill")
-                    .font(.system(size: 80))
+                    .font(.system(size: 72))
                     .foregroundStyle(isInvoice ? .blue : .green)
                     .symbolEffect(.bounce, value: checkoutPhase)
 
                 Text(CurrencyFormatter.format(completedOrder?.total ?? displayTotal))
-                    .font(.system(size: 44, weight: .bold, design: .rounded))
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
                     .foregroundStyle(isInvoice ? .blue : .green)
 
                 if isInvoice, let paymentUrl = completedOrder?.paymentUrl {
@@ -966,34 +798,32 @@ struct CheckoutSheet: View {
                         .frame(height: 48)
                     }
                     .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, 20)
                 }
-            }
 
-            Spacer()
-            Spacer()
+                Spacer()
 
-            // Done button pinned at bottom
-            Button {
-                onComplete(completedOrder)
-                dismiss()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Done")
-                        .font(.system(size: 17, weight: .semibold))
+                // Done button
+                Button {
+                    onComplete(completedOrder)
+                    dismiss()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Done")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(Color.green, in: RoundedRectangle(cornerRadius: 14))
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 54)
-                .background(isInvoice ? Color.blue : Color.green, in: RoundedRectangle(cornerRadius: 14))
+                .buttonStyle(.plain)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
-            .buttonStyle(ScaleButtonStyle())
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var isInvoice: Bool {
@@ -1147,41 +977,15 @@ struct CheckoutSheet: View {
     }
 
     private func triggerAutoPrintIfEnabled(with completion: SaleCompletion?) {
-        let settings = LabelPrinterSettings.shared
-        print("🏷️ triggerAutoPrintIfEnabled called")
-        print("🏷️ autoPrintEnabled: \(settings.autoPrintEnabled)")
-        print("🏷️ isPrinterConfigured: \(settings.isPrinterConfigured)")
-        print("🏷️ printerUrl: \(settings.printerUrl?.absoluteString ?? "nil")")
-        print("🏷️ orderId: \(completion?.orderId.uuidString ?? "nil")")
-
-        guard settings.autoPrintEnabled else {
-            print("🏷️ Auto-print disabled, skipping")
-            return
-        }
-        guard let completion = completion else {
-            print("🏷️ No completion, skipping")
-            return
-        }
-        let orderId = completion.orderId
+        guard LabelPrinterSettings.shared.autoPrintEnabled, let orderId = completion?.orderId else { return }
 
         Task {
             do {
-                guard let order = try await OrderService.fetchOrder(orderId: orderId) else {
-                    await MainActor.run {
-                        autoPrintFailed = true
-                        errorMessage = "Print failed: Order not found in database"
-                        showErrorAlert = true
-                    }
-                    return
-                }
-
+                let orderForLabels = await OrderStore.shared.orders.first { $0.id == orderId }
+                guard let order = orderForLabels else { return }
                 try await LabelPrinterManager.shared.printOrder(order)
             } catch {
-                await MainActor.run {
-                    autoPrintFailed = true
-                    errorMessage = "Print failed: \(error.localizedDescription)"
-                    showErrorAlert = true
-                }
+                await MainActor.run { autoPrintFailed = true }
             }
         }
     }

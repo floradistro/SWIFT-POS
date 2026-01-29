@@ -46,7 +46,9 @@ final class LocationQueueStore: ObservableObject {
     let locationId: UUID
     private var refreshTask: Task<Void, Never>?
     private var pollingTask: Task<Void, Never>?
-    private var eventCancellable: AnyCancellable?
+    private var realtimeChannel: RealtimeChannelV2?
+    private var realtimeTask: Task<Void, Never>?
+    private var isSubscribed = false
 
     // MARK: - Computed Properties
 
@@ -62,50 +64,6 @@ final class LocationQueueStore: ObservableObject {
 
     private init(locationId: UUID) {
         self.locationId = locationId
-        setupEventListening()
-    }
-
-    // MARK: - EventBus Integration
-
-    private func setupEventListening() {
-        // Connect to EventBus (happens once per location globally)
-        Task {
-            await RealtimeEventBus.shared.connect(to: locationId)
-        }
-
-        // Subscribe to queue events for this location
-        eventCancellable = RealtimeEventBus.shared
-            .queueEvents(for: locationId)
-            .sink { [weak self] event in
-                Task { @MainActor [weak self] in
-                    await self?.handleEvent(event)
-                }
-            }
-
-        // Polling disabled - rely on EventBus realtime updates
-        // startPolling(interval: 3.0)
-    }
-
-    private func handleEvent(_ event: RealtimeEvent) async {
-        switch event {
-        case .queueUpdated(let locationId):
-            guard locationId == self.locationId else { return }
-            print("🔔 Queue updated for location \(locationId)")
-            await loadQueue()
-
-        case .queueCustomerAdded(let locationId, let customerId):
-            guard locationId == self.locationId else { return }
-            print("🔔 Customer \(customerId) added to queue")
-            await loadQueue()
-
-        case .queueCustomerRemoved(let locationId, let customerId):
-            guard locationId == self.locationId else { return }
-            print("🔔 Customer \(customerId) removed from queue")
-            await loadQueue()
-
-        default:
-            break
-        }
     }
 
     // MARK: - Queue Operations
@@ -214,19 +172,84 @@ final class LocationQueueStore: ObservableObject {
         selectedCartId = queue[index].cartId
     }
 
-    // MARK: - Realtime (Legacy Compatibility)
+    // MARK: - Supabase Realtime
 
-    /// Subscribe to realtime updates (for backward compatibility)
-    /// Now handled automatically by EventBus in init
+    /// Subscribe to realtime updates for this location's queue
     func subscribeToRealtime() {
-        // EventBus subscription is set up in init - no-op for compatibility
-        print("📡 LocationQueueStore: Using EventBus for realtime (legacy call ignored)")
+        guard !isSubscribed else { return }
+
+        let channelName = "location-queue-\(locationId.uuidString)"
+        let locId = locationId
+        let client = supabase  // Capture before detaching
+
+        Task.detached { [weak self] in
+            guard let self else { return }
+
+            let channel = client.channel(channelName)
+
+            // Listen for changes to location_queue table for this location
+            let changes = channel.postgresChange(
+                AnyAction.self,
+                schema: "public",
+                table: "location_queue",
+                filter: "location_id=eq.\(locId.uuidString)"
+            )
+
+            await MainActor.run { [weak self] in
+                self?.realtimeChannel = channel
+            }
+
+            await channel.subscribe()
+
+            await MainActor.run { [weak self] in
+                self?.isSubscribed = true
+                print("📡 LocationQueueStore: Subscribed to realtime for location \(locId)")
+            }
+
+            // Start listening for changes
+            let task = Task { [weak self] in
+                for await change in changes {
+                    guard let self = self, !Task.isCancelled else { break }
+                    await self.handleRealtimeChange(change)
+                }
+                await MainActor.run { [weak self] in
+                    self?.isSubscribed = false
+                }
+            }
+
+            await MainActor.run { [weak self] in
+                self?.realtimeTask = task
+            }
+        }
     }
 
-    /// Unsubscribe from realtime updates (for backward compatibility)
+    /// Unsubscribe from realtime updates
     func unsubscribeFromRealtime() {
-        // EventBus manages connection lifecycle - no-op for compatibility
-        print("📡 LocationQueueStore: EventBus manages connection (legacy call ignored)")
+        realtimeTask?.cancel()
+        realtimeTask = nil
+
+        if let channel = realtimeChannel {
+            let channelToCleanup = channel
+            let client = supabase  // Capture before detaching
+            realtimeChannel = nil
+
+            Task.detached {
+                await channelToCleanup.unsubscribe()
+                await client.removeChannel(channelToCleanup)
+            }
+        }
+
+        isSubscribed = false
+        print("📡 LocationQueueStore: Unsubscribed from realtime")
+    }
+
+    /// Handle realtime changes - reload full queue to get updated data
+    private func handleRealtimeChange(_ change: AnyAction) async {
+        print("📡 LocationQueueStore: Received realtime change: \(change)")
+
+        // For any change (insert, update, delete), reload the full queue
+        // This ensures we get complete customer/cart details from the RPC function
+        await loadQueue()
     }
 
     // MARK: - Polling (optional - for real-time sync without websockets)
@@ -252,18 +275,8 @@ final class LocationQueueStore: ObservableObject {
 
     static func removeStore(for locationId: UUID) {
         stores[locationId]?.stopPolling()
-        stores[locationId]?.eventCancellable?.cancel()
+        stores[locationId]?.unsubscribeFromRealtime()
         stores.removeValue(forKey: locationId)
-
-        // Optionally disconnect from EventBus if this was the last store
-        Task {
-            await RealtimeEventBus.shared.disconnect(from: locationId)
-        }
-    }
-
-    deinit {
-        eventCancellable?.cancel()
-        pollingTask?.cancel()
     }
 }
 

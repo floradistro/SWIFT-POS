@@ -15,7 +15,7 @@ struct OrderLabelTemplateSheet: View {
     @Binding var isPrinting: Bool
     let onDismiss: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
+    @State private var isPresented = true
     @State private var storeLogoImage: UIImage?
 
     private var totalItems: Int {
@@ -23,59 +23,49 @@ struct OrderLabelTemplateSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            sheetContent
-                .navigationTitle("Print Order Labels")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") {
-                            guard !isPrinting else { return }
-                            dismiss()
-                            onDismiss()
+        UnifiedModal(isPresented: $isPresented, id: "order-labels", dismissOnTapOutside: !isPrinting) {
+            VStack(spacing: 0) {
+                ModalHeader("Print Order Labels", subtitle: "\(orders.count) order\(orders.count == 1 ? "" : "s")", onClose: {
+                    guard !isPrinting else { return }
+                    onDismiss()
+                }) { EmptyView() }
+
+                VStack(spacing: 12) {
+                    ModalSection {
+                        HStack {
+                            Image(systemName: "shippingbox")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.6))
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(totalItems) item\(totalItems == 1 ? "" : "s")")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                Text("One label per item")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.white.opacity(0.5))
+                            }
+                            Spacer()
                         }
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+
+                Spacer().frame(height: 20)
+
+                ModalActionButton(
+                    "Print \(totalItems) Label\(totalItems == 1 ? "" : "s")",
+                    isLoading: isPrinting
+                ) {
+                    Task { await printLabels() }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+            }
         }
-        .interactiveDismissDisabled(isPrinting)
-        .task { await loadStoreLogo() }
-    }
-
-    @ViewBuilder
-    private var sheetContent: some View {
-        VStack(spacing: 0) {
-            VStack(spacing: 12) {
-                ModalSection {
-                    HStack {
-                        Image(systemName: "shippingbox")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.6))
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("\(totalItems) item\(totalItems == 1 ? "" : "s")")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(.white)
-                            Text("One label per item")
-                                .font(.system(size: 12))
-                                .foregroundStyle(.white.opacity(0.5))
-                        }
-                        Spacer()
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-
-            Spacer().frame(height: 20)
-
-            ModalActionButton(
-                "Print \(totalItems) Label\(totalItems == 1 ? "" : "s")",
-                isLoading: isPrinting
-            ) {
-                Task { await printLabels() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
+        .task {
+            await loadStoreLogo()
         }
     }
 

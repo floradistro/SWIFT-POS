@@ -3,11 +3,16 @@
 //  Whale
 //
 //  Content browser for POS - shows Products or Orders with search and filters.
-//  Swipeable between tabs with smooth iOS 26 liquid glass animations.
 //
 
 import SwiftUI
 import Combine
+
+// Wrapper for sheet presentation - forces view recreation on each presentation
+private struct SingleLabelSheetData: Identifiable {
+    let id = UUID()
+    let product: Product
+}
 
 struct POSContentBrowser: View {
     @EnvironmentObject private var session: SessionObserver
@@ -16,6 +21,7 @@ struct POSContentBrowser: View {
     @Binding var searchText: String
     @ObservedObject var productStore: POSStore
     @ObservedObject var orderStore: OrderStore
+    private let tabManager = DockTabManager.shared
     @ObservedObject private var multiSelect = MultiSelectManager.shared
 
     // Callbacks from POSMainView for menu actions
@@ -29,11 +35,8 @@ struct POSContentBrowser: View {
 
     // Track windowSession changes to trigger re-renders when products load
     @State private var windowSessionTrigger = UUID()
-    // Track product count to force TabView page re-evaluation
-    @State private var productCountTrigger: Int = 0
 
     @Namespace private var animation
-
 
     // MARK: - Data accessors
     // ISOLATED WINDOWS: Each window has its own data via windowSession
@@ -83,12 +86,20 @@ struct POSContentBrowser: View {
     }
 
     @State private var tierSelectorProduct: Product?
+    @State private var showTierSelector = false
+    @State private var labelSheetData: SingleLabelSheetData? = nil  // nil = not showing
     @State private var isPrintingBulkLabels = false
 
+    @State private var pullOffset: CGFloat = 0
+    @State private var lastPullTime: Date = .distantPast
+    @State private var pullCount: Int = 0
     @State private var showDatePicker = false
+    @State private var showSettingsMenu = false
+    @State private var shouldShowPrinterPicker = false
 
-    // Order detail - now via SheetCoordinator
+    // Order detail modal
     @State private var selectedOrderForDetail: Order?
+    @State private var showOrderDetailModal = false
 
     // Scroll-based header visibility (Amazon-style)
     @State private var showSearchAndFilters = true
@@ -100,27 +111,22 @@ struct POSContentBrowser: View {
         selectedTab == .products
     }
 
-    private var screenWidth: CGFloat {
-        UIScreen.main.bounds.width
-    }
-
     var body: some View {
         ZStack(alignment: .top) {
             Color.black.ignoresSafeArea()
 
-            // Native iOS paging - buttery smooth
-            TabView(selection: $selectedTab) {
+            ZStack {
                 productContent
-                    .tag(POSTab.products)
+                    .opacity(showingProducts ? 1 : 0)
+                    .zIndex(showingProducts ? 1 : 0)
 
                 orderContent
-                    .tag(POSTab.orders)
+                    .opacity(showingProducts ? 0 : 1)
+                    .zIndex(showingProducts ? 0 : 1)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
             .ignoresSafeArea(edges: .bottom)
-            .onChange(of: selectedTab) { _, _ in
-                Haptics.selection()  // Subtle selection feedback for tab switch
-            }
+            .offset(y: pullOffset)
+            .gesture(doublePullGesture)
 
             VStack(spacing: 0) {
                 headerView
@@ -130,11 +136,40 @@ struct POSContentBrowser: View {
 
                 Spacer()
             }
+
+
+            if let order = orderStore.selectedOrder {
+                OrderDetailModal(
+                    order: order,
+                    store: orderStore,
+                    isPresented: Binding(
+                        get: { orderStore.selectedOrderId != nil },
+                        set: { if !$0 { orderStore.selectedOrderId = nil } }
+                    )
+                )
+            }
+
+            // Order detail modal (direct tap)
+            if showOrderDetailModal, let order = selectedOrderForDetail {
+                OrderDetailModal(order: order, store: orderStore, isPresented: $showOrderDetailModal)
+            }
+
+            // Label print sheet - uses UnifiedModal internally, render conditionally with ID for recreation
+            if let data = labelSheetData {
+                ProductLabelTemplateSheet(
+                    products: [data.product],
+                    store: session.store,
+                    location: session.selectedLocation,
+                    isPrinting: $isPrintingBulkLabels,
+                    onDismiss: {
+                        labelSheetData = nil
+                    }
+                )
+                .id(data.id)  // Force view recreation when data changes
+            }
         }
         .onChange(of: products) { _, newProducts in
-            // Bump trigger so TabView page re-evaluates productContent
-            productCountTrigger = newProducts.count
-            let urls = newProducts.prefix(20).compactMap { $0.iconUrl }
+            let urls = products.prefix(20).compactMap { $0.iconUrl }
             Task(priority: .background) {
                 await ImageCache.shared.prefetch(urls: urls)
             }
@@ -148,54 +183,92 @@ struct POSContentBrowser: View {
             }
             orderStore.searchText = newValue
         }
-        .sheet(item: $tierSelectorProduct) { product in
-            TierSelectorSheet(
-                product: product,
-                onSelectTier: { tier in
-                    if isMultiWindowSession, let session = windowSession {
-                        Task { await session.addToCart(product, tier: tier) }
-                    } else {
-                        productStore.addToCart(product, tier: tier)
-                    }
-                },
-                onSelectVariantTier: { tier, variant in
-                    if isMultiWindowSession, let session = windowSession {
-                        Task { await session.addToCart(product, tier: tier, variant: variant) }
-                    } else {
-                        productStore.addToCart(product, tier: tier, variant: variant)
-                    }
-                },
-                onInventoryUpdated: { _, _ in
-                    Task {
-                        if isMultiWindowSession, let ws = windowSession {
-                            await ws.refresh()
+        .onChange(of: showOrderDetailModal) { _, isShowing in
+            if !isShowing { selectedOrderForDetail = nil }
+        }
+        .sheet(isPresented: $showTierSelector) {
+            if let product = tierSelectorProduct {
+                TierSelectorModal(
+                    isPresented: $showTierSelector,
+                    product: product,
+                    onSelectTier: { tier in
+                        if isMultiWindowSession, let session = windowSession {
+                            Task { await session.addToCart(product, tier: tier) }
                         } else {
-                            await productStore.loadProducts()
+                            productStore.addToCart(product, tier: tier)
+                        }
+                    },
+                    onSelectVariantTier: { tier, variant in
+                        if isMultiWindowSession, let session = windowSession {
+                            Task { await session.addToCart(product, tier: tier, variant: variant) }
+                        } else {
+                            productStore.addToCart(product, tier: tier, variant: variant)
+                        }
+                    },
+                    onInventoryUpdated: { _, _ in
+                        Task {
+                            if isMultiWindowSession, let ws = windowSession {
+                                await ws.refresh()
+                            } else {
+                                await productStore.loadProducts()
+                            }
+                        }
+                    },
+                    onPrintLabels: {
+                        labelSheetData = SingleLabelSheetData(product: product)
+                    },
+                    onViewCOA: {
+                        if let coaUrl = product.coaUrl {
+                            UIApplication.shared.open(coaUrl)
                         }
                     }
-                },
-                onPrintLabels: {
-                    SheetCoordinator.shared.present(.labelTemplate(products: [product]))
-                },
-                onViewCOA: {
-                    if let coaUrl = product.coaUrl {
-                        UIApplication.shared.open(coaUrl)
-                    }
-                },
-                onShowDetail: {
-                    SheetCoordinator.shared.present(.productDetail(product: product))
-                }
-            )
+                )
+            }
         }
     }
 
-    // MARK: - Tab Switching
+    // MARK: - Double Pull Gesture
+
+    private var doublePullGesture: some Gesture {
+        DragGesture(minimumDistance: 10)
+            .onChanged { value in
+                guard value.translation.height > 0 else { return }
+                let resistance: CGFloat = 0.4
+                pullOffset = value.translation.height * resistance
+            }
+            .onEnded { value in
+                let pullDistance = value.translation.height
+                let now = Date()
+                let timeSinceLastPull = now.timeIntervalSince(lastPullTime)
+
+                if timeSinceLastPull > 0.5 {
+                    pullCount = 0
+                }
+
+                if pullDistance > 50 {
+                    pullCount += 1
+                    lastPullTime = now
+
+                    if pullCount >= 2 {
+                        switchProductsOrders()
+                        pullCount = 0
+                    }
+                }
+
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    pullOffset = 0
+                }
+            }
+    }
 
     private func switchProductsOrders() {
-        if selectedTab == .products {
-            selectedTab = .orders
-        } else {
-            selectedTab = .products
+        Haptics.medium()
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            if selectedTab == .products {
+                selectedTab = .orders
+            } else if selectedTab == .orders {
+                selectedTab = .products
+            }
         }
     }
 
@@ -204,7 +277,7 @@ struct POSContentBrowser: View {
     private var headerView: some View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
-                // Toggle Products/Orders - LEFT of search bar with animated icon
+                // Toggle Products/Orders - LEFT of search bar
                 LiquidGlassIconButton(
                     icon: showingProducts ? "shippingbox" : "list.clipboard"
                 ) {
@@ -217,7 +290,10 @@ struct POSContentBrowser: View {
                         showingProducts ? "Search products..." : "Search orders...",
                         text: $searchText
                     )
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .top)).combined(with: .scale(scale: 0.95)),
+                        removal: .opacity.combined(with: .move(edge: .top)).combined(with: .scale(scale: 0.95))
+                    ))
                 }
 
                 Spacer(minLength: 0)
@@ -235,8 +311,10 @@ struct POSContentBrowser: View {
                         orderFilters
                     }
                 }
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.2), value: selectedTab)
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .top)).combined(with: .scale(scale: 0.95, anchor: .top)),
+                    removal: .opacity.combined(with: .move(edge: .top)).combined(with: .scale(scale: 0.95, anchor: .top))
+                ))
             }
         }
     }
@@ -250,38 +328,67 @@ struct POSContentBrowser: View {
         return formatter.string(from: value as NSDecimalNumber) ?? "$0.00"
     }
 
-    /// Home button with store logo - Tap = scanner, Long press = settings
-    /// Uses same LiquidPressStyle as the orders toggle button
     private var homeMenuButton: some View {
         Button {
-            // Tap action = open ID scanner
-            if let storeId = session.storeId {
-                SheetCoordinator.shared.present(.idScanner(storeId: storeId))
-            }
+            Haptics.light()
+            showSettingsMenu = true
         } label: {
-            // Logo or fallback icon
+            // Use store logo if available, otherwise house icon
             if let logoUrl = session.store?.fullLogoUrl {
-                CachedAsyncImage(url: logoUrl, placeholderLogoUrl: nil, dimAmount: 0)
-                    .frame(width: 28, height: 28)
-                    .clipShape(Circle())
-                    .frame(width: 44, height: 44)
+                AsyncImage(url: logoUrl) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 32, height: 32)
+                } placeholder: {
+                    Image(systemName: "house")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+                .frame(width: 44, height: 44)
+                .glassEffect(.regular, in: .circle)
             } else {
-                Image(systemName: "viewfinder")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.9))
+                Image(systemName: "house")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
+                    .glassEffect(.regular, in: .circle)
             }
         }
-        .buttonStyle(LiquidPressStyle())
-        .glassEffect(.regular.interactive(), in: .circle)
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.5)
-                .onEnded { _ in
-                    // Long press completed = open settings
-                    Haptics.medium()
-                    SheetCoordinator.shared.present(.posSettings)
+        .popover(isPresented: $showSettingsMenu, arrowEdge: .top) {
+            POSSettingsMenu(
+                isPresented: $showSettingsMenu,
+                onScanID: { onScanID?() },
+                onFindCustomer: { onFindCustomer?() },
+                onSafeDrop: { onSafeDrop?() },
+                onTransfer: { onCreateTransfer?() },
+                onRefresh: {
+                    Task {
+                        if isMultiWindowSession, let ws = windowSession {
+                            await ws.refresh()
+                        } else {
+                            await productStore.refresh()
+                        }
+                        await orderStore.refresh()
+                    }
+                },
+                onEndSession: { onEndSession?() },
+                onSelectPrinter: {
+                    shouldShowPrinterPicker = true
                 }
-        )
+            )
+            .environment(\.posWindowSession, windowSession)
+            .environmentObject(session)
+        }
+        .onChange(of: showSettingsMenu) { _, isShowing in
+            // When menu closes and printer picker was requested, show it
+            if !isShowing && shouldShowPrinterPicker {
+                shouldShowPrinterPicker = false
+                Task {
+                    _ = await LabelPrintService.selectPrinter()
+                }
+            }
+        }
     }
 
     // MARK: - Scroll Handling
@@ -315,23 +422,17 @@ struct POSContentBrowser: View {
 
     // MARK: - Product Filters
 
-    /// Categories that have at least one in-stock product
-    private var categoriesWithStock: [ProductCategory] {
-        let productsByCategory = Dictionary(grouping: products) { $0.primaryCategoryId }
-        return categories.filter { category in
-            productsByCategory[category.id]?.contains { $0.inStock } ?? false
-        }
-    }
-
     private var productFilters: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 CategoryPill(name: "All", isSelected: selectedCategoryId == nil) {
+                    Haptics.light()
                     selectCategory(nil)
                 }
 
-                ForEach(categoriesWithStock, id: \.id) { category in
+                ForEach(categories, id: \.id) { category in
                     CategoryPill(name: category.name, isSelected: selectedCategoryId == category.id) {
+                        Haptics.light()
                         selectCategory(category.id)
                     }
                 }
@@ -438,11 +539,14 @@ struct POSContentBrowser: View {
             .padding(.horizontal, 4)
             .padding(.vertical, 4)
         }
-        .sheet(isPresented: $showDatePicker) {
-            DateRangePickerSheet(
-                startDate: $orderStore.dateRangeStart,
-                endDate: $orderStore.dateRangeEnd
-            )
+        .overlay {
+            if showDatePicker {
+                DateRangePickerModal(
+                    startDate: $orderStore.dateRangeStart,
+                    endDate: $orderStore.dateRangeEnd,
+                    isPresented: $showDatePicker
+                )
+            }
         }
     }
 
@@ -456,20 +560,14 @@ struct POSContentBrowser: View {
         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
             action()
         }
-        // No haptics for filter toggles - visual feedback is enough
+        Haptics.light()
     }
 
     // MARK: - Product Content
 
-    private var hasLoadedProducts: Bool {
-        isMultiWindowSession ? (windowSession?.hasLoadedProducts ?? false) : productStore.hasLoadedProducts
-    }
-
     private var productContent: some View {
-        // Reference productCountTrigger so SwiftUI re-evaluates when products load
-        let _ = productCountTrigger
-        return Group {
-            if isLoadingProducts || !hasLoadedProducts {
+        Group {
+            if isLoadingProducts {
                 loadingState("Loading products...")
             } else if let error = productsError {
                 errorState(error) {
@@ -514,17 +612,13 @@ struct POSContentBrowser: View {
                         onLongPress: { handleProductLongPress(product) },
                         onAddToCart: { addProductToCart(product) },
                         onPrintLabels: {
-                            SheetCoordinator.shared.present(.labelTemplate(products: [product]))
+                            labelSheetData = SingleLabelSheetData(product: product)
                         },
-                        onSelectMultiple: { multiSelect.startProductMultiSelect(product.id) },
-                        onShowDetail: {
-                            SheetCoordinator.shared.present(.productDetail(product: product))
-                        }
+                        onSelectMultiple: { multiSelect.startProductMultiSelect(product.id) }
                     )
                 }
             }
             .background(Color.black)
-            .overlay(Color.black.opacity(0.15).allowsHitTesting(false))
             .mask(RoundedRectangle(cornerRadius: 32, style: .continuous))
             .padding(.horizontal, 12)
             .padding(.top, showSearchAndFilters ? 140 : 80)
@@ -535,7 +629,7 @@ struct POSContentBrowser: View {
         } action: { oldValue, newValue in
             handleScrollChange(oldOffset: oldValue, newOffset: newValue)
         }
-        .topBottomFadeMask(topFadeHeight: 80, bottomFadeHeight: 80)
+        .topFadeMask(fadeHeight: 80)
         .refreshable {
             if isMultiWindowSession, let ws = windowSession {
                 await ws.refresh()
@@ -575,12 +669,13 @@ struct POSContentBrowser: View {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                 multiSelect.toggleProductSelection(product.id)
             }
-            Haptics.selection()  // Subtle for multi-select toggle
+            Haptics.light()
         } else if product.hasTieredPricing {
             tierSelectorProduct = product
-            // No haptic - sheet presentation provides feedback
+            showTierSelector = true
+            Haptics.light()
         } else {
-            Haptics.light()  // Light for add to cart confirmation
+            Haptics.medium()
             addProductToCart(product)
         }
     }
@@ -588,12 +683,12 @@ struct POSContentBrowser: View {
     private func handleProductTierSelector(_ product: Product) {
         if !multiSelect.isProductSelectMode {
             tierSelectorProduct = product
-            // No haptic - sheet presentation provides feedback
+            showTierSelector = true
         } else {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                 multiSelect.toggleProductSelection(product.id)
             }
-            Haptics.selection()
+            Haptics.light()
         }
     }
 
@@ -601,7 +696,7 @@ struct POSContentBrowser: View {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             multiSelect.startProductMultiSelect(product.id)
         }
-        Haptics.medium()  // Medium for long press recognition
+        Haptics.medium()
     }
 
     // MARK: - Order Content
@@ -636,11 +731,13 @@ struct POSContentBrowser: View {
                             multiSelect.startMultiSelect(with: order.id)
                         },
                         onOpenInDock: {
-                            SheetCoordinator.shared.present(.orderDetail(order: order))
+                            selectedOrderForDetail = order
+                            showOrderDetailModal = true
                             Haptics.medium()
                         },
                         onViewDetails: {
-                            SheetCoordinator.shared.present(.orderDetail(order: order))
+                            selectedOrderForDetail = order
+                            showOrderDetailModal = true
                             Haptics.medium()
                         },
                         onSelectMultiple: {
@@ -657,7 +754,7 @@ struct POSContentBrowser: View {
         } action: { oldValue, newValue in
             handleScrollChange(oldOffset: oldValue, newOffset: newValue)
         }
-        .topBottomFadeMask(topFadeHeight: 80, bottomFadeHeight: 80)
+        .topFadeMask(fadeHeight: 80)
         .refreshable { await orderStore.refresh() }
     }
 
@@ -666,10 +763,11 @@ struct POSContentBrowser: View {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                 multiSelect.toggleSelection(order.id)
             }
-            Haptics.selection()  // Subtle for multi-select
+            Haptics.light()
         } else {
-            SheetCoordinator.shared.present(.orderDetail(order: order))
-            // No haptic - sheet presentation provides feedback
+            selectedOrderForDetail = order
+            showOrderDetailModal = true
+            Haptics.medium()
         }
     }
 

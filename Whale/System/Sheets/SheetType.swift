@@ -19,7 +19,6 @@ enum SheetType: Identifiable, Equatable {
 
     // MARK: - Customer
     case customerSearch(storeId: UUID)
-    case customerDetail(customer: Customer)
     case idScanner(storeId: UUID)
     case customerScanned(storeId: UUID, scannedID: ScannedID, matches: [CustomerMatch])
 
@@ -65,7 +64,6 @@ enum SheetType: Identifiable, Equatable {
         case .storePicker: return "storePicker"
         case .registerPicker: return "registerPicker"
         case .customerSearch: return "customerSearch"
-        case .customerDetail(let c): return "customerDetail-\(c.id)"
         case .idScanner: return "idScanner"
         case .customerScanned(_, let id, _): return "customerScanned-\(id.licenseNumber ?? "unknown")"
         case .orderDetail(let o): return "orderDetail-\(o.id)"
@@ -106,7 +104,7 @@ enum SheetType: Identifiable, Equatable {
         switch self {
         case .locationPicker, .storePicker, .registerPicker:
             return .mediumLarge
-        case .customerSearch, .customerDetail:
+        case .customerSearch:
             return .large
         case .customerScanned:
             return .mediumLarge

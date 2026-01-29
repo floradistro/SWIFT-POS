@@ -73,6 +73,26 @@ struct LoyaltyDeductResult: Codable, Sendable {
     }
 }
 
+struct LoyaltySetResult: Codable, Sendable {
+    let success: Bool
+    let message: String?
+    let error: String?
+    let balanceBefore: Int?
+    let balanceAfter: Int?
+    let adjustment: Int?
+    let transactionType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case success
+        case message
+        case error
+        case balanceBefore = "balance_before"
+        case balanceAfter = "balance_after"
+        case adjustment
+        case transactionType = "transaction_type"
+    }
+}
+
 struct LoyaltyTransaction: Codable, Identifiable, Sendable {
     let id: UUID
     let customerId: UUID
@@ -211,16 +231,28 @@ actor LoyaltyService {
     // MARK: - Set Points (Admin Override)
 
     /// Directly set loyalty points balance for a customer.
+    /// Uses RPC function to bypass RLS and properly update store_customer_profiles.
     /// Used for manual adjustments by staff.
-    func setPoints(customerId: UUID, points: Int) async throws {
-        struct PointsUpdate: Encodable {
-            let loyalty_points: Int
-        }
-        try await supabase
-            .from("store_customer_profiles")
-            .update(PointsUpdate(loyalty_points: points))
-            .eq("relationship_id", value: customerId.uuidString)
+    func setPoints(customerId: UUID, points: Int, reason: String = "manual_adjustment") async throws -> LoyaltySetResult {
+        print("🔄 LoyaltyService.setPoints: customerId=\(customerId), points=\(points)")
+
+        let result: LoyaltySetResult = try await supabase
+            .rpc("set_loyalty_points", params: [
+                "p_relationship_id": customerId.uuidString,
+                "p_loyalty_points": "\(points)",
+                "p_reason": reason
+            ])
             .execute()
+            .value
+
+        if result.success {
+            print("✅ LoyaltyService.setPoints: Success - \(result.balanceBefore ?? 0) → \(result.balanceAfter ?? 0)")
+        } else {
+            print("❌ LoyaltyService.setPoints: Failed - \(result.error ?? "Unknown error")")
+            throw LoyaltyError.unknown(result.error ?? "Failed to update points")
+        }
+
+        return result
     }
 
     // MARK: - Calculate Redemption Value

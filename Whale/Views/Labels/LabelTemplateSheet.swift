@@ -99,7 +99,7 @@ struct LabelTemplateSheet: View {
     @Binding var isPrinting: Bool
     let onDismiss: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
+    @State private var isPresented = true
     @State private var storeLogoImage: UIImage?
     @State private var isSelectingPrinter = false
     @State private var printItems: [LabelPrintItem] = []
@@ -119,27 +119,14 @@ struct LabelTemplateSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            sheetContent
-                .navigationTitle("Print Labels")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") {
-                            guard !isPrinting else { return }
-                            dismiss()
-                            onDismiss()
-                        }
-                    }
-                }
-        }
-        .interactiveDismissDisabled(isPrinting)
-    }
+        UnifiedModal(isPresented: $isPresented, id: "labels", dismissOnTapOutside: !isPrinting) {
+            VStack(spacing: 0) {
+                ModalHeader("Print Labels", subtitle: "\(products.count) product\(products.count == 1 ? "" : "s")", onClose: {
+                    guard !isPrinting else { return }
+                    onDismiss()
+                }) { EmptyView() }
 
-    @ViewBuilder
-    private var sheetContent: some View {
-        VStack(spacing: 0) {
-            ScrollView(showsIndicators: false) {
+                ScrollView(showsIndicators: false) {
                     VStack(spacing: 12) {
                         // Template info (start position is now in Printer Settings)
                         ModalSection {
@@ -252,20 +239,20 @@ struct LabelTemplateSheet: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
             }
-        .sheet(isPresented: $isSelectingPrinter) {
-            LabelPrinterSetupView(isPresented: $isSelectingPrinter)
         }
         .task {
             await loadStoreLogo()
-            initializePrintItems()
+            let warehouseMode = isWarehouse
+            printItems = products.map { LabelPrintItem(product: $0, quantity: 1, tierLabel: nil, isWarehouseMode: warehouseMode) }
         }
-    }
-
-    // MARK: - Helper Functions
-
-    private func initializePrintItems() {
-        let warehouseMode = isWarehouse
-        printItems = products.map { LabelPrintItem(product: $0, quantity: 1, tierLabel: nil, isWarehouseMode: warehouseMode) }
+        .onChange(of: isSelectingPrinter) { selecting in
+            if selecting {
+                Task {
+                    _ = await LabelPrintService.selectPrinter()
+                    isSelectingPrinter = false
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -328,34 +315,39 @@ struct LabelTemplateSheet: View {
 
                     Spacer()
 
-                    // Label count badge
-                    Text("\(item.wrappedValue.quantity)")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .monospacedDigit()
-                        .frame(minWidth: 28)
-                }
-
-                // Quick quantity picks
-                HStack(spacing: 6) {
-                    ForEach([1, 2, 5, 10, 25, 50], id: \.self) { qty in
-                        if qty <= maxLabels {
-                            let isActive = item.wrappedValue.quantity == qty
-                            Button {
-                                Haptics.light()
-                                item.wrappedValue.quantity = qty
-                            } label: {
-                                Text("\(qty)")
-                                    .font(.system(size: 13, weight: isActive ? .bold : .medium, design: .rounded))
-                                    .foregroundStyle(isActive ? .black : .white.opacity(0.7))
-                                    .frame(minWidth: 40, minHeight: 36)
-                                    .background(
-                                        Capsule().fill(isActive ? .white : .white.opacity(0.08))
-                                    )
+                    // Quantity stepper
+                    HStack(spacing: 0) {
+                        Button {
+                            Haptics.light()
+                            if item.wrappedValue.quantity > 0 {
+                                item.wrappedValue.quantity -= 1
                             }
-                            .buttonStyle(.plain)
+                        } label: {
+                            Image(systemName: "minus")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.white)
+                                .frame(width: 32, height: 28)
                         }
+
+                        Text("\(item.wrappedValue.quantity)")
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .frame(width: 32)
+
+                        Button {
+                            Haptics.light()
+                            if item.wrappedValue.quantity < maxLabels {
+                                item.wrappedValue.quantity += 1
+                            }
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(item.wrappedValue.quantity >= maxLabels ? .white.opacity(0.3) : .white)
+                                .frame(width: 32, height: 28)
+                        }
+                        .disabled(item.wrappedValue.quantity >= maxLabels)
                     }
+                    .background(RoundedRectangle(cornerRadius: 6).fill(.white.opacity(0.08)))
                 }
 
                 // Tier chips
@@ -442,18 +434,18 @@ struct LabelTemplateSheet: View {
         } label: {
             HStack(spacing: 4) {
                 Text(label)
-                    .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                    .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
                 if let max = maxCount {
                     Text("(\(max))")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(isSelected ? .black.opacity(0.5) : .white.opacity(0.4))
                 }
             }
-            .foregroundStyle(isSelected ? .black : .white.opacity(0.7))
-            .padding(.horizontal, 14)
-            .frame(minHeight: 36)
+            .foregroundStyle(isSelected ? .black : .white.opacity(0.6))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
             .contentShape(Capsule())
-            .background(Capsule().fill(isSelected ? .white : .white.opacity(0.08)))
+            .background(Capsule().fill(isSelected ? .white : .white.opacity(0.1)))
         }
         .buttonStyle(.plain)
     }
@@ -466,6 +458,7 @@ struct LabelTemplateSheet: View {
             item.wrappedValue.tierLabel = nil
             item.wrappedValue.tierQuantity = nil
             editingCustomItemId = item.wrappedValue.id
+            // Initialize with existing value or empty
             if item.wrappedValue.customQuantityValue > 0 {
                 customQuantityInput = String(format: "%.0f", item.wrappedValue.customQuantityValue)
             } else {
@@ -473,22 +466,28 @@ struct LabelTemplateSheet: View {
             }
             isCustomInputFocused = true
         } label: {
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
                 Image(systemName: "pencil.line")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 9, weight: .semibold))
                 if isSelected && item.wrappedValue.customQuantityValue > 0 {
                     Text(item.wrappedValue.displayTierLabel ?? "Custom")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 11, weight: .semibold))
                 } else {
                     Text("Custom")
-                        .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                        .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
                 }
             }
-            .foregroundStyle(isSelected ? .black : .white.opacity(0.7))
-            .padding(.horizontal, 14)
-            .frame(minHeight: 36)
+            .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
             .contentShape(Capsule())
-            .background(Capsule().fill(isSelected ? .white : .white.opacity(0.08)))
+            .background(
+                Capsule()
+                    .fill(isSelected
+                        ? LinearGradient(colors: [.purple, .purple.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        : LinearGradient(colors: [.white.opacity(0.1), .white.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+            )
         }
         .buttonStyle(.plain)
     }
@@ -498,17 +497,20 @@ struct LabelTemplateSheet: View {
         let isWeightBased = item.wrappedValue.isWeightBased
         let presets = isWeightBased ? [28, 56, 112, 224, 448] : [5, 10, 25, 50, 100]
 
-        VStack(spacing: 8) {
+        HStack(spacing: 8) {
             // Input field
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 TextField("Enter amount", text: $customQuantityInput)
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white)
                     .keyboardType(.decimalPad)
                     .focused($isCustomInputFocused)
+                    .frame(width: 80)
                     .onChange(of: customQuantityInput) { _, newValue in
+                        // Update the custom quantity value as user types
                         if let value = Double(newValue), value > 0 {
                             item.wrappedValue.customQuantityValue = value
+                            // Clamp label quantity if needed
                             let newMax = item.wrappedValue.maxLabels
                             if item.wrappedValue.quantity > newMax {
                                 item.wrappedValue.quantity = max(1, newMax)
@@ -519,34 +521,16 @@ struct LabelTemplateSheet: View {
                 Text(item.wrappedValue.unitDisplayString)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.white.opacity(0.5))
-
-                Spacer()
-
-                if item.wrappedValue.customQuantityValue > 0 {
-                    Button {
-                        Haptics.medium()
-                        isCustomInputFocused = false
-                        editingCustomItemId = nil
-                    } label: {
-                        Text("Done")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 14)
-                            .frame(minHeight: 36)
-                            .background(Capsule().fill(.white.opacity(0.15)))
-                    }
-                    .buttonStyle(.plain)
-                }
             }
-            .padding(.horizontal, 14)
-            .frame(minHeight: 44)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(.white.opacity(0.06))
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.purple.opacity(0.15))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(.white.opacity(0.1), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(.purple.opacity(0.3), lineWidth: 1)
             )
 
             // Quick presets
@@ -556,23 +540,41 @@ struct LabelTemplateSheet: View {
                         Haptics.light()
                         customQuantityInput = "\(preset)"
                         item.wrappedValue.customQuantityValue = Double(preset)
+                        // Clamp label quantity if needed
                         let newMax = item.wrappedValue.maxLabels
                         if item.wrappedValue.quantity > newMax {
                             item.wrappedValue.quantity = max(1, newMax)
                         }
                     } label: {
                         Text(formatPresetLabel(preset, isWeightBased: isWeightBased))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(item.wrappedValue.customQuantityValue == Double(preset) ? .black : .white.opacity(0.7))
-                            .frame(minWidth: 44, minHeight: 36)
-                            .contentShape(Capsule())
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
+                            .contentShape(Rectangle())
                             .background(
-                                Capsule()
-                                    .fill(item.wrappedValue.customQuantityValue == Double(preset) ? .white : .white.opacity(0.08))
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(item.wrappedValue.customQuantityValue == Double(preset) ? .white : .white.opacity(0.1))
                             )
                     }
                     .buttonStyle(.plain)
                 }
+            }
+
+            Spacer()
+
+            // Confirm button
+            if item.wrappedValue.customQuantityValue > 0 {
+                Button {
+                    Haptics.medium()
+                    isCustomInputFocused = false
+                    editingCustomItemId = nil
+                } label: {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.green)
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(.top, 4)
@@ -653,8 +655,8 @@ struct LabelTemplateSheet: View {
             Haptics.error()
         }
 
-        // Keep position persistent - user can manually change it in printer settings
-        // This allows continuing on a partially-used label sheet
+        // Reset start position to 0 after printing (so next print starts fresh)
+        settings.startPosition = 0
 
         onDismiss()
     }

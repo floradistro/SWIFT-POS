@@ -5,95 +5,43 @@
 //  Order model for POS.
 //  Matches Supabase orders table structure.
 //
-//  ARCHITECTURE NOTE (2026-01-22):
-//  Migrated to Oracle+Apple architecture:
-//  - order_type/delivery_type replaced by channel + fulfillments.type
-//  - pickup_location_id moved to fulfillments.delivery_location_id
-//  - tracking info moved to fulfillments table
-//  - Full event sourcing via order_events table
+//  ARCHITECTURE NOTE (2026-01-01):
+//  Location-based filtering logic has been moved to the backend.
+//  The database now handles:
+//  - hasItemsForLocation via is_order_visible_to_location RPC
+//  - itemsForLocation via get_order_items_for_location RPC
+//  The remaining helpers here are purely for display purposes.
 //
 
 import Foundation
 
-// MARK: - Order Channel (NEW - replaces order_type)
+// MARK: - Order Type
 
-enum OrderChannel: String, Codable, CaseIterable, Sendable {
-    case online
-    case retail
-    case invoice
-
-    var displayName: String {
-        switch self {
-        case .online: return "Online"
-        case .retail: return "In-Store"
-        case .invoice: return "Invoice"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .online: return "globe"
-        case .retail: return "storefront"
-        case .invoice: return "doc.text"
-        }
-    }
-}
-
-// MARK: - Fulfillment Type (NEW - replaces delivery_type)
-
-enum FulfillmentType: String, Codable, CaseIterable, Sendable {
-    case ship
-    case pickup
-    case immediate
+enum OrderType: String, Codable, CaseIterable, Sendable {
+    case walkIn = "walk_in"
+    case pos = "pos"          // Alias for walk_in (website uses 'pos')
+    case pickup = "pickup"
+    case delivery = "delivery"
+    case shipping = "shipping"
+    case direct = "direct"    // Invoice/direct order - customer pays via payment link
 
     var displayName: String {
         switch self {
-        case .ship: return "Shipping"
+        case .walkIn, .pos: return "Walk-in"
         case .pickup: return "Pickup"
-        case .immediate: return "Walk-in"
+        case .delivery: return "Delivery"
+        case .shipping: return "Shipping"
+        case .direct: return "Invoice"
         }
     }
 
     var icon: String {
         switch self {
-        case .ship: return "shippingbox"
+        case .walkIn, .pos: return "storefront"
         case .pickup: return "bag"
-        case .immediate: return "storefront"
-        }
-    }
-}
-
-// MARK: - Fulfillment Status
-
-enum FulfillmentStatus: String, Codable, CaseIterable, Sendable {
-    case pending
-    case allocated
-    case picked
-    case packed
-    case shipped
-    case delivered
-    case cancelled
-
-    var displayName: String {
-        switch self {
-        case .pending: return "Pending"
-        case .allocated: return "Allocated"
-        case .picked: return "Picked"
-        case .packed: return "Packed"
-        case .shipped: return "Shipped"
-        case .delivered: return "Delivered"
-        case .cancelled: return "Cancelled"
-        }
-    }
-
-    var color: String {
-        switch self {
-        case .pending: return "amber"
-        case .allocated, .picked: return "blue"
-        case .packed: return "green"
-        case .shipped: return "sky"
-        case .delivered: return "emerald"
-        case .cancelled: return "red"
+        case .delivery: return "car"
+        case .shipping: return "shippingbox"
+        case .direct: return "paperplane"
         }
     }
 }
@@ -242,70 +190,9 @@ struct OrderCustomer: Codable, Sendable {
     }
 }
 
-// MARK: - Fulfillment (NEW)
-
-/// Fulfillment record from fulfillments table
-struct OrderFulfillment: Identifiable, Codable, Sendable {
-    let id: UUID
-    let orderId: UUID?
-    let type: FulfillmentType
-    var status: FulfillmentStatus
-    let deliveryLocationId: UUID?
-    let deliveryAddress: AnyCodable?
-    var carrier: String?
-    var trackingNumber: String?
-    var trackingUrl: String?
-    let shippingCost: Decimal?
-    let createdAt: Date?
-    var shippedAt: Date?
-    var deliveredAt: Date?
-
-    // Joined location data
-    let deliveryLocation: FulfillmentLocation?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case orderId = "order_id"
-        case type
-        case status
-        case deliveryLocationId = "delivery_location_id"
-        case deliveryAddress = "delivery_address"
-        case carrier
-        case trackingNumber = "tracking_number"
-        case trackingUrl = "tracking_url"
-        case shippingCost = "shipping_cost"
-        case createdAt = "created_at"
-        case shippedAt = "shipped_at"
-        case deliveredAt = "delivered_at"
-        case deliveryLocation = "delivery_location"
-    }
-
-    /// Location name from joined data
-    var locationName: String? {
-        deliveryLocation?.name
-    }
-
-    /// Whether fulfillment is complete
-    var isComplete: Bool {
-        status == .delivered || status == .shipped
-    }
-}
-
-/// Location info from joined locations table on fulfillments
-struct FulfillmentLocation: Codable, Sendable {
-    let id: UUID?
+/// Pickup location info from joined locations table
+struct OrderPickupLocation: Codable, Sendable {
     let name: String?
-    let addressLine1: String?
-    let city: String?
-    let state: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case addressLine1 = "address_line1"
-        case city
-        case state
-    }
 }
 
 // MARK: - Order
@@ -319,14 +206,13 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
     static func == (lhs: Order, rhs: Order) -> Bool {
         lhs.id == rhs.id
     }
-
     let id: UUID
     let orderNumber: String
     let storeId: UUID?
     let customerId: UUID?
 
-    // Channel & Status (NEW schema)
-    let channel: OrderChannel
+    // Type & Status
+    let orderType: OrderType
     var status: OrderStatus
     var paymentStatus: PaymentStatus
 
@@ -342,7 +228,10 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
     let updatedAt: Date
     var completedAt: Date?
 
-    // Shipping Address (still on orders for convenience)
+    // Pickup Location
+    let pickupLocationId: UUID?
+
+    // Shipping Address
     let shippingName: String?
     let shippingAddressLine1: String?
     let shippingAddressLine2: String?
@@ -350,15 +239,17 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
     let shippingState: String?
     let shippingZip: String?
 
-    // Legacy tracking fields (still exist in DB, but prefer fulfillments)
+    // Tracking
     var trackingNumber: String?
     var trackingUrl: String?
+    var shippingLabelUrl: String?
+    var shippingCarrier: String?
     var staffNotes: String?
 
     // Joined data
     let customers: OrderCustomer?
+    let pickupLocation: OrderPickupLocation?
     var items: [OrderItem]?
-    var fulfillments: [OrderFulfillment]?
     var orderLocations: [OrderLocation]?
 
 
@@ -367,7 +258,7 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         case orderNumber = "order_number"
         case storeId = "store_id"
         case customerId = "customer_id"
-        case channel
+        case orderType = "order_type"
         case status
         case paymentStatus = "payment_status"
         case subtotal
@@ -378,6 +269,7 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case completedAt = "completed_at"
+        case pickupLocationId = "pickup_location_id"
         case shippingName = "shipping_name"
         case shippingAddressLine1 = "shipping_address_line1"
         case shippingAddressLine2 = "shipping_address_line2"
@@ -386,15 +278,17 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         case shippingZip = "shipping_zip"
         case trackingNumber = "tracking_number"
         case trackingUrl = "tracking_url"
+        case shippingLabelUrl = "shipping_label_url"
+        case shippingCarrier = "shipping_carrier"
         case staffNotes = "staff_notes"
         case customers
+        case pickupLocation = "pickup_location"
         case items = "order_items"
-        case fulfillments
         case orderLocations = "order_locations"
     }
 
-    // Custom decoder to handle database quirks
-    nonisolated init(from decoder: Decoder) throws {
+    // Custom decoder to handle empty string UUIDs from database
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(UUID.self, forKey: .id)
@@ -403,20 +297,21 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         // Handle UUID fields that might be empty strings
         storeId = Self.decodeOptionalUUID(from: container, forKey: .storeId)
         customerId = Self.decodeOptionalUUID(from: container, forKey: .customerId)
+        pickupLocationId = Self.decodeOptionalUUID(from: container, forKey: .pickupLocationId)
 
-        channel = (try? container.decode(OrderChannel.self, forKey: .channel)) ?? .retail
+        orderType = try container.decode(OrderType.self, forKey: .orderType)
         status = try container.decode(OrderStatus.self, forKey: .status)
-        paymentStatus = (try? container.decode(PaymentStatus.self, forKey: .paymentStatus)) ?? .pending
+        paymentStatus = try container.decode(PaymentStatus.self, forKey: .paymentStatus)
 
-        subtotal = (try? container.decode(Decimal.self, forKey: .subtotal)) ?? 0
-        taxAmount = (try? container.decode(Decimal.self, forKey: .taxAmount)) ?? 0
-        discountAmount = (try? container.decode(Decimal.self, forKey: .discountAmount)) ?? 0
-        totalAmount = (try? container.decode(Decimal.self, forKey: .totalAmount)) ?? 0
+        subtotal = try container.decode(Decimal.self, forKey: .subtotal)
+        taxAmount = try container.decode(Decimal.self, forKey: .taxAmount)
+        discountAmount = try container.decode(Decimal.self, forKey: .discountAmount)
+        totalAmount = try container.decode(Decimal.self, forKey: .totalAmount)
         paymentMethod = try container.decodeIfPresent(String.self, forKey: .paymentMethod)
 
-        createdAt = try Self.parseDate(from: container, forKey: .createdAt)
-        updatedAt = try Self.parseDate(from: container, forKey: .updatedAt)
-        completedAt = try Self.parseDateIfPresent(from: container, forKey: .completedAt)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
 
         shippingName = try container.decodeIfPresent(String.self, forKey: .shippingName)
         shippingAddressLine1 = try container.decodeIfPresent(String.self, forKey: .shippingAddressLine1)
@@ -427,71 +322,36 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
 
         trackingNumber = try container.decodeIfPresent(String.self, forKey: .trackingNumber)
         trackingUrl = try container.decodeIfPresent(String.self, forKey: .trackingUrl)
+        shippingLabelUrl = try container.decodeIfPresent(String.self, forKey: .shippingLabelUrl)
+        shippingCarrier = try container.decodeIfPresent(String.self, forKey: .shippingCarrier)
         staffNotes = try container.decodeIfPresent(String.self, forKey: .staffNotes)
 
-        // Try multiple keys for customer data:
-        // - "customers" (direct table join)
-        // - "customer" (RPC function returns singular)
-        // - "v_store_customers" (view-based joins)
+        // Try both old `customers` key and new `v_store_customers` key (for view-based joins)
         if let c = try container.decodeIfPresent(OrderCustomer.self, forKey: .customers) {
             customers = c
         } else {
-            enum AltKeys: String, CodingKey {
-                case customer
-                case vStoreCustomers = "v_store_customers"
-            }
+            // Try the alternate key from v_store_customers join
+            enum AltKeys: String, CodingKey { case vStoreCustomers = "v_store_customers" }
             let altContainer = try decoder.container(keyedBy: AltKeys.self)
-            if let c = try altContainer.decodeIfPresent(OrderCustomer.self, forKey: .customer) {
-                customers = c
-            } else {
-                customers = try altContainer.decodeIfPresent(OrderCustomer.self, forKey: .vStoreCustomers)
-            }
+            customers = try altContainer.decodeIfPresent(OrderCustomer.self, forKey: .vStoreCustomers)
         }
-
+        pickupLocation = try container.decodeIfPresent(OrderPickupLocation.self, forKey: .pickupLocation)
         items = try container.decodeIfPresent([OrderItem].self, forKey: .items)
-        fulfillments = try container.decodeIfPresent([OrderFulfillment].self, forKey: .fulfillments)
         orderLocations = try container.decodeIfPresent([OrderLocation].self, forKey: .orderLocations)
     }
 
     // Helper to decode UUID that might be null or empty string
     private static func decodeOptionalUUID(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) -> UUID? {
+        // Try decoding as UUID first
         if let uuid = try? container.decodeIfPresent(UUID.self, forKey: key) {
             return uuid
         }
+        // Try decoding as String and convert (handles empty string case)
         if let uuidString = try? container.decodeIfPresent(String.self, forKey: key),
            !uuidString.isEmpty {
             return UUID(uuidString: uuidString)
         }
         return nil
-    }
-
-    // Helper to parse Postgres timestamps
-    private static func parseDate(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Date {
-        if let date = try? container.decode(Date.self, forKey: key) {
-            return date
-        }
-        let dateString = try container.decode(String.self, forKey: key)
-        return parseISO8601Date(dateString) ?? Date()
-    }
-
-    private static func parseDateIfPresent(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Date? {
-        if let date = try? container.decodeIfPresent(Date.self, forKey: key) {
-            return date
-        }
-        guard let dateString = try container.decodeIfPresent(String.self, forKey: key) else {
-            return nil
-        }
-        return parseISO8601Date(dateString)
-    }
-
-    private static func parseISO8601Date(_ dateString: String) -> Date? {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: dateString) {
-            return date
-        }
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: dateString)
     }
 
     // Memberwise initializer for programmatic creation
@@ -500,7 +360,7 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         orderNumber: String,
         storeId: UUID?,
         customerId: UUID?,
-        channel: OrderChannel,
+        orderType: OrderType,
         status: OrderStatus,
         paymentStatus: PaymentStatus,
         subtotal: Decimal,
@@ -511,6 +371,7 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         createdAt: Date,
         updatedAt: Date,
         completedAt: Date? = nil,
+        pickupLocationId: UUID? = nil,
         shippingName: String? = nil,
         shippingAddressLine1: String? = nil,
         shippingAddressLine2: String? = nil,
@@ -519,17 +380,19 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         shippingZip: String? = nil,
         trackingNumber: String? = nil,
         trackingUrl: String? = nil,
+        shippingLabelUrl: String? = nil,
+        shippingCarrier: String? = nil,
         staffNotes: String? = nil,
         customers: OrderCustomer? = nil,
+        pickupLocation: OrderPickupLocation? = nil,
         items: [OrderItem]? = nil,
-        fulfillments: [OrderFulfillment]? = nil,
         orderLocations: [OrderLocation]? = nil
     ) {
         self.id = id
         self.orderNumber = orderNumber
         self.storeId = storeId
         self.customerId = customerId
-        self.channel = channel
+        self.orderType = orderType
         self.status = status
         self.paymentStatus = paymentStatus
         self.subtotal = subtotal
@@ -540,6 +403,7 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.completedAt = completedAt
+        self.pickupLocationId = pickupLocationId
         self.shippingName = shippingName
         self.shippingAddressLine1 = shippingAddressLine1
         self.shippingAddressLine2 = shippingAddressLine2
@@ -548,10 +412,12 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         self.shippingZip = shippingZip
         self.trackingNumber = trackingNumber
         self.trackingUrl = trackingUrl
+        self.shippingLabelUrl = shippingLabelUrl
+        self.shippingCarrier = shippingCarrier
         self.staffNotes = staffNotes
         self.customers = customers
+        self.pickupLocation = pickupLocation
         self.items = items
-        self.fulfillments = fulfillments
         self.orderLocations = orderLocations
     }
 }
@@ -566,6 +432,11 @@ struct OrderItem: Identifiable, Codable, Sendable {
     let quantity: Int
     let unitPrice: Decimal
     let lineTotal: Decimal
+    // Fulfillment location (smart routed)
+    let locationId: UUID?
+    let pickupLocationName: String?
+    // Nested location from join
+    let location: OrderItemLocation?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -575,7 +446,20 @@ struct OrderItem: Identifiable, Codable, Sendable {
         case quantity
         case unitPrice = "unit_price"
         case lineTotal = "line_total"
+        case locationId = "location_id"
+        case pickupLocationName = "pickup_location_name"
+        case location
     }
+
+    /// Location name from either nested join or direct field
+    var locationName: String? {
+        location?.name ?? pickupLocationName
+    }
+}
+
+/// Location info from joined locations table on order_items
+struct OrderItemLocation: Codable, Sendable {
+    let name: String?
 }
 
 // MARK: - Order Location (Fulfillment per Location)
@@ -658,32 +542,9 @@ struct OrderLocationInfo: Codable, Sendable {
 // MARK: - Computed Properties
 
 extension Order {
-    /// Primary fulfillment (first one, most orders have only one)
-    var primaryFulfillment: OrderFulfillment? {
-        fulfillments?.first
-    }
-
-    /// Fulfillment type from primary fulfillment
-    var fulfillmentType: FulfillmentType {
-        primaryFulfillment?.type ?? .immediate
-    }
-
-    /// Fulfillment status from primary fulfillment
-    var fulfillmentStatus: FulfillmentStatus {
-        primaryFulfillment?.status ?? .pending
-    }
-
-    /// Delivery location ID from primary fulfillment
-    var deliveryLocationId: UUID? {
-        primaryFulfillment?.deliveryLocationId
-    }
-
     /// Display name for customer
     var displayCustomerName: String {
-        if let name = shippingName, !name.isEmpty, name != "Walk-In" {
-            return name
-        }
-        return customers?.fullName ?? "Walk-in Customer"
+        customers?.fullName ?? "Walk-in Customer"
     }
 
     /// Customer name (for compatibility)
@@ -701,9 +562,9 @@ extension Order {
         customers?.phone
     }
 
-    /// Fulfillment location name
-    var fulfillmentLocationName: String? {
-        primaryFulfillment?.locationName
+    /// Pickup location name (for compatibility)
+    var pickupLocationName: String? {
+        pickupLocation?.name
     }
 
     /// Formatted date string for display
@@ -711,8 +572,122 @@ extension Order {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
-        formatter.timeZone = TimeZone.current
         return formatter.string(from: createdAt)
+    }
+
+    /// Fulfillment location name - works for all order types
+    /// For pickup: uses pickup_location
+    /// For shipping/delivery: gets location from first item (smart routed)
+    var fulfillmentLocationName: String? {
+        // First try order-level pickup location
+        if let locationName = pickupLocation?.name {
+            return locationName
+        }
+        // For shipping orders, get from first item's location
+        // Check both the nested join and the direct pickup_location_name field
+        if let items = items, let firstItem = items.first {
+            // Try nested location join first
+            if let nestedName = firstItem.location?.name {
+                return nestedName
+            }
+            // Fall back to direct pickup_location_name field
+            if let directName = firstItem.pickupLocationName {
+                return directName
+            }
+        }
+        return nil
+    }
+
+    /// All unique fulfillment location names (for multi-location orders)
+    var fulfillmentLocationNames: [String] {
+        var locations: [String] = []
+        // Add order-level location if present
+        if let locationName = pickupLocation?.name {
+            locations.append(locationName)
+        }
+        // Add item-level locations
+        if let items = items {
+            for item in items {
+                if let locationName = item.locationName, !locations.contains(locationName) {
+                    locations.append(locationName)
+                }
+            }
+        }
+        return locations
+    }
+
+    /// Check if this order has items for a specific location
+    /// NOTE: For permission checks, use OrderService.isOrderVisibleToLocation() instead
+    /// This is kept for backward compatibility and display purposes
+    @available(*, deprecated, message: "Use OrderService.isOrderVisibleToLocation() for permission checks")
+    func hasItemsForLocation(_ locationId: UUID) -> Bool {
+        // For pickup orders, check pickup_location_id
+        if orderType == .pickup, pickupLocationId == locationId {
+            return true
+        }
+        // For all order types, check if any items are routed to this location
+        return items?.contains { $0.locationId == locationId } ?? false
+    }
+
+    /// Get items filtered to a specific location (for multi-location fulfillment)
+    /// NOTE: For complete item separation, use OrderService.getOrderItemsForLocation() instead
+    @available(*, deprecated, message: "Use OrderService.getOrderItemsForLocation() for RPC-based item separation")
+    func itemsForLocation(_ locationId: UUID) -> [OrderItem] {
+        guard let items = items else { return [] }
+        return items.filter { $0.locationId == locationId }
+    }
+
+    /// Check if this is a multi-location order (items split across locations)
+    @available(*, deprecated, message: "Use fulfillmentLocationNames.count > 1 instead")
+    var isMultiLocation: Bool {
+        guard let items = items else { return false }
+        let uniqueLocations = Set(items.compactMap { $0.locationId })
+        return uniqueLocations.count > 1
+    }
+
+    /// Total quantity of items for a specific location
+    @available(*, deprecated, message: "Use OrderService.getOrderItemsForLocation() for RPC-based item separation")
+    func quantityForLocation(_ locationId: UUID) -> Int {
+        itemsForLocation(locationId).reduce(0) { $0 + $1.quantity }
+    }
+
+    // MARK: - Order Location Helpers
+
+    /// Get the order_location record for a specific location
+    func orderLocation(for locationId: UUID) -> OrderLocation? {
+        orderLocations?.first { $0.locationId == locationId }
+    }
+
+    /// Get fulfillment status for a specific location
+    func fulfillmentStatus(for locationId: UUID) -> String? {
+        orderLocation(for: locationId)?.fulfillmentStatus
+    }
+
+    /// Get tracking info for a specific location
+    func trackingInfo(for locationId: UUID) -> (number: String?, carrier: String?, url: String?)? {
+        guard let loc = orderLocation(for: locationId) else { return nil }
+        return (loc.trackingNumber, loc.shippingCarrier, loc.trackingUrl)
+    }
+
+    /// Check if a specific location has been shipped
+    func isLocationShipped(_ locationId: UUID) -> Bool {
+        orderLocation(for: locationId)?.isShipped ?? false
+    }
+
+    /// Check if all locations have been shipped
+    var allLocationsShipped: Bool {
+        guard let locations = orderLocations, !locations.isEmpty else {
+            // No order_locations - fall back to order-level status
+            return status == .shipped || status == .delivered || status == .completed
+        }
+        return locations.allSatisfy { $0.isShipped }
+    }
+
+    /// Count of shipped vs total locations
+    var shippedLocationsCount: (shipped: Int, total: Int) {
+        guard let locations = orderLocations else { return (0, 0) }
+        let shipped = locations.filter { $0.isShipped }.count
+        return (shipped, locations.count)
     }
 
     /// Formatted total
@@ -747,96 +722,4 @@ extension Order {
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: createdAt, relativeTo: Date())
     }
-
-    /// Display icon based on fulfillment type
-    var displayIcon: String {
-        fulfillmentType.icon
-    }
-
-    /// Display label based on channel and fulfillment type
-    var displayTypeLabel: String {
-        if channel == .online {
-            return fulfillmentType == .ship ? "Online - Shipping" : "Online - Pickup"
-        } else {
-            return fulfillmentType.displayName
-        }
-    }
-
-    /// Get tracking info from fulfillment
-    var fulfillmentTrackingNumber: String? {
-        primaryFulfillment?.trackingNumber ?? trackingNumber
-    }
-
-    var fulfillmentTrackingUrl: String? {
-        primaryFulfillment?.trackingUrl ?? trackingUrl
-    }
-
-    var fulfillmentCarrier: String? {
-        primaryFulfillment?.carrier
-    }
 }
-
-// MARK: - OrderType (UI Abstraction)
-
-/// UI-level order type abstraction computed from channel + fulfillmentType.
-/// Used for filtering and display in the UI - NOT stored in database.
-enum OrderType: String, Codable, CaseIterable, Sendable {
-    case walkIn = "walk_in"
-    case pos
-    case pickup
-    case shipping
-    case delivery
-    case direct  // Invoice/direct orders
-
-    var displayName: String {
-        switch self {
-        case .walkIn, .pos: return "Walk-in"
-        case .pickup: return "Pickup"
-        case .shipping: return "Shipping"
-        case .delivery: return "Delivery"
-        case .direct: return "Invoice"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .walkIn, .pos: return "storefront"
-        case .pickup: return "bag"
-        case .shipping: return "shippingbox"
-        case .delivery: return "car"
-        case .direct: return "doc.text"
-        }
-    }
-
-    /// Derive OrderType from channel + fulfillmentType
-    static func from(channel: OrderChannel, fulfillmentType: FulfillmentType) -> OrderType {
-        switch channel {
-        case .retail:
-            return .walkIn
-        case .online:
-            switch fulfillmentType {
-            case .ship: return .shipping
-            case .pickup: return .pickup
-            case .immediate: return .walkIn
-            }
-        case .invoice:
-            return .direct
-        }
-    }
-}
-
-// MARK: - Order UI Convenience
-
-extension Order {
-    /// Computed orderType from channel + fulfillmentType (for UI filtering)
-    var orderType: OrderType {
-        OrderType.from(channel: channel, fulfillmentType: fulfillmentType)
-    }
-
-    /// Delivery location name from fulfillment (for pickup orders)
-    var deliveryLocationName: String? {
-        primaryFulfillment?.deliveryLocation?.name
-    }
-}
-
-// Note: AnyCodable is defined in Product.swift

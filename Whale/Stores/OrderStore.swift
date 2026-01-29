@@ -77,7 +77,7 @@ final class OrderStore: ObservableObject {
     private var isSubscribing = false  // Prevent concurrent subscription attempts
 
     /// Callback for new orders that belong to the current location
-    /// Callback when a new order arrives for the current location
+    /// Used by DockTabManager to auto-add order tabs
     var onNewOrderForLocation: ((Order) -> Void)?
 
     // MARK: - Synchronization
@@ -111,14 +111,8 @@ final class OrderStore: ObservableObject {
 
     private func withMutationLock<T>(_ block: () async throws -> T) async rethrows -> T {
         await mutationLock.acquire()
-        do {
-            let result = try await block()
-            await mutationLock.release()
-            return result
-        } catch {
-            await mutationLock.release()
-            throw error
-        }
+        defer { Task { await mutationLock.release() } }
+        return try await block()
     }
 
     // MARK: - Singleton
@@ -127,42 +121,6 @@ final class OrderStore: ObservableObject {
     private init() {
         setupScenePhaseObserver()
         setupFilterObservers()
-        setupStoreChangeObserver()
-    }
-
-    /// Observe store changes to clear data when user switches stores
-    private func setupStoreChangeObserver() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleStoreChange),
-            name: .storeDidChange,
-            object: nil
-        )
-    }
-
-    /// Clear all store-specific data when switching stores
-    /// This prevents data from one store "flowing over" into another
-    @objc private func handleStoreChange() {
-        Log.ui.info("OrderStore: Store changed - clearing all data")
-        clearAllStoreData()
-    }
-
-    /// Clear ALL store-specific data
-    func clearAllStoreData() {
-        orders = []
-        selectedOrderId = nil
-        storeId = nil
-        locationId = nil
-        error = nil
-        clearFilters()
-
-        // Clean up realtime subscription
-        Task {
-            await cleanupRealtimeSubscription()
-        }
-
-        objectWillChange.send()
-        Log.ui.info("OrderStore: All store data cleared")
     }
 
     // MARK: - Filter Change Observers
@@ -317,61 +275,16 @@ final class OrderStore: ObservableObject {
     /// Walk-in order types (walk_in and pos are the same thing)
     static let walkInOrderTypes: Set<OrderType> = [.walkIn, .pos]
 
-    /// Filtered orders with client-side filtering as fallback
-    /// Note: Backend should handle filtering via get_orders_for_location RPC,
-    /// but we apply client-side filtering as fallback/supplement
+    /// Orders are already filtered by the backend RPC
+    /// This property returns all orders - they're pre-filtered for this location
     var filteredOrders: [Order] {
-        var result = orders
-
-        // Filter by status group
-        if let statusGroup = selectedStatusGroup {
-            let statuses = statusGroup.statuses
-            result = result.filter { statuses.contains($0.status) }
-        }
-
-        // Filter by order type
-        if let orderType = selectedOrderType {
-            result = result.filter { $0.orderType == orderType }
-        }
-
-        // Filter by payment status
-        if let paymentStatus = selectedPaymentStatus {
-            result = result.filter { $0.paymentStatus == paymentStatus }
-        }
-
-        // Filter by search text
-        if !searchText.isEmpty {
-            let query = searchText.lowercased()
-            result = result.filter { order in
-                order.orderNumber.lowercased().contains(query) ||
-                order.customers?.firstName?.lowercased().contains(query) == true ||
-                order.customers?.lastName?.lowercased().contains(query) == true ||
-                (order.customers?.fullName?.lowercased().contains(query) == true)
-            }
-        }
-
-        // Filter by date range
-        if let startDate = dateRangeStart {
-            result = result.filter { $0.createdAt >= startDate }
-        }
-        if let endDate = dateRangeEnd {
-            result = result.filter { $0.createdAt <= endDate }
-        }
-
-        // Filter by amount range
-        if let minAmount = amountMin {
-            result = result.filter { $0.totalAmount >= minAmount }
-        }
-        if let maxAmount = amountMax {
-            result = result.filter { $0.totalAmount <= maxAmount }
-        }
-
-        // Filter online orders only
-        if showOnlineOrdersOnly {
-            result = result.filter { Self.onlineOrderTypes.contains($0.orderType) }
-        }
-
-        return result
+        // Backend handles all filtering via get_orders_for_location RPC
+        // Orders in this array are already filtered by:
+        // - Location visibility
+        // - Status group, order type, payment status
+        // - Date range, amount range
+        // - Search text
+        return orders
     }
 
     /// Count of online orders (pickup, shipping, delivery) for filter badge

@@ -150,7 +150,7 @@ struct InventoryUnit: Identifiable, Codable, Hashable, Sendable {
     }
 
     // Custom decoder to handle optional joined data
-    nonisolated init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(UUID.self, forKey: .id)

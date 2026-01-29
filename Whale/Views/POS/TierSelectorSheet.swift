@@ -1,40 +1,38 @@
-//
-//  TierSelectorSheet.swift
-//  Whale
-//
-//  Product tier selector - liquid glass design.
-//
+//  TierSelectorSheet.swift - Pricing tier selector with variant support
 
 import SwiftUI
-import Supabase
-import os.log
 
-struct TierSelectorSheet: View {
-    @Environment(\.dismiss) private var dismiss
+struct TierSelectorModal: View {
+    @Binding var isPresented: Bool
     @EnvironmentObject private var session: SessionObserver
-
+    @EnvironmentObject private var posStore: POSStore
     let product: Product
     let onSelectTier: (PricingTier) -> Void
     let onSelectVariantTier: ((PricingTier, ProductVariant) -> Void)?
     let onInventoryUpdated: ((UUID, Int) -> Void)?
     let onPrintLabels: (() -> Void)?
     let onViewCOA: (() -> Void)?
-    let onShowDetail: (() -> Void)?
 
     @State private var localStock: Int
-    @State private var selectedVariantId: UUID? = nil
+    @State private var selectedVariant: ProductVariant? = nil
     @State private var variantTiers: [PricingTier] = []
+    @State private var variantInventories: [VariantInventoryData] = []
+    @State private var localVariantInventories: [UUID: Int] = [:]
+    @State private var showProductDetails = false
 
-    // Quick audit
+    // Quick audit state
     @State private var showQuickAudit = false
-    @State private var auditQuantity = ""
+    @State private var auditQuantity: String = ""
     @State private var auditReason: QuickAuditReason = .count
-    @State private var isSubmitting = false
+    @State private var isSubmittingAudit = false
     @State private var auditError: String?
+    @State private var auditSuccess = false
 
-    @Namespace private var animation
+    // Print menu state
+    @State private var showPrintMenu = false
 
-    // Legacy init
+    @Namespace private var tabAnimation
+
     init(
         isPresented: Binding<Bool>,
         product: Product,
@@ -42,390 +40,278 @@ struct TierSelectorSheet: View {
         onSelectVariantTier: ((PricingTier, ProductVariant) -> Void)? = nil,
         onInventoryUpdated: ((UUID, Int) -> Void)? = nil,
         onPrintLabels: (() -> Void)? = nil,
-        onViewCOA: (() -> Void)? = nil,
-        onShowDetail: (() -> Void)? = nil
+        onViewCOA: (() -> Void)? = nil
     ) {
+        self._isPresented = isPresented
         self.product = product
         self.onSelectTier = onSelectTier
+        self._localStock = State(initialValue: product.availableStock)
         self.onSelectVariantTier = onSelectVariantTier
         self.onInventoryUpdated = onInventoryUpdated
         self.onPrintLabels = onPrintLabels
         self.onViewCOA = onViewCOA
-        self.onShowDetail = onShowDetail
-        self._localStock = State(initialValue: product.availableStock)
     }
 
-    // Clean init
-    init(
-        product: Product,
-        onSelectTier: @escaping (PricingTier) -> Void,
-        onSelectVariantTier: ((PricingTier, ProductVariant) -> Void)? = nil,
-        onInventoryUpdated: ((UUID, Int) -> Void)? = nil,
-        onPrintLabels: (() -> Void)? = nil,
-        onViewCOA: (() -> Void)? = nil,
-        onShowDetail: (() -> Void)? = nil
-    ) {
-        self.product = product
-        self.onSelectTier = onSelectTier
-        self.onSelectVariantTier = onSelectVariantTier
-        self.onInventoryUpdated = onInventoryUpdated
-        self.onPrintLabels = onPrintLabels
-        self.onViewCOA = onViewCOA
-        self.onShowDetail = onShowDetail
-        self._localStock = State(initialValue: product.availableStock)
+    private var currentTiers: [PricingTier] {
+        if selectedVariant != nil && !variantTiers.isEmpty {
+            return variantTiers.sorted { ($0.sortOrder ?? 0) < ($1.sortOrder ?? 0) }
+        }
+        return product.allTiers.sorted { ($0.sortOrder ?? 0) < ($1.sortOrder ?? 0) }
     }
 
     private var variants: [ProductVariant] { product.enabledVariants }
     private var hasVariants: Bool { !variants.isEmpty }
-
-    private var selectedVariant: ProductVariant? {
-        guard let id = selectedVariantId else { return nil }
-        return variants.first { $0.id == id }
-    }
-
-    private var currentTiers: [PricingTier] {
-        let tiers = selectedVariant != nil ? variantTiers : product.allTiers
-        return tiers.sorted { ($0.sortOrder ?? 0) < ($1.sortOrder ?? 0) }
-    }
+    private var parentStock: Double { Double(localStock) }
 
     var body: some View {
-        NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 16) {
-                    // SKU row
-                    if let sku = product.sku {
-                        HStack {
-                            Text(sku)
-                                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.4))
-                            Spacer()
-                            if let cat = product.categoryName {
-                                Text(cat)
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(.white.opacity(0.3))
-                            }
-                        }
-                        .padding(.horizontal, 4)
+        UnifiedModal(isPresented: $isPresented, id: "tier-selector", maxWidth: .infinity) {
+            VStack(spacing: 0) {
+                modalHeader
+
+                if showProductDetails {
+                    ProductDetailsCard(product: product)
+                } else {
+                    tierSelectorContent
+                }
+
+                ModalSecondaryButton(title: showProductDetails ? "Back to Sizes" : "Cancel") {
+                    if showProductDetails {
+                        withAnimation(.spring(response: 0.3)) { showProductDetails = false }
+                    } else {
+                        isPresented = false
                     }
-
-                    // Stock section
-                    stockSection
-
-                    // Variants
-                    if hasVariants {
-                        variantPicker
-                    }
-
-                    // Tiers
-                    tiersSection
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            .navigationTitle(product.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                        .foregroundStyle(.white.opacity(0.7))
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    HStack(spacing: 12) {
-                        Button {
-                            Haptics.light()
-                            dismiss()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                onShowDetail?()
-                            }
-                        } label: {
-                            Image(systemName: "info.circle")
-                                .font(.system(size: 17))
-                                .foregroundStyle(.white.opacity(0.7))
-                        }
-
-                        toolbarMenu
-                    }
-                }
-            }
-            }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .preferredColorScheme(.dark)
-    }
-
-    // MARK: - Stock Section
-
-    private var stockSection: some View {
-        ModalSection {
-            if showQuickAudit {
-                auditEditor
-            } else {
-                stockDisplay
+                .padding(.bottom, 20)
             }
         }
+        .onAppear { loadVariantInventory() }
     }
 
-    private var stockDisplay: some View {
-        Button {
-            Haptics.light()
-            auditQuantity = formatStock(Double(localStock))
-            auditError = nil
-            showQuickAudit = true
-        } label: {
-            HStack(spacing: 12) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(.white.opacity(0.1))
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(stockColor.opacity(0.8))
-                            .frame(width: geo.size.width * stockPercentage)
-                    }
-                }
-                .frame(height: 8)
+    // MARK: - Header
 
-                Text("\(localStock)g")
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.8))
-                    .frame(minWidth: 50, alignment: .trailing)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
+    private var modalHeader: some View {
+        HStack(alignment: .center) {
+            ModalCloseButton(action: { isPresented = false })
+            Spacer()
 
-    private var stockPercentage: CGFloat {
-        let stock = Double(localStock)
-        guard stock > 0 else { return 0 }
-        return min(1, max(0.05, stock / max(100, stock)))
-    }
+            VStack(spacing: 4) {
+                Text(showProductDetails ? "PRODUCT DETAILS" : (selectedVariant != nil ? "SELECT \(selectedVariant!.variantName.uppercased()) SIZE" : "SELECT SIZE"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.4))
+                    .tracking(0.5)
 
-    private var stockColor: Color {
-        if localStock <= 10 && localStock > 0 { return .orange }
-        if localStock <= 0 { return .red }
-        return Design.Colors.Semantic.success
-    }
-
-    // MARK: - Audit Editor
-
-    private var auditEditor: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 10) {
-                TextField("Qty", text: $auditQuantity)
-                    .keyboardType(.decimalPad)
-                    .font(.system(size: 18, weight: .semibold))
+                Text(product.name)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.08)))
-
-                if isSubmitting {
-                    ProgressView().tint(.white)
-                        .frame(width: 44, height: 44)
-                } else {
-                    Button {
-                        Haptics.light()
-                        showQuickAudit = false
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.6))
-                            .frame(width: 44, height: 44)
-                            .background(Circle().fill(.white.opacity(0.1)))
-                    }
-
-                    Button { submitAudit() } label: {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 44, height: 44)
-                            .background(Circle().fill(.white.opacity(0.15)))
-                    }
-                }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
 
-            // Reason chips
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(QuickAuditReason.allCases, id: \.self) { reason in
-                        Button {
-                            Haptics.light()
-                            auditReason = reason
-                        } label: {
-                            Text(reason.displayName)
-                                .font(.system(size: 14, weight: auditReason == reason ? .semibold : .medium))
-                                .foregroundStyle(auditReason == reason ? .white : .white.opacity(0.6))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .frame(minHeight: 44)
-                                .background(Capsule().fill(.white.opacity(auditReason == reason ? 0.2 : 0.08)))
-                        }
-                        .buttonStyle(.plain)
-                    }
+            Spacer()
+
+            HStack(spacing: 8) {
+                // Print menu button with liquid glass
+                printMenuButton
+
+                // Info/details toggle button
+                LiquidGlassIconButton(
+                    icon: showProductDetails ? "list.bullet" : "info.circle",
+                    isSelected: showProductDetails,
+                    tintColor: .white.opacity(0.6)
+                ) {
+                    withAnimation(.spring(response: 0.3)) { showProductDetails.toggle() }
                 }
             }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 16)
+    }
 
-            if let error = auditError {
-                Text(error)
-                    .font(.system(size: 11))
-                    .foregroundStyle(Design.Colors.Semantic.error)
+    // MARK: - Print Menu Button
+
+    private var printMenuButton: some View {
+        Menu {
+            // Print Labels option
+            Button {
+                Haptics.medium()
+                isPresented = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    onPrintLabels?()
+                }
+            } label: {
+                Label("Print Labels", systemImage: "printer.fill")
+            }
+
+            // View COA option (only if product has COA)
+            if product.hasCOA {
+                Button {
+                    Haptics.medium()
+                    if let coaUrl = product.coaUrl {
+                        UIApplication.shared.open(coaUrl)
+                    } else {
+                        onViewCOA?()
+                    }
+                } label: {
+                    Label("View Lab Results", systemImage: "testtube.2")
+                }
+            }
+        } label: {
+            Image(systemName: "printer")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.white.opacity(0.6))
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(LiquidPressStyle())
+        .glassEffect(.regular.interactive(), in: .circle)
+    }
+
+    // MARK: - Tier Selector Content
+
+    private var tierSelectorContent: some View {
+        VStack(spacing: 16) {
+            skuRow
+            stockBarsSection
+
+            if hasVariants {
+                variantTabsSection
+            }
+
+            tiersSection
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
+    }
+
+    private var skuRow: some View {
+        Group {
+            if let sku = product.sku {
+                HStack {
+                    Text(sku)
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.5))
+                    Spacer()
+                    if let category = product.categoryName {
+                        Text(category)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+                }
+                .padding(.horizontal, 4)
             }
         }
     }
 
-    // MARK: - Variant Picker
+    private var stockBarsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            StockBarRow(
+                value: parentStock,
+                maxValue: max(100, parentStock),
+                label: "g available",
+                color: Design.Colors.Semantic.success,
+                isEditing: showQuickAudit,
+                isSubmitting: isSubmittingAudit,
+                isSuccess: auditSuccess,
+                errorMessage: auditError,
+                editValue: $auditQuantity,
+                auditReason: $auditReason,
+                onTapToEdit: {
+                    Haptics.light()
+                    auditQuantity = formatStock(parentStock)
+                    auditError = nil
+                    showQuickAudit = true
+                },
+                onSave: { submitAudit() },
+                onCancel: {
+                    Haptics.light()
+                    auditError = nil
+                    showQuickAudit = false
+                }
+            )
 
-    private var variantPicker: some View {
+            if hasVariants && !variantInventories.isEmpty {
+                ForEach(variantInventories, id: \.variantTemplateId) { inv in
+                    let displayQty = localVariantInventories[inv.variantTemplateId] ?? Int(inv.quantity)
+                    StockBarRow(
+                        value: Double(displayQty),
+                        maxValue: max(50, Double(displayQty)),
+                        label: inv.variantName,
+                        color: .blue,
+                        isEditing: false,
+                        isSubmitting: false,
+                        isSuccess: false,
+                        errorMessage: nil,
+                        editValue: .constant(""),
+                        auditReason: .constant(.count),
+                        onTapToEdit: {},
+                        onSave: {},
+                        onCancel: {}
+                    )
+                }
+            }
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.03)))
+    }
+
+    private var variantTabsSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                variantChip(name: "Base", isSelected: selectedVariantId == nil) {
+                VariantTab(name: "Base", isSelected: selectedVariant == nil, namespace: tabAnimation) {
                     Haptics.light()
-                    withAnimation(.spring(response: 0.3)) {
-                        selectedVariantId = nil
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        selectedVariant = nil
                         variantTiers = []
                     }
                 }
 
                 ForEach(variants) { variant in
-                    variantChip(name: variant.variantName, isSelected: selectedVariantId == variant.id) {
+                    VariantTab(name: variant.variantName, isSelected: selectedVariant?.id == variant.id, namespace: tabAnimation) {
                         Haptics.light()
-                        withAnimation(.spring(response: 0.3)) {
-                            selectedVariantId = variant.id
-                            variantTiers = variant.pricingTiers
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            selectedVariant = variant
                         }
-                        // If no tiers loaded, fetch schema on-demand
-                        if variant.pricingTiers.isEmpty, let schemaId = variant.pricingSchemaId {
-                            Task {
-                                await loadVariantSchema(schemaId: schemaId)
-                            }
-                        }
+                        variantTiers = variant.pricingTiers
                     }
                 }
             }
+            .padding(.horizontal, 4)
         }
     }
-
-    private func variantChip(name: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(name)
-                .font(.system(size: 15, weight: isSelected ? .semibold : .medium))
-                .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
-                .padding(.horizontal, 18)
-                .padding(.vertical, 12)
-                .frame(minHeight: 44)
-                .contentShape(Capsule())
-        }
-        .buttonStyle(ScaleButtonStyle())
-        .glassEffect(.regular.interactive(), in: .capsule)
-        .overlay(Capsule().stroke(isSelected ? .white.opacity(0.3) : .clear, lineWidth: 1))
-    }
-
-    // MARK: - Tiers Section
 
     private var tiersSection: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             if currentTiers.isEmpty {
-                Text("No pricing available")
+                Text("No pricing tiers available")
                     .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.white.opacity(0.5))
                     .frame(height: 60)
             } else {
                 ForEach(currentTiers, id: \.id) { tier in
-                    tierButton(tier)
-                }
-            }
-        }
-    }
-
-    private func tierButton(_ tier: PricingTier) -> some View {
-        Button {
-            Haptics.medium()
-            if let variant = selectedVariant, let callback = onSelectVariantTier {
-                callback(tier, variant)
-            } else {
-                onSelectTier(tier)
-            }
-            dismiss()
-        } label: {
-            HStack {
-                Text(tier.label)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
-                Spacer()
-                Text(CurrencyFormatter.format(tier.defaultPrice))
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 16)
-            .frame(minHeight: 56)
-            .contentShape(RoundedRectangle(cornerRadius: 14))
-        }
-        .buttonStyle(ScaleButtonStyle())
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
-    }
-
-    // MARK: - Toolbar Menu
-
-    private var toolbarMenu: some View {
-        Menu {
-            Button {
-                Haptics.medium()
-                dismiss()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    onPrintLabels?()
-                }
-            } label: {
-                Label("Print Labels", systemImage: "printer")
-            }
-
-            Button {
-                Haptics.light()
-                dismiss()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    onShowDetail?()
-                }
-            } label: {
-                Label("View Details", systemImage: "info.circle")
-            }
-
-            if product.hasCOA {
-                Button {
-                    if let url = product.coaUrl {
-                        UIApplication.shared.open(url)
+                    TierButton(tier: tier) {
+                        Haptics.medium()
+                        if let variant = selectedVariant, let callback = onSelectVariantTier {
+                            callback(tier, variant)
+                        } else {
+                            onSelectTier(tier)
+                        }
+                        isPresented = false
                     }
-                } label: {
-                    Label("Lab Results", systemImage: "testtube.2")
                 }
             }
-        } label: {
-            Image(systemName: "ellipsis.circle")
-                .font(.system(size: 17))
-                .foregroundStyle(.white.opacity(0.7))
         }
     }
 
     // MARK: - Actions
 
-    private func loadVariantSchema(schemaId: UUID) async {
-        do {
-            let client = await supabaseAsync()
-            let response = try await client
-                .from("pricing_schemas")
-                .select("id, name, tiers")
-                .eq("id", value: schemaId.uuidString)
-                .execute()
-
-            let schemas = try JSONDecoder().decode([PricingSchema].self, from: response.data)
-            if let schema = schemas.first {
-                await MainActor.run {
-                    variantTiers = schema.defaultTiers ?? []
-                }
+    private func loadVariantInventory() {
+        guard hasVariants, let locationId = session.selectedLocation?.id else { return }
+        Task {
+            if let inventories = try? await ProductService.fetchVariantInventory(productId: product.id, locationId: locationId) {
+                await MainActor.run { variantInventories = inventories }
             }
-        } catch {
-            Log.network.error("⚠️ Failed to load variant schema \(schemaId): \(error.localizedDescription)")
         }
     }
 
@@ -435,44 +321,45 @@ struct TierSelectorSheet: View {
             return
         }
         guard let storeId = session.storeId, let locationId = session.selectedLocation?.id else {
-            auditError = "No location selected"
+            auditError = "No store/location selected"
             return
         }
 
-        isSubmitting = true
+        isSubmittingAudit = true
         auditError = nil
 
         Task {
             do {
-                _ = try await InventoryService.createAbsoluteAdjustment(
+                _ = try await InventoryService.createAdjustment(
                     storeId: storeId,
                     productId: product.id,
                     locationId: locationId,
                     adjustmentType: auditReason.toAdjustmentType,
-                    absoluteQuantity: qty,
+                    newQuantity: qty,
+                    currentQuantity: parentStock,
                     reason: auditReason.displayName,
                     notes: "Quick audit from POS"
                 )
                 await MainActor.run {
                     localStock = Int(qty)
-                    isSubmitting = false
-                    showQuickAudit = false
+                    auditSuccess = true
+                    isSubmittingAudit = false
                     onInventoryUpdated?(product.id, Int(qty))
-                    Haptics.success()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        showQuickAudit = false
+                        auditSuccess = false
+                    }
                 }
             } catch {
                 await MainActor.run {
                     auditError = error.localizedDescription
-                    isSubmitting = false
-                    Haptics.error()
+                    isSubmittingAudit = false
                 }
             }
         }
     }
 
     private func formatStock(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", value)
-            : String(format: "%.1f", value)
+        value.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", value) : String(format: "%.1f", value)
     }
 }

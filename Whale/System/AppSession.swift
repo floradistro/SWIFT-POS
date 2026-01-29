@@ -14,14 +14,6 @@ import Supabase
 import Auth
 import os.log
 
-// MARK: - Store Switch Notification
-
-extension Notification.Name {
-    /// Posted when user switches to a different store
-    /// All store-specific data should be cleared when this is received
-    static let storeDidChange = Notification.Name("storeDidChange")
-}
-
 // MARK: - Session Actor
 
 actor AppSession {
@@ -163,11 +155,6 @@ actor AppSession {
         store = nil
         UserDefaults.standard.removeObject(forKey: "selectedLocationId")
         UserDefaults.standard.removeObject(forKey: "selectedRegisterId")
-
-        // Notify all stores to clear their data
-        // This prevents data from one store "flowing over" into another
-        NotificationCenter.default.post(name: .storeDidChange, object: nil)
-        Log.session.info("Posted storeDidChange notification")
     }
 
     private func selectStoreAssociation(_ association: UserStoreAssociation) {

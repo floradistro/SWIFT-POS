@@ -52,9 +52,6 @@ struct SheetContainer: View {
                 }
             )
 
-        case .customerDetail(let customer):
-            CustomerDetailSheet(customer: customer, store: CustomerStore.shared)
-
         case .idScanner(let storeId):
             IDScannerView(
                 storeId: storeId,
@@ -444,136 +441,87 @@ private struct OpenCashDrawerSheet: View {
     }
 }
 
-/// OrderDetail as sheet
+/// OrderDetail as sheet - uses shared OrderDetailContentView
 private struct OrderDetailSheet: View {
     let order: Order
-    @ObservedObject private var store = OrderStore.shared
+    @State private var fullOrder: Order?
+    @State private var isLoading = true
 
     var body: some View {
-        NavigationStack {
-            OrderDetailContent(order: order, store: store)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") {
-                            SheetCoordinator.shared.dismiss()
-                        }
-                    }
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Button("Done") {
+                    SheetCoordinator.shared.dismiss()
                 }
-        }
-    }
-}
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.white.opacity(0.7))
 
-/// Order detail content (extracted from OrderDetailModal)
-private struct OrderDetailContent: View {
-    let order: Order
-    @ObservedObject var store: OrderStore
+                Spacer()
 
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Order header
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Order #\(order.orderNumber ?? "—")")
-                        .font(.title2.bold())
+                Text("Order #\(order.shortOrderNumber)")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.white)
 
-                    Text(order.createdAt.formatted(date: .abbreviated, time: .shortened))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal)
+                Spacer()
 
-                // Status
-                HStack {
-                    Text(order.status.displayName)
-                        .font(.caption.bold())
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(statusColor.opacity(0.2), in: Capsule())
-                        .foregroundStyle(statusColor)
-                }
-                .padding(.horizontal)
-
-                Divider()
-
-                // Items
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Items")
-                        .font(.headline)
-                        .padding(.horizontal)
-
-                    ForEach(order.items ?? []) { item in
-                        HStack {
-                            Text("\(item.quantity)x")
-                                .foregroundStyle(.secondary)
-                                .frame(width: 40, alignment: .leading)
-
-                            Text(item.productName)
-
-                            Spacer()
-
-                            Text(CurrencyFormatter.format(item.lineTotal))
-                                .monospacedDigit()
-                        }
-                        .padding(.horizontal)
-                    }
-                }
-
-                Divider()
-
-                // Totals
-                VStack(spacing: 8) {
-                    HStack {
-                        Text("Subtotal")
-                        Spacer()
-                        Text(CurrencyFormatter.format(order.subtotal))
-                            .monospacedDigit()
-                    }
-
-                    if order.taxAmount > 0 {
-                        HStack {
-                            Text("Tax")
-                            Spacer()
-                            Text(CurrencyFormatter.format(order.taxAmount))
-                                .monospacedDigit()
-                        }
-                    }
-
-                    if order.discountAmount > 0 {
-                        HStack {
-                            Text("Discount")
-                            Spacer()
-                            Text("-\(CurrencyFormatter.format(order.discountAmount))")
-                                .monospacedDigit()
-                                .foregroundStyle(.green)
-                        }
-                    }
-
-                    Divider()
-
-                    HStack {
-                        Text("Total")
-                            .font(.headline)
-                        Spacer()
-                        Text(CurrencyFormatter.format(order.totalAmount))
-                            .font(.headline)
-                            .monospacedDigit()
-                    }
-                }
-                .padding(.horizontal)
+                // Invisible spacer for centering
+                Text("Done")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.clear)
             }
-            .padding(.vertical)
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            // Show content - use full order if available, otherwise show passed order with loading
+            if isLoading {
+                VStack {
+                    Spacer()
+                    ProgressView()
+                        .scaleEffect(1.2)
+                        .tint(.white.opacity(0.6))
+                    Text("Loading order details...")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .padding(.top, 12)
+                    Spacer()
+                }
+            } else {
+                OrderDetailContentView(order: fullOrder ?? order, showCustomerInfo: true)
+            }
         }
-        .navigationTitle("Order Details")
-        .navigationBarTitleDisplayMode(.inline)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .task {
+            await loadFullOrder()
+        }
     }
 
-    private var statusColor: Color {
-        switch order.status {
-        case .completed, .delivered: return .green
-        case .pending, .preparing: return .orange
-        case .cancelled: return .red
-        default: return .secondary
+    private func loadFullOrder() async {
+        // If order already has items, use it directly
+        if let items = order.items, !items.isEmpty {
+            print("📋 OrderDetailSheet: Order already has \(items.count) items")
+            fullOrder = order
+            isLoading = false
+            return
         }
+
+        // Fetch complete order with items
+        print("📋 OrderDetailSheet: Fetching full order \(order.id) with items...")
+        do {
+            if let fetched = try await OrderService.fetchOrder(orderId: order.id) {
+                print("📋 OrderDetailSheet: Loaded order with \(fetched.items?.count ?? 0) items")
+                fullOrder = fetched
+            } else {
+                print("📋 OrderDetailSheet: Order not found, using passed order")
+                fullOrder = order
+            }
+        } catch {
+            print("📋 OrderDetailSheet: Fetch failed: \(error), using passed order")
+            fullOrder = order
+        }
+        isLoading = false
     }
 }
 

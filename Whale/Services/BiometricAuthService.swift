@@ -54,7 +54,7 @@ enum BiometricAuthService {
     // MARK: - Cached State (initialized at app startup)
 
     /// Cached biometric type - set once at app startup, never changes during runtime
-    nonisolated(unsafe) private static var _cachedBiometricType: BiometricType?
+    private static var _cachedBiometricType: BiometricType?
 
     /// Cached UserDefaults values - refreshed on access but cached to avoid repeated I/O
     private static var _cachedIsBiometricEnabled: Bool?
@@ -74,7 +74,7 @@ enum BiometricAuthService {
     }
 
     /// Actually check biometric type (expensive - only call during warmup)
-    nonisolated private static func checkBiometricType() -> BiometricType {
+    private static func checkBiometricType() -> BiometricType {
         let context = LAContext()
         var error: NSError?
 

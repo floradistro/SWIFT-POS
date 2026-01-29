@@ -271,88 +271,18 @@ enum CurrencyFormatter {
     }
 }
 
-// MARK: - Haptic Feedback
-//
-// Apple's haptic philosophy: Less is more. Use haptics sparingly for:
-// - Confirming actions (checkout, delete, significant state changes)
-// - Long press recognition
-// - Success/error feedback
-// - Selection changes in pickers
-//
-// DON'T use haptics for:
-// - Every tap/button press (too noisy)
-// - Scrolling or swiping
-// - Minor UI interactions
+// MARK: - Haptic Feedback (Disabled - iPad doesn't have Taptic Engine)
 
 enum Haptics {
-    private static let isPhone = UIDevice.current.userInterfaceIdiom == .phone
+    // All haptic functions are no-ops since iPads don't support haptics.
+    // Attempting to use haptics on iPad causes startup timeouts and freezes.
 
-    private static let softGenerator = UIImpactFeedbackGenerator(style: .soft)
-    private static let lightGenerator = UIImpactFeedbackGenerator(style: .light)
-    private static let mediumGenerator = UIImpactFeedbackGenerator(style: .medium)
-    private static let heavyGenerator = UIImpactFeedbackGenerator(style: .heavy)
-    private static let notificationGenerator = UINotificationFeedbackGenerator()
-    private static let selectionGenerator = UISelectionFeedbackGenerator()
-
-    /// Subtle tap - for selection changes, minor interactions
-    /// Use sparingly - most taps don't need haptics
-    static func soft() {
-        guard isPhone else { return }
-        softGenerator.impactOccurred(intensity: 0.5)
-    }
-
-    /// Light tap - for button presses that need confirmation
-    /// Still subtle, use for filter toggles, tab switches
-    static func light() {
-        guard isPhone else { return }
-        lightGenerator.impactOccurred(intensity: 0.6)
-    }
-
-    /// Medium tap - for significant actions
-    /// Use for: long press recognition, adding to cart, confirming dialogs
-    static func medium() {
-        guard isPhone else { return }
-        mediumGenerator.impactOccurred(intensity: 0.7)
-    }
-
-    /// Heavy tap - for major actions
-    /// Use for: checkout complete, delete confirmation
-    static func heavy() {
-        guard isPhone else { return }
-        heavyGenerator.impactOccurred()
-    }
-
-    /// Success notification - for completed transactions
-    static func success() {
-        guard isPhone else { return }
-        notificationGenerator.notificationOccurred(.success)
-    }
-
-    /// Error notification - for failed actions
-    static func error() {
-        guard isPhone else { return }
-        notificationGenerator.notificationOccurred(.error)
-    }
-
-    /// Warning notification - for alerts
-    static func warning() {
-        guard isPhone else { return }
-        notificationGenerator.notificationOccurred(.warning)
-    }
-
-    /// Selection change - for pickers, segmented controls
-    static func selection() {
-        guard isPhone else { return }
-        selectionGenerator.selectionChanged()
-    }
-
-    /// Prepare generators for immediate response
-    static func prepare() {
-        guard isPhone else { return }
-        softGenerator.prepare()
-        lightGenerator.prepare()
-        mediumGenerator.prepare()
-    }
+    static func light() {}
+    static func medium() {}
+    static func heavy() {}
+    static func success() {}
+    static func error() {}
+    static func warning() {}
 }
 
 // MARK: - Safe Area Helper
