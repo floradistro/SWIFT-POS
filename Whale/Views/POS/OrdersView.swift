@@ -9,10 +9,7 @@ import SwiftUI
 
 struct OrdersView: View {
     @ObservedObject private var store = OrderStore.shared
-    private let tabManager = DockTabManager.shared
     @State private var showAdvancedFilters = false
-    @State private var selectedOrderForDetail: Order?
-    @State private var showOrderDetailModal = false
 
     var body: some View {
         ZStack {
@@ -30,16 +27,9 @@ struct OrdersView: View {
                 }
             }
 
-            // Order detail modal
-            if showOrderDetailModal, let order = selectedOrderForDetail {
-                OrderDetailModal(order: order, store: store, isPresented: $showOrderDetailModal)
-            }
         }
         .sheet(isPresented: $showAdvancedFilters) {
             AdvancedOrderFiltersSheet(store: store, isPresented: $showAdvancedFilters)
-        }
-        .onChange(of: showOrderDetailModal) { _, isShowing in
-            if !isShowing { selectedOrderForDetail = nil }
         }
     }
 
@@ -265,19 +255,16 @@ struct OrdersView: View {
                         isMultiSelectMode: false,
                         isLast: index == store.filteredOrders.count - 1,
                         onTap: {
-                            selectedOrderForDetail = order
-                            showOrderDetailModal = true
+                            SheetCoordinator.shared.present(.orderDetail(order: order))
                             Haptics.medium()
                         },
                         onLongPress: {},
                         onOpenInDock: {
-                            selectedOrderForDetail = order
-                            showOrderDetailModal = true
+                            SheetCoordinator.shared.present(.orderDetail(order: order))
                             Haptics.medium()
                         },
                         onViewDetails: {
-                            selectedOrderForDetail = order
-                            showOrderDetailModal = true
+                            SheetCoordinator.shared.present(.orderDetail(order: order))
                             Haptics.medium()
                         },
                         onSelectMultiple: {}
@@ -287,6 +274,7 @@ struct OrdersView: View {
             .padding(.top, 16)
             .padding(.bottom, 120)
         }
+        .topBottomFadeMask(topFadeHeight: 80, bottomFadeHeight: 80)
         .refreshable {
             await store.refresh()
         }

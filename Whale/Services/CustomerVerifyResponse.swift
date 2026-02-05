@@ -171,7 +171,7 @@ struct EdgeOrder: Codable, Sendable {
     let total: Double
     let createdAt: String
     let vStoreCustomers: EdgeOrderCustomer?
-    let pickupLocation: EdgePickupLocation?
+    let fulfillments: [EdgeFulfillment]?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -179,7 +179,7 @@ struct EdgeOrder: Codable, Sendable {
         case total
         case createdAt = "created_at"
         case vStoreCustomers = "v_store_customers"
-        case pickupLocation = "pickup_location"
+        case fulfillments
     }
 
     /// Convert to app-side Order model
@@ -192,13 +192,36 @@ struct EdgeOrder: Codable, Sendable {
 
         let statusEnum = OrderStatus(rawValue: status) ?? .pending
 
-        // Create minimal Order for display
+        // Convert edge fulfillments to app-side fulfillments
+        let appFulfillments: [OrderFulfillment]? = fulfillments?.map { f in
+            let fulfillmentType = FulfillmentType(rawValue: f.type) ?? .pickup
+            let fulfillmentStatus = f.status.flatMap { FulfillmentStatus(rawValue: $0) } ?? .pending
+            return OrderFulfillment(
+                id: f.id,
+                orderId: id,
+                type: fulfillmentType,
+                status: fulfillmentStatus,
+                deliveryLocationId: nil,
+                deliveryAddress: nil,
+                carrier: nil,
+                trackingNumber: nil,
+                trackingUrl: nil,
+                shippingCost: nil,
+                createdAt: createdDate,
+                shippedAt: nil,
+                deliveredAt: nil,
+                deliveryLocation: f.deliveryLocation.map { loc in
+                    FulfillmentLocation(id: nil, name: loc.name, addressLine1: nil, city: nil, state: nil)
+                }
+            )
+        }
+
         return Order(
             id: id,
             orderNumber: "", // Not needed for pending orders display
             storeId: nil,
             customerId: nil,
-            orderType: .pickup,
+            channel: .online, // Online pickup order
             status: statusEnum,
             paymentStatus: .pending,
             subtotal: Decimal(total),
@@ -209,7 +232,6 @@ struct EdgeOrder: Codable, Sendable {
             createdAt: createdDate,
             updatedAt: createdDate,
             completedAt: nil,
-            pickupLocationId: nil,
             shippingName: nil,
             shippingAddressLine1: nil,
             shippingAddressLine2: nil,
@@ -218,8 +240,6 @@ struct EdgeOrder: Codable, Sendable {
             shippingZip: nil,
             trackingNumber: nil,
             trackingUrl: nil,
-            shippingLabelUrl: nil,
-            shippingCarrier: nil,
             staffNotes: nil,
             customers: vStoreCustomers.map { OrderCustomer(
                 firstName: $0.firstName,
@@ -227,8 +247,8 @@ struct EdgeOrder: Codable, Sendable {
                 email: $0.email,
                 phone: $0.phone
             ) },
-            pickupLocation: pickupLocation.map { OrderPickupLocation(name: $0.name) },
             items: nil,
+            fulfillments: appFulfillments,
             orderLocations: nil
         )
     }
@@ -248,7 +268,21 @@ struct EdgeOrderCustomer: Codable, Sendable {
     }
 }
 
-struct EdgePickupLocation: Codable, Sendable {
+struct EdgeFulfillment: Codable, Sendable {
+    let id: UUID
+    let type: String
+    let status: String?
+    let deliveryLocation: EdgeDeliveryLocation?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case type
+        case status
+        case deliveryLocation = "delivery_location"
+    }
+}
+
+struct EdgeDeliveryLocation: Codable, Sendable {
     let name: String
 }
 

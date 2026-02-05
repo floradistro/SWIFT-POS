@@ -21,15 +21,21 @@ struct GridCardPressStyle: ButtonStyle {
 }
 
 /// Native iOS-style press animation for list rows
-/// More subtle than grid cards - just opacity dimming
+/// Subtle scale + opacity with haptic feedback
 struct ListRowPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.8 : 1.0)
             .background(
                 configuration.isPressed ? Color.white.opacity(0.08) : Color.clear
             )
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed {
+                    Haptics.light()
+                }
+            }
     }
 }
 
@@ -49,6 +55,7 @@ struct ProductGridCard: View {
     let onAddToCart: (() -> Void)?
     let onPrintLabels: (() -> Void)?
     let onSelectMultiple: (() -> Void)?
+    let onShowDetail: (() -> Void)?
 
     private var hasTiers: Bool {
         product.hasTieredPricing
@@ -88,13 +95,6 @@ struct ProductGridCard: View {
                         .padding(8)
                         .scaleEffect(isSelected ? 1.0 : 0.9)
                         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
-                    } else if hasTiers {
-                        Image(systemName: "square.stack.3d.up.fill")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(5)
-                            .background(Circle().fill(Color.black.opacity(0.6)))
-                            .padding(8)
                     }
                 }
 
@@ -155,6 +155,13 @@ struct ProductGridCard: View {
                 onPrintLabels?()
             } label: {
                 Label("Print Labels", systemImage: "printer.fill")
+            }
+
+            Button {
+                Haptics.light()
+                onShowDetail?()
+            } label: {
+                Label("View Details", systemImage: "info.circle")
             }
 
             Button {
@@ -786,9 +793,13 @@ struct CategoryPill: View {
         } label: {
             Text(name)
                 .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
-                .foregroundStyle(isSelected ? .white : .white.opacity(0.7))
+                .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
+                .background(
+                    isSelected ? .white.opacity(0.15) : Color.clear,
+                    in: .capsule
+                )
         }
         .tint(.white)
         .glassEffect(.regular.interactive(), in: .capsule)

@@ -14,6 +14,14 @@ import Supabase
 import Auth
 import os.log
 
+// MARK: - Store Switch Notification
+
+extension Notification.Name {
+    /// Posted when user switches to a different store
+    /// All store-specific data should be cleared when this is received
+    static let storeDidChange = Notification.Name("storeDidChange")
+}
+
 // MARK: - Session Actor
 
 actor AppSession {
@@ -59,10 +67,22 @@ actor AppSession {
         // Try to get cached session first (should be instant with emitLocalSessionAsInitialSession)
         do {
             let session = try await client.auth.session
-            self.currentUser = session.user
+
+            // IMPORTANT: Check if session is expired before using it
+            // See: https://github.com/supabase/supabase-swift/pull/822
+            // The initial emitted session may be expired; we must verify validity
+            if session.isExpired {
+                Log.session.info("Session is expired, attempting refresh...")
+                // Try to refresh the expired session
+                let refreshedSession = try await client.auth.refreshSession()
+                self.currentUser = refreshedSession.user
+                Log.session.info("Session refreshed successfully")
+            } else {
+                self.currentUser = session.user
+            }
 
             // Only fetch store_id if we have a session
-            if session.user != nil {
+            if currentUser != nil {
                 // Fetch store_id from users table (required for edge function auth)
                 // Do this quickly without waiting for store details
                 do {
@@ -73,7 +93,7 @@ actor AppSession {
                 }
             }
         } catch {
-            // No session - that's fine, user will sign in
+            // No session or refresh failed - that's fine, user will sign in
             Log.session.debug("No session available: \(error.localizedDescription)")
             throw error
         }
@@ -155,6 +175,11 @@ actor AppSession {
         store = nil
         UserDefaults.standard.removeObject(forKey: "selectedLocationId")
         UserDefaults.standard.removeObject(forKey: "selectedRegisterId")
+
+        // Notify all stores to clear their data
+        // This prevents data from one store "flowing over" into another
+        NotificationCenter.default.post(name: .storeDidChange, object: nil)
+        Log.session.info("Posted storeDidChange notification")
     }
 
     private func selectStoreAssociation(_ association: UserStoreAssociation) {

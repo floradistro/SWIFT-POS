@@ -45,7 +45,7 @@ enum OrderServiceError: LocalizedError {
 
 enum OrderService {
 
-    /// Fetch a single order by ID with all joins (v_store_customers, items, locations, order_locations)
+    /// Fetch a single order by ID with all joins (v_store_customers, items, fulfillments, order_locations)
     static func fetchOrder(orderId: UUID) async throws -> Order? {
         Log.network.debug("Fetching order: \(orderId.uuidString)")
 
@@ -59,8 +59,27 @@ enum OrderService {
                     email,
                     phone
                 ),
-                pickup_location:pickup_location_id(
-                    name
+                fulfillments(
+                    id,
+                    order_id,
+                    type,
+                    status,
+                    delivery_location_id,
+                    delivery_address,
+                    carrier,
+                    tracking_number,
+                    tracking_url,
+                    shipping_cost,
+                    created_at,
+                    shipped_at,
+                    delivered_at,
+                    delivery_location:delivery_location_id(
+                        id,
+                        name,
+                        address_line1,
+                        city,
+                        state
+                    )
                 ),
                 order_items(
                     id,
@@ -69,12 +88,7 @@ enum OrderService {
                     product_name,
                     quantity,
                     unit_price,
-                    line_total,
-                    location_id,
-                    pickup_location_name,
-                    location:location_id(
-                        name
-                    )
+                    line_total
                 ),
                 order_locations(
                     id,
@@ -121,7 +135,7 @@ enum OrderService {
 
         // Debug: Log parsed order
         if let order = orders.first {
-            Log.network.debug("OrderService.fetchOrder parsed: items=\(order.items?.count ?? 0), pickupLocation=\(order.pickupLocation?.name ?? "nil"), firstItemLocation=\(order.items?.first?.pickupLocationName ?? "nil")")
+            Log.network.debug("OrderService.fetchOrder parsed: items=\(order.items?.count ?? 0), channel=\(order.channel.rawValue), fulfillmentType=\(order.fulfillmentType.rawValue)")
         }
 
         return orders.first
@@ -395,4 +409,60 @@ enum OrderService {
     // The backend creates orders atomically after successful payment processing.
     // See: supabase/functions/payment-intent/index.ts
 
+    // MARK: - Print Optimized Fetch
+
+    /// Fetch order with complete product details for label printing (OPTIMIZED)
+    /// Uses single RPC call with database-side joins instead of multiple queries
+    /// Returns order + full product data (images, custom fields, COAs) in one round trip
+    static func fetchOrderForPrinting(orderId: UUID) async throws -> OrderPrintData? {
+        Log.network.info("Fetching order for printing: \(orderId.uuidString)")
+
+        let response = try await supabase
+            .rpc("get_order_for_printing", params: [
+                "p_order_id": AnyJSON.string(orderId.uuidString)
+            ])
+            .execute()
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        // DEBUG: Log raw JSON response
+        if let jsonString = String(data: response.data, encoding: .utf8) {
+            print("🏷️ RPC raw response: \(jsonString.prefix(500))")
+        }
+
+        // Check for error response
+        struct ErrorResponse: Decodable {
+            let error: String?
+        }
+
+        if let errorResponse = try? decoder.decode(ErrorResponse.self, from: response.data),
+           let error = errorResponse.error {
+            Log.network.warning("Order not found for printing: \(error)")
+            return nil
+        }
+
+        do {
+            let result = try decoder.decode(OrderPrintData.self, from: response.data)
+            Log.network.info("✅ Fetched order for printing with \(result.items.count) items")
+            return result
+        } catch {
+            print("🏷️ Decoding error: \(error)")
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("🏷️ Missing key: \(key.stringValue) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                case .typeMismatch(let type, let context):
+                    print("🏷️ Type mismatch for type: \(type) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                case .valueNotFound(let type, let context):
+                    print("🏷️ Value not found for type: \(type) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                case .dataCorrupted(let context):
+                    print("🏷️ Data corrupted at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                @unknown default:
+                    print("🏷️ Unknown decoding error: \(error)")
+                }
+            }
+            throw error
+        }
+    }
 }

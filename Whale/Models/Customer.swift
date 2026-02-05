@@ -90,6 +90,124 @@ struct Customer: Identifiable, Codable, Sendable, Hashable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
+
+    // Custom decoder to handle Postgres timestamp formats with timezone offsets
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        id = try container.decode(UUID.self, forKey: .id)
+        platformUserId = try container.decode(UUID.self, forKey: .platformUserId)
+        storeId = try container.decode(UUID.self, forKey: .storeId)
+        firstName = try container.decodeIfPresent(String.self, forKey: .firstName)
+        middleName = try container.decodeIfPresent(String.self, forKey: .middleName)
+        lastName = try container.decodeIfPresent(String.self, forKey: .lastName)
+        email = try container.decodeIfPresent(String.self, forKey: .email)
+        phone = try container.decodeIfPresent(String.self, forKey: .phone)
+        dateOfBirth = try container.decodeIfPresent(String.self, forKey: .dateOfBirth)
+        avatarUrl = try container.decodeIfPresent(String.self, forKey: .avatarUrl)
+        streetAddress = try container.decodeIfPresent(String.self, forKey: .streetAddress)
+        city = try container.decodeIfPresent(String.self, forKey: .city)
+        state = try container.decodeIfPresent(String.self, forKey: .state)
+        postalCode = try container.decodeIfPresent(String.self, forKey: .postalCode)
+        driversLicenseNumber = try container.decodeIfPresent(String.self, forKey: .driversLicenseNumber)
+        idVerified = try container.decodeIfPresent(Bool.self, forKey: .idVerified)
+        isActive = try container.decodeIfPresent(Bool.self, forKey: .isActive)
+        loyaltyPoints = try container.decodeIfPresent(Int.self, forKey: .loyaltyPoints)
+        loyaltyTier = try container.decodeIfPresent(String.self, forKey: .loyaltyTier)
+        totalSpent = try container.decodeIfPresent(Decimal.self, forKey: .totalSpent)
+        totalOrders = try container.decodeIfPresent(Int.self, forKey: .totalOrders)
+        lifetimeValue = try container.decodeIfPresent(Decimal.self, forKey: .lifetimeValue)
+        emailConsent = try container.decodeIfPresent(Bool.self, forKey: .emailConsent)
+        smsConsent = try container.decodeIfPresent(Bool.self, forKey: .smsConsent)
+
+        // Parse dates with flexible format handling
+        createdAt = try Self.parseDate(from: container, forKey: .createdAt)
+        updatedAt = try Self.parseDate(from: container, forKey: .updatedAt)
+    }
+
+    // Helper to parse Postgres timestamps (with timezone offset like -05:00)
+    private static func parseDate(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Date {
+        // Try decoding as Date first (if decoder has date strategy configured)
+        if let date = try? container.decode(Date.self, forKey: key) {
+            return date
+        }
+
+        // Fallback: decode as string and parse manually
+        let dateString = try container.decode(String.self, forKey: key)
+
+        // Try ISO8601 with fractional seconds
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: dateString) {
+            return date
+        }
+
+        // Try without fractional seconds
+        formatter.formatOptions = [.withInternetDateTime]
+        if let date = formatter.date(from: dateString) {
+            return date
+        }
+
+        // Last resort: return current date to avoid crash
+        return Date()
+    }
+
+    // Memberwise initializer for programmatic creation
+    init(
+        id: UUID,
+        platformUserId: UUID,
+        storeId: UUID,
+        firstName: String?,
+        middleName: String?,
+        lastName: String?,
+        email: String?,
+        phone: String?,
+        dateOfBirth: String?,
+        avatarUrl: String?,
+        streetAddress: String?,
+        city: String?,
+        state: String?,
+        postalCode: String?,
+        driversLicenseNumber: String?,
+        idVerified: Bool?,
+        isActive: Bool?,
+        loyaltyPoints: Int?,
+        loyaltyTier: String?,
+        totalSpent: Decimal?,
+        totalOrders: Int?,
+        lifetimeValue: Decimal?,
+        emailConsent: Bool?,
+        smsConsent: Bool?,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.platformUserId = platformUserId
+        self.storeId = storeId
+        self.firstName = firstName
+        self.middleName = middleName
+        self.lastName = lastName
+        self.email = email
+        self.phone = phone
+        self.dateOfBirth = dateOfBirth
+        self.avatarUrl = avatarUrl
+        self.streetAddress = streetAddress
+        self.city = city
+        self.state = state
+        self.postalCode = postalCode
+        self.driversLicenseNumber = driversLicenseNumber
+        self.idVerified = idVerified
+        self.isActive = isActive
+        self.loyaltyPoints = loyaltyPoints
+        self.loyaltyTier = loyaltyTier
+        self.totalSpent = totalSpent
+        self.totalOrders = totalOrders
+        self.lifetimeValue = lifetimeValue
+        self.emailConsent = emailConsent
+        self.smsConsent = smsConsent
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
 }
 
 // MARK: - Computed Properties

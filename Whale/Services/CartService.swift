@@ -15,39 +15,35 @@ import Foundation
 
 // MARK: - Cart Models (from server)
 
-struct ServerCart: Codable, Identifiable {
+struct ServerCart: Codable, Identifiable, Sendable {
     let id: UUID
     let storeId: UUID
     let locationId: UUID
     let customerId: UUID?
-    let subtotal: Decimal
-    let discountAmount: Decimal
-    let taxRate: Decimal
-    let taxAmount: Decimal
-    let total: Decimal
-    let itemCount: Int
     let status: String
     let items: [ServerCartItem]
     let totals: CheckoutTotals
+
+    // Computed from totals - these don't exist at root in the database response
+    var subtotal: Decimal { totals.subtotal }
+    var discountAmount: Decimal { totals.discountAmount }
+    var taxRate: Decimal { totals.taxRate }
+    var taxAmount: Decimal { totals.taxAmount }
+    var total: Decimal { totals.total }
+    var itemCount: Int { totals.itemCount }
 
     enum CodingKeys: String, CodingKey {
         case id
         case storeId = "store_id"
         case locationId = "location_id"
         case customerId = "customer_id"
-        case subtotal
-        case discountAmount = "discount_amount"
-        case taxRate = "tax_rate"
-        case taxAmount = "tax_amount"
-        case total
-        case itemCount = "item_count"
         case status
         case items
         case totals
     }
 }
 
-struct ServerCartItem: Codable, Identifiable {
+struct ServerCartItem: Codable, Identifiable, Sendable {
     let id: UUID
     let productId: UUID
     let productName: String
@@ -58,6 +54,7 @@ struct ServerCartItem: Codable, Identifiable {
     let tierQuantity: Double
     let variantId: UUID?
     let variantName: String?
+    let inventoryId: UUID?
     let lineTotal: Decimal
     let discountAmount: Decimal
     let manualDiscountType: String?
@@ -74,6 +71,7 @@ struct ServerCartItem: Codable, Identifiable {
         case tierQuantity = "tier_quantity"
         case variantId = "variant_id"
         case variantName = "variant_name"
+        case inventoryId = "inventory_id"
         case lineTotal = "line_total"
         case discountAmount = "discount_amount"
         case manualDiscountType = "manual_discount_type"
@@ -92,7 +90,7 @@ struct ServerCartItem: Codable, Identifiable {
     }
 }
 
-struct TaxBreakdownItem: Codable {
+struct TaxBreakdownItem: Codable, Sendable {
     let name: String?
     let rate: Decimal?
     let amount: Decimal?
@@ -107,7 +105,7 @@ struct TaxBreakdownItem: Codable {
         case taxAmount = "tax_amount"
     }
 
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         // Try both formats
         name = try container.decodeIfPresent(String.self, forKey: .name)
@@ -118,7 +116,7 @@ struct TaxBreakdownItem: Codable {
             ?? container.decodeIfPresent(Decimal.self, forKey: .taxAmount)
     }
 
-    func encode(to encoder: Encoder) throws {
+    nonisolated func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(name, forKey: .name)
         try container.encodeIfPresent(rate, forKey: .rate)
@@ -126,7 +124,7 @@ struct TaxBreakdownItem: Codable {
     }
 }
 
-struct CheckoutTotals: Codable {
+struct CheckoutTotals: Codable, Sendable {
     let subtotal: Decimal
     let discountAmount: Decimal
     let taxableAmount: Decimal
@@ -356,7 +354,7 @@ actor CartService {
 
     // MARK: - HTTP Helpers
 
-    private func post<T: Decodable>(_ path: String, body: [String: Any]) async throws -> T {
+    private func post<T: Decodable & Sendable>(_ path: String, body: [String: Any]) async throws -> T {
         let url = baseURL.appendingPathComponent(path)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -365,36 +363,89 @@ actor CartService {
         request.setValue("Bearer \(SupabaseConfig.anonKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
+        print("🛒 CartService POST \(path) - request body: \(body)")
+
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw CartError.networkError
         }
 
+        let responseString = String(data: data, encoding: .utf8) ?? "nil"
+        print("🛒 CartService RESPONSE (\(path)) status=\(httpResponse.statusCode): \(responseString.prefix(1000))")
+
         guard httpResponse.statusCode == 200 else {
             throw CartError.httpError(httpResponse.statusCode)
         }
 
         let decoder = JSONDecoder()
-        return try decoder.decode(T.self, from: data)
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            print("🛒 CartService DECODE ERROR: \(error)")
+            print("🛒 CartService RAW RESPONSE: \(responseString)")
+            throw error
+        }
     }
 }
 
 // MARK: - Response Types
 
-private struct CartResponse: Decodable {
+private struct CartResponse: Decodable, Sendable {
     let success: Bool
     let data: ServerCart?
     let error: String?
+
+    // Custom decoder to handle backend returning partial data (just totals) when no cart exists
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        success = try container.decode(Bool.self, forKey: .success)
+        error = try container.decodeIfPresent(String.self, forKey: .error)
+
+        // Try to decode data, but check if it has required fields first
+        if container.contains(.data) {
+            // Peek at the data to see if it has an 'id' field (indicates a real cart)
+            let dataContainer = try? container.nestedContainer(keyedBy: DataKeys.self, forKey: .data)
+            if dataContainer?.contains(.id) == true {
+                data = try container.decode(ServerCart.self, forKey: .data)
+            } else {
+                // Backend returned partial data (just totals) - treat as no cart
+                data = nil
+            }
+        } else {
+            data = nil
+        }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case success, data, error
+    }
+
+    enum DataKeys: String, CodingKey {
+        case id
+    }
 }
 
-private struct CheckoutResponse: Decodable {
+private struct CheckoutResponse: Sendable {
     let success: Bool
     let data: CheckoutData?
     let error: String?
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        success = try container.decode(Bool.self, forKey: .success)
+        data = try container.decodeIfPresent(CheckoutData.self, forKey: .data)
+        error = try container.decodeIfPresent(String.self, forKey: .error)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case success, data, error
+    }
 }
 
-private struct CheckoutData: Decodable {
+extension CheckoutResponse: Decodable {}
+
+private struct CheckoutData: Decodable, Sendable {
     let totals: CheckoutTotals
     let cart: ServerCart
 }

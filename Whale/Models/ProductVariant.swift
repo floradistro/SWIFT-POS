@@ -86,7 +86,7 @@ struct ProductVariant: Identifiable, Codable, Sendable, Hashable {
         case pricingSchema = "pricing_schema"
     }
 
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         productId = try container.decode(UUID.self, forKey: .productId)
@@ -165,7 +165,7 @@ struct VariantInventory: Codable, Sendable {
         case heldQuantity = "held_quantity"
     }
 
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         id = try container.decode(UUID.self, forKey: .id)

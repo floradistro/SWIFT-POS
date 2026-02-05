@@ -16,8 +16,8 @@ struct CreateTransferSheet: View {
     let onTransferCreated: (InventoryTransfer) -> Void
 
     @EnvironmentObject private var session: SessionObserver
+    @Environment(\.dismiss) private var dismiss
 
-    @State private var isPresented = true
     @State private var currentScreen: TransferScreen = .selectDestination
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -49,28 +49,32 @@ struct CreateTransferSheet: View {
     }
 
     var body: some View {
-        UnifiedModal(isPresented: $isPresented, id: "create-transfer", dismissOnTapOutside: currentScreen == .selectDestination) {
-            VStack(spacing: 0) {
-                ModalHeader(screenSubtitle, subtitle: screenTitle, onClose: navigateBack) {
-                    if currentScreen != .selectDestination && currentScreen != .printing && currentScreen != .success {
-                        EmptyView()
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    if let error = errorMessage {
+                        TransferErrorBanner(error: error) { errorMessage = nil }
                     }
-                }
 
-                if let error = errorMessage {
-                    TransferErrorBanner(error: error) { errorMessage = nil }
-                }
-
-                ScrollView(showsIndicators: false) {
                     screenContent
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                 }
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .navigationTitle(screenSubtitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    if currentScreen != .printing && currentScreen != .success {
+                        Button(currentScreen == .selectDestination ? "Cancel" : "Back") {
+                            navigateBack()
+                        }
+                    }
+                }
+            }
         }
-        .onChange(of: isPresented) { _, newValue in
-            if !newValue { onDismiss() }
-        }
+        .interactiveDismissDisabled(currentScreen == .printing)
         .task { await loadProducts() }
     }
 
@@ -115,7 +119,9 @@ struct CreateTransferSheet: View {
 
     private func navigateBack() {
         switch currentScreen {
-        case .selectDestination: isPresented = false
+        case .selectDestination:
+            dismiss()
+            onDismiss()
         case .addProducts: withAnimation(.spring(response: 0.3)) { currentScreen = .selectDestination }
         case .review: withAnimation(.spring(response: 0.3)) { currentScreen = .addProducts }
         case .printing, .success: break
@@ -296,10 +302,19 @@ struct CreateTransferSheet: View {
                 ModalActionButton("Print Package Label", icon: "printer") {
                     print("📄 Print: \(createdTransfer?.qrCode ?? "")")
                 }
-                ModalSecondaryButton(title: "Done") {
+                Button {
                     if let transfer = createdTransfer { onTransferCreated(transfer) }
-                    isPresented = false
+                    dismiss()
+                    onDismiss()
+                } label: {
+                    Text("Done")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
                 }
+                .buttonStyle(.plain)
             }
         }
     }

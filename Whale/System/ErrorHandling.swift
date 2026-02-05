@@ -11,17 +11,18 @@ import os.log
 
 // MARK: - Logger
 
-/// Centralized logging for the app
-enum Log {
-    private static let subsystem = Bundle.main.bundleIdentifier ?? "com.whale.pos"
+private let logSubsystem = Bundle.main.bundleIdentifier ?? "com.whale.pos"
 
-    static let session = Logger(subsystem: subsystem, category: "session")
-    static let network = Logger(subsystem: subsystem, category: "network")
-    static let agent = Logger(subsystem: subsystem, category: "agent")
-    static let ui = Logger(subsystem: subsystem, category: "ui")
-    static let scanner = Logger(subsystem: subsystem, category: "scanner")
-    static let deals = Logger(subsystem: subsystem, category: "deals")
-    static let cart = Logger(subsystem: subsystem, category: "cart")
+/// Centralized logging for the app
+/// Using top-level constants to avoid MainActor isolation issues
+enum Log {
+    nonisolated(unsafe) static let session = Logger(subsystem: logSubsystem, category: "session")
+    nonisolated(unsafe) static let network = Logger(subsystem: logSubsystem, category: "network")
+    nonisolated(unsafe) static let agent = Logger(subsystem: logSubsystem, category: "agent")
+    nonisolated(unsafe) static let ui = Logger(subsystem: logSubsystem, category: "ui")
+    nonisolated(unsafe) static let scanner = Logger(subsystem: logSubsystem, category: "scanner")
+    nonisolated(unsafe) static let deals = Logger(subsystem: logSubsystem, category: "deals")
+    nonisolated(unsafe) static let cart = Logger(subsystem: logSubsystem, category: "cart")
 }
 
 // MARK: - App Error

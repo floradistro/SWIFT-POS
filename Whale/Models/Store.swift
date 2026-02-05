@@ -44,12 +44,12 @@ struct Store: Codable, Identifiable, Sendable {
 
     /// Whether a GitHub repo is connected
     var hasGitHubRepo: Bool {
-        githubRepoFullName != nil && !githubRepoFullName!.isEmpty
+        !(githubRepoFullName ?? "").isEmpty
     }
 
     /// Whether Vercel is connected
     var hasVercelProject: Bool {
-        vercelProjectId != nil && !vercelProjectId!.isEmpty
+        !(vercelProjectId ?? "").isEmpty
     }
 
     /// Get the full logo URL from Supabase storage

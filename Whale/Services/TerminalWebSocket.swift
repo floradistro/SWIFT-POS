@@ -71,7 +71,7 @@ final class TerminalWebSocketSession: NSObject, ObservableObject {
         receiveMessage()
 
         pingTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.sendPing()
             }
         }
@@ -124,7 +124,7 @@ final class TerminalWebSocketSession: NSObject, ObservableObject {
 
     private func receiveMessage() {
         webSocket?.receive { [weak self] result in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 switch result {
                 case .success(let message):
                     switch message {
@@ -233,7 +233,7 @@ final class TerminalWebSocketSession: NSObject, ObservableObject {
     private func sendPing() {
         webSocket?.sendPing { [weak self] error in
             if let error = error {
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     self?.connectionError = "Ping failed: \(error.localizedDescription)"
                 }
             }
@@ -400,7 +400,7 @@ final class TerminalWebSocket: NSObject, ObservableObject {
 
     private func receiveMessage() {
         webSocket?.receive { [weak self] result in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 switch result {
                 case .success(let message):
                     switch message {
@@ -434,7 +434,7 @@ final class TerminalWebSocket: NSObject, ObservableObject {
     private func sendPing() {
         webSocket?.sendPing { [weak self] error in
             if let error = error {
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     self?.connectionError = "Ping failed: \(error.localizedDescription)"
                 }
             }

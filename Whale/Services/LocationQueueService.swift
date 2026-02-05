@@ -12,7 +12,7 @@ import Foundation
 
 // MARK: - Queue Models
 
-struct QueueEntry: Codable, Identifiable, Equatable {
+struct QueueEntry: Codable, Identifiable, Equatable, Sendable {
     let id: UUID
     let locationId: UUID
     let cartId: UUID
@@ -39,7 +39,7 @@ struct QueueEntry: Codable, Identifiable, Equatable {
         case cartTotal = "cart_total"
     }
 
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         locationId = try container.decode(UUID.self, forKey: .locationId)
@@ -203,19 +203,19 @@ actor LocationQueueService {
         }
 
         let decoder = JSONDecoder()
-        // Use custom ISO8601 formatter that handles fractional seconds
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        // Use custom ISO8601 date decoding that handles fractional seconds
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let dateString = try container.decode(String.self)
             // Try with fractional seconds first
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             if let date = formatter.date(from: dateString) {
                 return date
             }
             // Fallback to standard ISO8601
-            let standardFormatter = ISO8601DateFormatter()
-            if let date = standardFormatter.date(from: dateString) {
+            formatter.formatOptions = [.withInternetDateTime]
+            if let date = formatter.date(from: dateString) {
                 return date
             }
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date: \(dateString)")
@@ -226,12 +226,26 @@ actor LocationQueueService {
 
 // MARK: - Response Types
 
-private struct QueueResponse: Decodable {
+private struct QueueResponse: Sendable {
     let success: Bool
     let data: QueueData?
     let entry: QueueEntry?
     let error: String?
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        success = try container.decode(Bool.self, forKey: .success)
+        data = try container.decodeIfPresent(QueueData.self, forKey: .data)
+        entry = try container.decodeIfPresent(QueueEntry.self, forKey: .entry)
+        error = try container.decodeIfPresent(String.self, forKey: .error)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case success, data, entry, error
+    }
 }
+
+extension QueueResponse: Decodable {}
 
 // MARK: - Errors
 

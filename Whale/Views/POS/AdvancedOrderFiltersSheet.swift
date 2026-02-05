@@ -275,8 +275,8 @@ struct AdvancedOrderFiltersSheet: View {
         return Button {
             store.amountMin = min
             store.amountMax = max
-            minAmountText = min != nil ? "\(min!)" : ""
-            maxAmountText = max != nil ? "\(max!)" : ""
+            minAmountText = min.map { "\($0)" } ?? ""
+            maxAmountText = max.map { "\($0)" } ?? ""
         } label: {
             Text(label)
                 .font(.system(size: 12, weight: isSelected ? .semibold : .medium))

@@ -96,9 +96,10 @@ final class PaymentStore: ObservableObject {
         campaignDiscountAmount: Decimal = 0, campaignId: UUID? = nil
     ) async throws -> SaleCompletion {
 
-        // Calculate adjusted total after loyalty discount
+        // Calculate adjusted total and change
         let adjustedTotal = totals.total - loyaltyDiscountAmount
-        guard let change = CheckoutCalculator.calculateChange(tendered: cashTendered, total: adjustedTotal) else {
+        let change = (cashTendered - adjustedTotal).rounded()
+        guard change >= 0 else {
             throw PaymentError.insufficientCash
         }
 
@@ -451,8 +452,11 @@ final class PaymentStore: ObservableObject {
         guard canStartPayment else { throw PaymentError.paymentInProgress }
         guard !cart.isEmpty else { throw PaymentError.emptyCart }
 
+        // Calculate effective total after loyalty + campaign discounts
+        let effectiveTotal = totals.total - loyaltyDiscountAmount - campaignDiscountAmount
+
         // Show processing state
-        uiState = .processing(message: "Creating payment...", amount: totals.total, label: nil)
+        uiState = .processing(message: "Creating payment...", amount: effectiveTotal, label: nil)
 
         // Generate idempotency key
         let cartHash = cart.map { "\($0.productId)-\($0.quantity)" }.joined(separator: ",")
@@ -460,19 +464,21 @@ final class PaymentStore: ObservableObject {
         let idempotencyKey = "\(sessionInfo.sessionId)-\(timestamp)-\(cartHash.hashValue)"
 
         // Build request payload
+        // amount and totals.total reflect the effective total after loyalty/campaign discounts
+        // so the backend and terminal always see the correct charge amount
         let payload = CreateIntentPayload(
             storeId: sessionInfo.storeId.uuidString.lowercased(),
             locationId: sessionInfo.locationId.uuidString.lowercased(),
             registerId: sessionInfo.registerId.uuidString.lowercased(),
             sessionId: sessionInfo.sessionId.uuidString.lowercased(),
             paymentMethod: paymentMethod.rawValue,
-            amount: NSDecimalNumber(decimal: totals.total).doubleValue,
+            amount: NSDecimalNumber(decimal: effectiveTotal).doubleValue,
             cartItems: cart.map { $0.toPayload(locationId: sessionInfo.locationId) },
             totals: TotalsPayload(
                 subtotal: NSDecimalNumber(decimal: totals.subtotal).doubleValue,
                 taxAmount: NSDecimalNumber(decimal: totals.taxAmount).doubleValue,
-                discountAmount: NSDecimalNumber(decimal: totals.discountAmount).doubleValue,
-                total: NSDecimalNumber(decimal: totals.total).doubleValue
+                discountAmount: NSDecimalNumber(decimal: totals.discountAmount + loyaltyDiscountAmount + campaignDiscountAmount).doubleValue,
+                total: NSDecimalNumber(decimal: effectiveTotal).doubleValue
             ),
             customerId: customer?.id.uuidString.lowercased(),
             customerName: customer?.fullName ?? "Walk-In",
@@ -490,8 +496,9 @@ final class PaymentStore: ObservableObject {
         )
 
         // Store context for potential terminal callback
+        // Use effective total so fallback also charges the correct reduced amount
         pendingSessionInfo = sessionInfo
-        pendingAmount = totals.total
+        pendingAmount = effectiveTotal
 
         do {
             // Create the payment intent
@@ -788,8 +795,8 @@ final class PaymentStore: ObservableObject {
         }
 
         // Retry logic for transient errors (Service Busy, timeout, network issues)
-        // These errors can occur even after a successful charge, so we retry before failing
-        let maxRetries = 2
+        // Dejavoo terminals need time to reset between transactions — retry with countdown
+        let maxRetries = 4
         var lastError: Error?
 
         for attempt in 1...(maxRetries + 1) {
@@ -821,10 +828,19 @@ final class PaymentStore: ObservableObject {
 
                 // Check if this is a retryable error (Service Busy, timeout, network)
                 if error.isRetryable && attempt <= maxRetries {
-                    let waitTime = attempt * 3  // 3s, then 6s
-                    logger.warning("⚠️ Retryable error on attempt \(attempt): \(error.localizedDescription). Waiting \(waitTime)s before retry...")
-                    uiState = .processing(message: "Terminal busy, retrying...", amount: amount, label: cardNumber.map { "Card \($0)" })
-                    try? await Task.sleep(for: .seconds(waitTime))
+                    let waitSeconds = attempt <= 2 ? 5 : 8  // 5s, 5s, 8s, 8s
+                    logger.warning("⚠️ Retryable error on attempt \(attempt): \(error.localizedDescription). Waiting \(waitSeconds)s before retry...")
+
+                    // Show countdown so the user knows it's working
+                    for remaining in stride(from: waitSeconds, through: 1, by: -1) {
+                        uiState = .processing(
+                            message: "Terminal busy — retrying in \(remaining)s...",
+                            amount: amount,
+                            label: cardNumber.map { "Card \($0)" }
+                        )
+                        try? await Task.sleep(for: .seconds(1))
+                    }
+                    uiState = .processing(message: "Retrying terminal...", amount: amount, label: cardNumber.map { "Card \($0)" })
                     continue  // Retry
                 }
 
@@ -993,7 +1009,7 @@ private struct CartItemPayload: Encodable {
     let lineTotal: Double
     let discountAmount: Double
     let inventoryId: String?
-    let gramsToDeduct: Double
+    let tierQuantity: Double
     let locationId: String?
     let variantTemplateId: String?
     let variantName: String?
@@ -1049,7 +1065,7 @@ private struct IntentStatus: Decodable {
 extension CartItem {
     fileprivate func toPayload(locationId: UUID) -> CartItemPayload {
         CartItemPayload(
-            productId: productId.uuidString.lowercased(),
+            productId: productId.uuidString,
             productName: productName,
             productSku: sku,
             quantity: quantity,
@@ -1058,10 +1074,10 @@ extension CartItem {
             unitPrice: NSDecimalNumber(decimal: effectiveUnitPrice).doubleValue,
             lineTotal: NSDecimalNumber(decimal: lineTotal).doubleValue,
             discountAmount: NSDecimalNumber(decimal: discountAmount).doubleValue,
-            inventoryId: inventoryId?.uuidString.lowercased(),
-            gramsToDeduct: inventoryDeduction,
-            locationId: locationId.uuidString.lowercased(),
-            variantTemplateId: variantId?.uuidString.lowercased(),
+            inventoryId: inventoryId?.uuidString,
+            tierQuantity: tierQuantity,
+            locationId: locationId.uuidString,
+            variantTemplateId: variantId?.uuidString,
             variantName: variantName,
             conversionRatio: conversionRatio
         )

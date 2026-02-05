@@ -17,13 +17,14 @@ struct FloatingCart: View {
 
     @StateObject private var paymentStore = PaymentStore()
     @ObservedObject private var dealStore = DealStore.shared
+    @ObservedObject private var sheetCoordinator = SheetCoordinator.shared
 
     var onScanID: () -> Void
     var onFindCustomer: (() -> Void)?
+    @Binding var selectedTab: POSTab
 
     // MARK: - State
 
-    @State private var showCheckoutSheet = false
     @State private var cartUpdateCounter = 0
     @State private var queueStore: LocationQueueStore?
     @State private var queueUpdateCounter = 0  // Incremented via NotificationCenter
@@ -74,6 +75,10 @@ struct FloatingCart: View {
 
     // MARK: - Body
 
+    private var shouldHide: Bool {
+        sheetCoordinator.isPresenting
+    }
+
     var body: some View {
         let _ = cartUpdateCounter
         let _ = queueUpdateCounter  // Force refresh when queue changes
@@ -92,24 +97,22 @@ struct FloatingCart: View {
 
             // Floating cart pill
             floatingCartPill
+
+            // Swipe indicator below cart
+            pageIndicator
         }
         .padding(.horizontal, 16)
-        .padding(.bottom, SafeArea.bottom + 12)
+        .padding(.bottom, SafeArea.bottom + 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .offset(y: shouldHide ? 200 : 0)
+        .opacity(shouldHide ? 0 : 1)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: shouldHide)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: queue.count)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: hasItems)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: itemCount)
-        .sheet(isPresented: $showCheckoutSheet) {
-            if let totals = totals {
-                CheckoutSheet(
-                    posStore: posStore,
-                    paymentStore: paymentStore,
-                    dealStore: dealStore,
-                    totals: totals,
-                    sessionInfo: buildSessionInfo(),
-                    onScanID: onScanID,
-                    onComplete: handleCheckoutComplete
-                )
+        .onReceive(NotificationCenter.default.publisher(for: .sheetOrderCompleted)) { notification in
+            if let completion = notification.object as? SaleCompletion {
+                handleCheckoutComplete(completion)
             }
         }
         .task(id: effectiveLocationId) {
@@ -161,7 +164,6 @@ struct FloatingCart: View {
 
                 // Add customer button
                 Button {
-                    Haptics.light()
                     onFindCustomer?()
                 } label: {
                     Image(systemName: "plus")
@@ -181,7 +183,7 @@ struct FloatingCart: View {
         let isActive = entry.cartId == selectedCartId
 
         return Button {
-            Haptics.light()
+            Haptics.selection()  // Subtle selection feedback for tab switch
             queueStore?.selectCart(entry.cartId)
             Task { await loadAndSelectCart(cartId: entry.cartId) }
         } label: {
@@ -200,9 +202,8 @@ struct FloatingCart: View {
                         .foregroundStyle(.white.opacity(0.8))
                 }
 
-                // Remove button
+                // Remove button - no haptic, just visual
                 Button {
-                    Haptics.light()
                     Task { await removeFromQueue(cartId: entry.cartId) }
                 } label: {
                     Image(systemName: "xmark")
@@ -232,14 +233,12 @@ struct FloatingCart: View {
                     }
 
                     Button(role: .destructive) {
-                        Haptics.light()
                         clearCurrentCart()
                     } label: {
                         Label("Clear Cart", systemImage: "trash")
                     }
 
                     Button(role: .destructive) {
-                        Haptics.light()
                         Task { await removeFromQueue(cartId: entry.cartId) }
                     } label: {
                         Label("Remove Customer", systemImage: "person.badge.minus")
@@ -279,7 +278,9 @@ struct FloatingCart: View {
                 // Checkout button
                 Button {
                     Haptics.medium()
-                    showCheckoutSheet = true
+                    if let totals = totals {
+                        SheetCoordinator.shared.present(.checkout(totals: totals, sessionInfo: buildSessionInfo()))
+                    }
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "creditcard")
@@ -308,9 +309,8 @@ struct FloatingCart: View {
 
                 Spacer()
 
-                // Add customer button
+                // Add customer button - no haptic, just visual
                 Button {
-                    Haptics.light()
                     onFindCustomer?()
                 } label: {
                     Image(systemName: "person.badge.plus")
@@ -325,6 +325,22 @@ struct FloatingCart: View {
         .frame(maxWidth: 500)
         .glassEffect(.regular, in: .capsule)
         .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
+    }
+
+    // MARK: - Page Indicator
+
+    private var pageIndicator: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(Color.white.opacity(selectedTab == .products ? 0.9 : 0.3))
+                .frame(width: 7, height: 7)
+
+            Circle()
+                .fill(Color.white.opacity(selectedTab == .orders ? 0.9 : 0.3))
+                .frame(width: 7, height: 7)
+        }
+        .padding(.top, 4)
+        .animation(.easeInOut(duration: 0.2), value: selectedTab)
     }
 
     // MARK: - Actions
@@ -386,20 +402,23 @@ struct FloatingCart: View {
     }
 
     private func handleCheckoutComplete(_ order: SaleCompletion?) {
-        showCheckoutSheet = false
-
         guard let cartId = selectedCartId else { return }
 
-        // Remove from backend queue
         Task {
+            // Remove from backend queue (this updates selectedCartId to next cart)
             await queueStore?.removeFromQueue(cartId: cartId)
-        }
 
-        // Clear local cart
-        if isMultiWindowSession, let ws = windowSession {
-            Task { await ws.clearCart() }
-        } else {
-            posStore.clearCart()
+            // Clear the completed cart from local store
+            if isMultiWindowSession, let ws = windowSession {
+                await ws.clearCart()
+            } else {
+                await MainActor.run { posStore.clearCart() }
+            }
+
+            // Load the next customer's cart if one is now selected
+            if let nextCartId = queueStore?.selectedCartId {
+                await loadAndSelectCart(cartId: nextCartId)
+            }
         }
     }
 }

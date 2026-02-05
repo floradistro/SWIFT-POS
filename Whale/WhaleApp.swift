@@ -20,8 +20,6 @@ struct WhaleApp: App {
 
     init() {
         print("🟥 WhaleApp.init START")
-        // Register background tasks for Lisa AI
-        BackgroundAgentService.registerBackgroundTasks()
         print("🟥 WhaleApp.init END")
     }
 
@@ -209,6 +207,7 @@ struct RootView: View {
     // This prevents App.body from being invalidated on state changes
     // Using @ObservedObject because SessionObserver.shared is a singleton (lifecycle managed by static property)
     @ObservedObject private var session = SessionObserver.shared
+    @ObservedObject private var sheetCoordinator = SheetCoordinator.shared
 
     init() {
         print("🟨 RootView.init")
@@ -216,14 +215,25 @@ struct RootView: View {
 
     var body: some View {
         let _ = print("🟩 RootView.body")
-        // BootModal handles the entire flow:
+        // BootSheet handles the entire flow:
         // splash → login → Face ID verify → location → register → start shift → POS
-        BootModal()
+        BootSheet()
             .environmentObject(session)
             .task {
                 // CRITICAL: Run startup ONLY after first frame renders
                 // This prevents state mutations during view creation
                 await session.start()
+            }
+            // MARK: - Unified Sheet System
+            // All sheets in the app flow through this single attachment point
+            .sheet(item: sheetCoordinator.sheetBinding) { sheetType in
+                SheetContainer(sheetType: sheetType)
+                    .environmentObject(session)
+                    .applyDetents(sheetType.detents)
+            }
+            .fullScreenCover(item: sheetCoordinator.fullScreenBinding) { sheetType in
+                SheetContainer(sheetType: sheetType)
+                    .environmentObject(session)
             }
     }
 }

@@ -28,10 +28,6 @@ enum ProductService {
                 name,
                 description,
                 sku,
-                price,
-                regular_price,
-                sale_price,
-                on_sale,
                 featured_image,
                 custom_fields,
                 pricing_data,
@@ -88,7 +84,43 @@ enum ProductService {
         }
 
         Log.network.info("✅ Fetched \(inStockProducts.count) in-stock products at location \(locationId.uuidString)")
-        return inStockProducts
+
+        // Also fetch service products (non-inventory items like lab testing services)
+        let serviceProducts = try await fetchServiceProducts(storeId: storeId)
+        Log.network.info("✅ Fetched \(serviceProducts.count) service products")
+
+        return inStockProducts + serviceProducts
+    }
+
+    /// Fetch service products (non-inventory) for a store
+    /// Service products don't require inventory - they're always available
+    static func fetchServiceProducts(storeId: UUID) async throws -> [Product] {
+        let response = try await supabase
+            .from("products")
+            .select("""
+                id,
+                name,
+                description,
+                sku,
+                type,
+                featured_image,
+                custom_fields,
+                pricing_data,
+                store_id,
+                primary_category_id,
+                pricing_schema_id,
+                status,
+                primary_category:categories!primary_category_id(id, name),
+                pricing_schema:pricing_schemas(id, name, tiers)
+            """)
+            .eq("store_id", value: storeId.uuidString)
+            .eq("type", value: "service")
+            .eq("status", value: "published")
+            .order("name")
+            .execute()
+
+        let decoder = JSONDecoder()
+        return try decoder.decode([Product].self, from: response.data)
     }
 
     /// Fetch specific products by their IDs (for label printing, etc.)
@@ -105,10 +137,6 @@ enum ProductService {
                 name,
                 description,
                 sku,
-                price,
-                regular_price,
-                sale_price,
-                on_sale,
                 featured_image,
                 custom_fields,
                 pricing_data,
@@ -140,62 +168,6 @@ enum ProductService {
         return products
     }
 
-    /// Legacy two-query method for backwards compatibility or fallback
-    /// Use fetchProducts() instead - this is kept for reference
-    @available(*, deprecated, message: "Use fetchProducts() which uses the optimized view")
-    static func fetchProductsLegacy(storeId: UUID, locationId: UUID) async throws -> [Product] {
-        // Original two-query implementation
-        let response = try await supabase
-            .from("products")
-            .select("""
-                id,
-                name,
-                description,
-                sku,
-                price,
-                regular_price,
-                sale_price,
-                on_sale,
-                featured_image,
-                custom_fields,
-                pricing_data,
-                store_id,
-                primary_category_id,
-                pricing_schema_id,
-                primary_category:categories!primary_category_id(id, name),
-                pricing_schema:pricing_schemas(id, name, tiers)
-            """)
-            .eq("store_id", value: storeId.uuidString)
-            .order("name")
-            .execute()
-
-        let productData = response.data
-        var products: [Product] = try await Task.detached {
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode([Product].self, from: productData)
-        }.value
-
-        guard !products.isEmpty else { return [] }
-
-        let productIds = products.map { $0.id.uuidString }
-        let invResponse = try await supabase
-            .from("inventory_with_holds")
-            .select("id, product_id, location_id, total_quantity, held_quantity, available_quantity")
-            .eq("location_id", value: locationId.uuidString)
-            .in("product_id", values: productIds)
-            .execute()
-
-        let inventory: [ProductInventory] = try JSONDecoder().decode([ProductInventory].self, from: invResponse.data)
-        let inventoryByProduct = Dictionary(inventory.map { ($0.productId, $0) }, uniquingKeysWith: { first, _ in first })
-
-        for i in products.indices {
-            products[i].inventory = inventoryByProduct[products[i].id]
-        }
-
-        return products.filter { $0.availableStock > 0 }
-    }
-
     /// Fetch all categories for a store
     static func fetchCategories(storeId: UUID) async throws -> [ProductCategory] {
         let categories: [ProductCategory] = try await supabase
@@ -220,19 +192,20 @@ enum ProductService {
         Log.network.info("🔬 Fetching COAs for \(productIds.count) products")
 
         let response = try await supabase
-            .from("store_coas")
+            .from("store_documents")
             .select("""
                 id,
                 product_id,
                 file_url,
                 file_name,
-                lab_name,
-                test_date,
+                source_name,
+                document_date,
                 expiry_date,
-                batch_number,
-                test_results,
+                reference_number,
+                data,
                 is_active
             """)
+            .eq("document_type", value: "coa")
             .in("product_id", values: productIds.map { $0.uuidString })
             .eq("is_active", value: true)
             .order("created_at", ascending: false)
@@ -261,8 +234,9 @@ enum ProductService {
         // Group by product_id, taking most recent (first due to order)
         var coasByProduct: [UUID: ProductCOA] = [:]
         for coa in coas {
-            if coasByProduct[coa.productId] == nil {
-                coasByProduct[coa.productId] = coa
+            guard let productId = coa.productId else { continue }
+            if coasByProduct[productId] == nil {
+                coasByProduct[productId] = coa
             }
         }
 
@@ -274,19 +248,20 @@ enum ProductService {
         Log.network.info("🔬 Fetching COA for product: \(productId.uuidString)")
 
         let response = try await supabase
-            .from("store_coas")
+            .from("store_documents")
             .select("""
                 id,
                 product_id,
                 file_url,
                 file_name,
-                lab_name,
-                test_date,
+                source_name,
+                document_date,
                 expiry_date,
-                batch_number,
-                test_results,
+                reference_number,
+                data,
                 is_active
             """)
+            .eq("document_type", value: "coa")
             .eq("product_id", value: productId.uuidString)
             .eq("is_active", value: true)
             .order("created_at", ascending: false)
@@ -370,6 +345,8 @@ enum ProductService {
 
             let schemas = try decoder.decode([PricingSchema].self, from: schemasResponse.data)
             let schemasById = Dictionary(uniqueKeysWithValues: schemas.map { ($0.id, $0) })
+
+            Log.network.info("🔀 Fetched \(schemas.count) pricing schemas for \(pricingSchemaIds.count) variant schema IDs")
 
             // Attach schemas to variants
             for i in variants.indices {
@@ -850,13 +827,9 @@ struct ProductWithInventoryRow: Codable {
     let name: String
     let description: String?
     let sku: String?
-    let price: Decimal?
-    let regularPrice: Decimal?
-    let salePrice: Decimal?
-    let onSale: Bool?
     let featuredImage: String?
     let customFields: [String: AnyCodable]?
-    let pricingData: [String: AnyCodable]?
+    let pricingData: [AnyCodable]?  // Array of pricing tiers from database
     let storeId: UUID
     let primaryCategoryId: UUID?
     let pricingSchemaId: UUID?
@@ -875,10 +848,7 @@ struct ProductWithInventoryRow: Codable {
     let pricingSchema: PricingSchemaJSON?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, description, sku, price, status
-        case regularPrice = "regular_price"
-        case salePrice = "sale_price"
-        case onSale = "on_sale"
+        case id, name, description, sku, status
         case featuredImage = "featured_image"
         case customFields = "custom_fields"
         case pricingData = "pricing_data"

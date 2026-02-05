@@ -16,12 +16,19 @@ struct IDScannerView: View {
     let storeId: UUID
     let onCustomerSelected: (Customer) -> Void
     let onDismiss: () -> Void
+    /// Optional callback for when ID is scanned with matches - if set, caller handles UI instead of SheetCoordinator
+    var onScannedIDWithMatches: ((ScannedID, [CustomerMatch]) -> Void)? = nil
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            NativeScannerView(storeId: storeId, onCustomerSelected: onCustomerSelected, onDismiss: onDismiss)
-                .ignoresSafeArea()
+            NativeScannerView(
+                storeId: storeId,
+                onCustomerSelected: onCustomerSelected,
+                onDismiss: onDismiss,
+                onScannedIDWithMatches: onScannedIDWithMatches
+            )
+            .ignoresSafeArea()
         }
     }
 }
@@ -32,6 +39,7 @@ struct NativeScannerView: UIViewControllerRepresentable {
     let storeId: UUID
     let onCustomerSelected: (Customer) -> Void
     let onDismiss: () -> Void
+    var onScannedIDWithMatches: ((ScannedID, [CustomerMatch]) -> Void)? = nil
 
     func makeUIViewController(context: Context) -> UINavigationController {
         let coordinator = context.coordinator
@@ -65,19 +73,26 @@ struct NativeScannerView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(storeId: storeId, onCustomerSelected: onCustomerSelected, onDismiss: onDismiss)
+        Coordinator(
+            storeId: storeId,
+            onCustomerSelected: onCustomerSelected,
+            onDismiss: onDismiss,
+            onScannedIDWithMatches: onScannedIDWithMatches
+        )
     }
 
     class Coordinator: NSObject, DataScannerViewControllerDelegate {
         let storeId: UUID
         let onCustomerSelected: (Customer) -> Void
         let onDismiss: () -> Void
+        let onScannedIDWithMatches: ((ScannedID, [CustomerMatch]) -> Void)?
         private var isProcessing = false
 
-        init(storeId: UUID, onCustomerSelected: @escaping (Customer) -> Void, onDismiss: @escaping () -> Void) {
+        init(storeId: UUID, onCustomerSelected: @escaping (Customer) -> Void, onDismiss: @escaping () -> Void, onScannedIDWithMatches: ((ScannedID, [CustomerMatch]) -> Void)? = nil) {
             self.storeId = storeId
             self.onCustomerSelected = onCustomerSelected
             self.onDismiss = onDismiss
+            self.onScannedIDWithMatches = onScannedIDWithMatches
         }
 
         @objc func dismissScanner() { onDismiss() }
@@ -137,7 +152,7 @@ struct NativeScannerView: UIViewControllerRepresentable {
 
                 ScanFeedback.shared.ageVerified()
                 let matches = await CustomerService.findMatches(for: parsed, storeId: storeId)
-                showCustomerModal(on: scanner, scannedID: parsed, matches: matches)
+                showCustomerSheet(on: scanner, scannedID: parsed, matches: matches)
             } catch {
                 ScanFeedback.shared.error()
                 showAlert(on: scanner, title: "Scan Error", message: "Could not read ID. Try again.") {
@@ -201,7 +216,7 @@ struct NativeScannerView: UIViewControllerRepresentable {
                 let result = try await InventoryUnitService.shared.lookup(qrCode: code, storeId: storeId)
                 if result.success, result.found, let unit = result.unit {
                     ScanFeedback.shared.customerFound()
-                    showInventoryUnitModal(on: scanner, unit: unit, lookupResult: result)
+                    showInventoryUnitSheet(on: scanner, unit: unit, lookupResult: result)
                     return
                 }
 
@@ -209,7 +224,7 @@ struct NativeScannerView: UIViewControllerRepresentable {
                 let qrResult = try await QRCodeLookupService.lookup(code: code, storeId: storeId)
                 if let scannedQR = qrResult {
                     ScanFeedback.shared.customerFound()
-                    showQRCodeModal(on: scanner, qrCode: scannedQR)
+                    showQRCodeSheet(on: scanner, qrCode: scannedQR)
                     return
                 }
 
@@ -228,13 +243,13 @@ struct NativeScannerView: UIViewControllerRepresentable {
         }
 
         @MainActor
-        private func showQRCodeModal(on scanner: DataScannerViewController, qrCode: ScannedQRCode) {
+        private func showQRCodeSheet(on scanner: DataScannerViewController, qrCode: ScannedQRCode) {
             // Disable scanner touches FIRST to prevent gesture conflicts
             scanner.view.isUserInteractionEnabled = false
             try? scanner.stopScanning()
 
             weak var hostingRef: UIViewController?
-            let modal = QRCodeScanModal(qrCode: qrCode, storeId: storeId, onDismiss: { [weak self] in
+            let modal = QRCodeScanSheet(qrCode: qrCode, storeId: storeId, onDismiss: { [weak self] in
                 hostingRef?.dismiss(animated: false) {
                     scanner.view.isUserInteractionEnabled = true
                     self?.isProcessing = false
@@ -260,7 +275,7 @@ struct NativeScannerView: UIViewControllerRepresentable {
                 let result = try await InventoryUnitService.shared.lookupTransfer(qrCode: code, storeId: storeId)
                 if result.success, result.found, let transfer = result.transfer {
                     ScanFeedback.shared.customerFound()
-                    showPackageModal(on: scanner, transfer: transfer, items: result.items ?? [])
+                    showPackageSheet(on: scanner, transfer: transfer, items: result.items ?? [])
                 } else {
                     ScanFeedback.shared.error()
                     showAlert(on: scanner, title: "Not Found", message: result.error ?? "Transfer package not found.") {
@@ -278,12 +293,12 @@ struct NativeScannerView: UIViewControllerRepresentable {
         }
 
         @MainActor
-        private func showPackageModal(on scanner: DataScannerViewController, transfer: InventoryTransfer, items: [InventoryTransferItem]) {
+        private func showPackageSheet(on scanner: DataScannerViewController, transfer: InventoryTransfer, items: [InventoryTransferItem]) {
             scanner.view.isUserInteractionEnabled = false
             try? scanner.stopScanning()
 
             weak var hostingRef: UIViewController?
-            let modal = PackageReceiveModal(transfer: transfer, items: items, storeId: storeId, onDismiss: { [weak self] in
+            let modal = PackageReceiveSheet(transfer: transfer, items: items, storeId: storeId, onDismiss: { [weak self] in
                 hostingRef?.dismiss(animated: false) {
                     scanner.view.isUserInteractionEnabled = true
                     self?.isProcessing = false
@@ -303,12 +318,12 @@ struct NativeScannerView: UIViewControllerRepresentable {
         }
 
         @MainActor
-        private func showInventoryUnitModal(on scanner: DataScannerViewController, unit: InventoryUnit, lookupResult: LookupResult) {
+        private func showInventoryUnitSheet(on scanner: DataScannerViewController, unit: InventoryUnit, lookupResult: LookupResult) {
             scanner.view.isUserInteractionEnabled = false
             try? scanner.stopScanning()
 
             weak var hostingRef: UIViewController?
-            let modal = InventoryUnitScanModal(unit: unit, lookupResult: lookupResult, storeId: storeId, onDismiss: { [weak self] in
+            let modal = InventoryUnitScanSheet(unit: unit, lookupResult: lookupResult, storeId: storeId, onDismiss: { [weak self] in
                 hostingRef?.dismiss(animated: false) {
                     scanner.view.isUserInteractionEnabled = true
                     self?.isProcessing = false
@@ -328,33 +343,26 @@ struct NativeScannerView: UIViewControllerRepresentable {
         }
 
         @MainActor
-        private func showCustomerModal(on scanner: DataScannerViewController, scannedID: ScannedID, matches: [CustomerMatch]) {
-            weak var hostingRef: UIViewController?
-            let modal = ScannerCustomerModal(scannedID: scannedID, matches: matches, storeId: storeId, onComplete: { [weak self] customer in
-                scanner.view.isUserInteractionEnabled = true
-                hostingRef?.dismiss(animated: true) {
-                    self?.onCustomerSelected(customer)
-                    self?.onDismiss()
-                }
-            }, onCancel: { [weak self] in
-                scanner.view.isUserInteractionEnabled = true
-                hostingRef?.dismiss(animated: true) {
-                    self?.isProcessing = false
-                    try? scanner.startScanning()
-                }
-            })
+        private func showCustomerSheet(on scanner: DataScannerViewController, scannedID: ScannedID, matches: [CustomerMatch]) {
+            print("🆔 Scanned ID - name: \(scannedID.fullDisplayName), matches: \(matches.count)")
 
-            let host = UIHostingController(rootView: modal)
-            host.modalPresentationStyle = .pageSheet
-            if let sheet = host.sheetPresentationController {
-                // Use .large() as default so content fills properly
-                sheet.detents = [.large()]
-                sheet.prefersGrabberVisible = true
-                sheet.prefersScrollingExpandsWhenScrolledToEdge = false
+            // If callback provided, use it instead of SheetCoordinator (for embedded scanner)
+            if let callback = onScannedIDWithMatches {
+                callback(scannedID, matches)
+                onDismiss()
+                return
             }
-            hostingRef = host
-            scanner.view.isUserInteractionEnabled = false
-            scanner.present(host, animated: true)
+
+            // Default behavior: dismiss scanner and present customer sheet via SheetCoordinator
+            onDismiss()
+
+            let capturedStoreId = self.storeId
+            let capturedScannedID = scannedID
+            let capturedMatches = matches
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                SheetCoordinator.shared.present(.customerScanned(storeId: capturedStoreId, scannedID: capturedScannedID, matches: capturedMatches))
+            }
         }
 
         @MainActor

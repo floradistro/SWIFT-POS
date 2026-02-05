@@ -17,13 +17,18 @@ struct ManualCustomerEntrySheet: View {
     let onCancel: () -> Void
     var orderStore: OrderStore = OrderStore.shared
 
+    // Optional scanned ID data (when coming from ID scanner)
+    var scannedID: ScannedID? = nil
+    var scannedMatches: [CustomerMatch]? = nil
+
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        // Direct content - no ScrollView to avoid gesture blocking
-        CustomerSearchModalContent(
+        CustomerSearchContent(
             storeId: storeId,
             orderStore: orderStore,
+            scannedID: scannedID,
+            scannedMatches: scannedMatches,
             onCustomerCreated: { customer in
                 dismiss()
                 onCustomerCreated(customer)
@@ -33,20 +38,29 @@ struct ManualCustomerEntrySheet: View {
                 onCancel()
             }
         )
-        .frame(maxWidth: 580)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
     }
 }
 
 // MARK: - Customer Search Modal Content
 
-private struct CustomerSearchModalContent: View {
+private struct CustomerSearchContent: View {
     let storeId: UUID
     @ObservedObject var orderStore: OrderStore
+    let scannedID: ScannedID?
+    let scannedMatches: [CustomerMatch]?
     let onCustomerCreated: (Customer) -> Void
     let onDismiss: () -> Void
+
+    /// Local state for scanned data (updated by internal scanner)
+    @State private var localScannedID: ScannedID? = nil
+    @State private var localScannedMatches: [CustomerMatch]? = nil
+
+    /// Effective scanned ID (prefers local state over passed-in)
+    private var effectiveScannedID: ScannedID? { localScannedID ?? scannedID }
+    private var effectiveScannedMatches: [CustomerMatch]? { localScannedMatches ?? scannedMatches }
+
+    /// Whether we're in scanned mode
+    private var isScannedMode: Bool { effectiveScannedID != nil }
 
     enum Mode: Hashable {
         case search
@@ -76,6 +90,7 @@ private struct CustomerSearchModalContent: View {
     }
 
     @State private var mode: Mode = .search
+    @State private var detailAppearAnimation = false
     @State private var searchQuery = ""
     @State private var searchResults: [Customer] = []
     @State private var isSearching = false
@@ -99,78 +114,193 @@ private struct CustomerSearchModalContent: View {
 
 
     var body: some View {
-        VStack(spacing: 0) {
-            switch mode {
-            case .search:
-                searchView
-
-            case .create:
-                createView
-
-            case .scanner:
-                scannerView
-
-            case .detail(let customer):
-                customerDetailView(customer)
+        Group {
+            if case .detail(let customer) = mode {
+                // Full-height customer detail (no NavigationStack header)
+                customerDetailFullScreen(customer)
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.94).combined(with: .opacity),
+                        removal: .scale(scale: 0.98).combined(with: .opacity)
+                    ))
+            } else {
+                // Standard navigation for search/create/scanner
+                NavigationStack {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 16) {
+                            switch mode {
+                            case .search:
+                                searchContent
+                            case .create:
+                                createContent
+                            case .scanner:
+                                scannerContent
+                            case .detail:
+                                EmptyView()
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, 24)
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
+                    .navigationTitle(navigationTitle)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") { onDismiss() }
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                        ToolbarItem(placement: .primaryAction) {
+                            toolbarActions
+                        }
+                    }
+                }
             }
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .preferredColorScheme(.dark)
+        .onAppear {
+            print("📋 CustomerSearchContent appeared - isScannedMode: \(isScannedMode), scannedID: \(scannedID?.fullDisplayName ?? "nil"), matches: \(scannedMatches?.count ?? 0)")
         }
     }
 
-    // MARK: - Search View
+    // MARK: - Full Screen Customer Detail
 
-    private var searchView: some View {
+    @ViewBuilder
+    private func customerDetailFullScreen(_ customer: Customer) -> some View {
         VStack(spacing: 0) {
-            // Header with icon buttons (matches TierSelectorModal style)
-            searchHeader
+            // Custom header with liquid glass back button
+            HStack(spacing: 14) {
+                // Back button with liquid glass
+                Button {
+                    Haptics.light()
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        detailAppearAnimation = false
+                        mode = .search
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Back")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .foregroundStyle(.white.opacity(0.8))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: Capsule())
 
-            VStack(spacing: 16) {
-                // Search field
-                searchField
+                Spacer()
 
-                // Results area
-                resultsArea
+                // Done button
+                Button {
+                    Haptics.light()
+                    onDismiss()
+                } label: {
+                    Text("Done")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            // Scrollable content
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    customerDetailContent(customer)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 34)
+                .scaleEffect(detailAppearAnimation ? 1 : 0.96)
+                .opacity(detailAppearAnimation ? 1 : 0)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                detailAppearAnimation = true
+            }
         }
     }
 
-    // MARK: - Search Header (matches TierSelectorModal)
-
-    private var searchHeader: some View {
-        HStack(alignment: .center) {
-            ModalCloseButton(action: onDismiss)
-
-            Spacer()
-
-            VStack(spacing: 4) {
-                Text("FIND CUSTOMER")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.4))
-                    .tracking(0.5)
-
-                Text("Search or Add")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-            }
-
-            Spacer()
-
-            HStack(spacing: 8) {
-                // Scan ID button
-                LiquidGlassIconButton(icon: "camera.viewfinder", tintColor: .white.opacity(0.6)) {
-                    mode = .scanner
-                }
-
-                // Create new button
-                LiquidGlassIconButton(icon: "person.badge.plus", tintColor: .white.opacity(0.6)) {
-                    mode = .create
-                }
-            }
+    private var navigationTitle: String {
+        switch mode {
+        case .search:
+            return isScannedMode ? "ID Scanned" : "Find Customer"
+        case .create:
+            return "New Customer"
+        case .scanner:
+            return "Scan ID"
+        case .detail:
+            return ""  // Breadcrumb shows the name
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 16)
-        .padding(.bottom, 16)
+    }
+
+    @ViewBuilder
+    private var toolbarActions: some View {
+        switch mode {
+        case .search:
+            HStack(spacing: 8) {
+                if isScannedMode, let age = effectiveScannedID?.age {
+                    Text("\(age)")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(Design.Colors.Semantic.success)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(Design.Colors.Semantic.success.opacity(0.15)))
+                }
+                Button {
+                    mode = .scanner
+                } label: {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                Button {
+                    prefillCreateFormFromScan()
+                    mode = .create
+                } label: {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+            }
+        case .create:
+            Button {
+                mode = .search
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+        case .detail:
+            EmptyView()  // Breadcrumb handles navigation
+        case .scanner:
+            EmptyView()
+        }
+    }
+
+    // MARK: - Search Content
+
+    @ViewBuilder
+    private var searchContent: some View {
+        // Scanned ID info banner
+        if let scanned = effectiveScannedID {
+            scannedInfoBanner(scanned)
+        }
+
+        // Search field
+        searchField
+
+        // Results area
+        resultsArea
     }
 
     // MARK: - Search Field
@@ -214,12 +344,54 @@ private struct CustomerSearchModalContent: View {
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
     }
 
+    // MARK: - Scanned Info Banner
+
+    private func scannedInfoBanner(_ scanned: ScannedID) -> some View {
+        HStack(spacing: 14) {
+            // Initials circle with glass
+            Text(scanned.initials)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 50, height: 50)
+                .glassEffect(.regular, in: .circle)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(scanned.fullDisplayName)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+
+                HStack(spacing: 8) {
+                    if let state = scanned.state {
+                        Text("\(state) License")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white.opacity(0.5))
+                    }
+                    if scanned.isExpired {
+                        Text("EXPIRED")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Design.Colors.Semantic.error))
+                    }
+                }
+            }
+
+            Spacer()
+        }
+        .padding(14)
+        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+    }
+
     // MARK: - Results Area
 
     private var resultsArea: some View {
-        AdaptiveScrollView(maxHeight: 380) {
-            VStack(alignment: .leading, spacing: 8) {
-                if !searchResults.isEmpty {
+        AdaptiveScrollView(maxHeight: isScannedMode ? 420 : 380) {
+            VStack(alignment: .leading, spacing: 10) {
+                // Show scanned matches if available
+                if isScannedMode, let matches = effectiveScannedMatches, !matches.isEmpty {
+                    scannedMatchesSection(matches)
+                } else if !searchResults.isEmpty {
                     Text("\(searchResults.count) \(searchResults.count == 1 ? "result" : "results")")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.35))
@@ -231,12 +403,20 @@ private struct CustomerSearchModalContent: View {
                         ForEach(searchResults.prefix(5)) { customer in
                             CustomerRow(
                                 customer: customer,
-                                onSelect: { selectCustomer(customer) }
+                                onSelect: { selectCustomer(customer) },
+                                onViewProfile: {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                        detailAppearAnimation = false
+                                        mode = .detail(customer)
+                                    }
+                                }
                             )
                         }
                     }
                 } else if !searchQuery.isEmpty && !isSearching {
                     noResultsView
+                } else if isScannedMode {
+                    noMatchScannedView
                 } else {
                     emptyStateView
                 }
@@ -244,24 +424,197 @@ private struct CustomerSearchModalContent: View {
         }
     }
 
+    // MARK: - Scanned Matches Section
+
+    private func scannedMatchesSection(_ matches: [CustomerMatch]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(matches.count == 1 ? "1 Match Found" : "\(matches.count) Matches Found")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.35))
+                .textCase(.uppercase)
+                .tracking(0.5)
+                .padding(.leading, 4)
+
+            // Individual match rows with liquid glass
+            VStack(spacing: 8) {
+                ForEach(matches.prefix(5), id: \.id) { match in
+                    scannedMatchRow(match)
+                }
+            }
+
+            // Create new button with glass
+            Button {
+                Haptics.light()
+                prefillCreateFormFromScan()
+                mode = .create
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 14, weight: .medium))
+                    Text("Create New Customer")
+                        .font(.system(size: 14, weight: .medium))
+                }
+                .foregroundStyle(.white.opacity(0.6))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+        }
+    }
+
+    private func scannedMatchRow(_ match: CustomerMatch) -> some View {
+        Button {
+            Haptics.light()
+            // Tap row to view profile
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                detailAppearAnimation = false
+                mode = .detail(match.customer)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                // Avatar with glass
+                Text(match.customer.initials)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .glassEffect(.regular, in: .circle)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(match.customer.displayName)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+
+                        if match.matchType == .exact {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Design.Colors.Semantic.success)
+                        }
+                    }
+
+                    HStack(spacing: 8) {
+                        if let phone = match.customer.formattedPhone {
+                            Text(phone)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.45))
+                        } else if let email = match.customer.email, !email.isEmpty {
+                            Text(email)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.45))
+                                .lineLimit(1)
+                        }
+
+                        // Loyalty points badge
+                        if let points = match.customer.loyaltyPoints {
+                            HStack(spacing: 2) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 8, weight: .bold))
+                                Text("\(points)")
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                            }
+                            .foregroundStyle(points >= 0 ? .yellow.opacity(0.8) : .red.opacity(0.7))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(.white.opacity(0.08), in: .capsule)
+                        }
+                    }
+                }
+
+                Spacer()
+
+                // Quick select button
+                Button {
+                    Haptics.medium()
+                    selectScannedMatch(match)
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.3))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .contentShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
+    }
+
     private var noResultsView: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 16) {
             Image(systemName: "person.slash")
-                .font(.system(size: 24, weight: .medium))
+                .font(.system(size: 28, weight: .medium))
                 .foregroundStyle(.white.opacity(0.25))
 
-            Text("No results")
+            Text("No customers found")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.white.opacity(0.4))
+
+            Button {
+                Haptics.light()
+                mode = .create
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 14, weight: .medium))
+                    Text("Create New Customer")
+                        .font(.system(size: 14, weight: .medium))
+                }
+                .foregroundStyle(.white.opacity(0.7))
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .glassEffect(.regular.interactive(), in: .capsule)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
+        .padding(.vertical, 28)
+        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+    }
+
+    private var noMatchScannedView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "person.crop.circle.badge.questionmark")
+                .font(.system(size: 36, weight: .medium))
+                .foregroundStyle(.white.opacity(0.3))
+
+            Text("No existing customer found")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.white.opacity(0.5))
+
+            Button {
+                Haptics.medium()
+                prefillCreateFormFromScan()
+                mode = .create
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Create Customer")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(ScaleButtonStyle())
+        }
+        .frame(maxWidth: .infinity)
+        .padding(20)
+        .glassEffect(.regular, in: .rect(cornerRadius: 16))
     }
 
     private var emptyStateView: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             Image(systemName: "person.crop.circle.badge.magnifyingglass")
-                .font(.system(size: 24, weight: .medium))
+                .font(.system(size: 28, weight: .medium))
                 .foregroundStyle(.white.opacity(0.25))
 
             Text("Search customers")
@@ -269,147 +622,205 @@ private struct CustomerSearchModalContent: View {
                 .foregroundStyle(.white.opacity(0.4))
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
+        .padding(.vertical, 28)
+        .glassEffect(.regular, in: .rect(cornerRadius: 14))
     }
 
-    // MARK: - Create View
+    // MARK: - Scanned Actions
 
-    private var createView: some View {
-        VStack(spacing: 0) {
-            createHeader
+    private func selectScannedMatch(_ match: CustomerMatch) {
+        // Update license if needed
+        if match.customer.driversLicenseNumber == nil, let scanned = effectiveScannedID, let license = scanned.licenseNumber {
+            Task { await CustomerService.updateCustomerLicense(match.customer.id, licenseNumber: license) }
+        }
 
-            VStack(spacing: 20) {
-                // Name fields
-                VStack(alignment: .leading, spacing: 10) {
-                    ModalSectionLabel("Name")
-                    HStack(spacing: 12) {
-                        LiquidGlassTextField("First", text: $firstName)
-                            .focused($focusedCreateField, equals: .firstName)
-                        LiquidGlassTextField("Last", text: $lastName)
-                            .focused($focusedCreateField, equals: .lastName)
-                    }
+        ScanFeedback.shared.customerFound()
+        onCustomerCreated(match.customer)
+    }
+
+    private func prefillCreateFormFromScan() {
+        guard let scanned = effectiveScannedID else { return }
+        firstName = scanned.firstName ?? ""
+        lastName = scanned.lastName ?? ""
+        // Convert from YYYY-MM-DD to MM/DD/YYYY for the form
+        if let dob = scanned.dateOfBirth {
+            let inputFormatter = DateFormatter()
+            inputFormatter.dateFormat = "yyyy-MM-dd"
+            if let date = inputFormatter.date(from: dob) {
+                let outputFormatter = DateFormatter()
+                outputFormatter.dateFormat = "MM/dd/yyyy"
+                dateOfBirth = outputFormatter.string(from: date)
+            }
+        }
+    }
+
+    // MARK: - Create Content
+
+    @ViewBuilder
+    private var createContent: some View {
+        // Name fields
+        VStack(alignment: .leading, spacing: 8) {
+            Text("NAME")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
+                .tracking(0.5)
+                .padding(.leading, 4)
+
+            HStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    TextField("", text: $firstName, prompt: Text("First").foregroundColor(.white.opacity(0.35)))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                        .focused($focusedCreateField, equals: .firstName)
                 }
+                .padding(.horizontal, 16)
+                .frame(height: 48)
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
 
-                // DOB
-                VStack(alignment: .leading, spacing: 10) {
-                    ModalSectionLabel("Date of Birth")
-                    LiquidGlassTextField(
-                        "MM/DD/YYYY",
-                        text: $dateOfBirth,
-                        icon: "calendar",
-                        keyboardType: .numbersAndPunctuation
-                    )
+                HStack(spacing: 12) {
+                    TextField("", text: $lastName, prompt: Text("Last").foregroundColor(.white.opacity(0.35)))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                        .focused($focusedCreateField, equals: .lastName)
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 48)
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
+            }
+        }
+
+        // DOB
+        VStack(alignment: .leading, spacing: 8) {
+            Text("DATE OF BIRTH")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
+                .tracking(0.5)
+                .padding(.leading, 4)
+
+            HStack(spacing: 12) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.4))
+                TextField("", text: $dateOfBirth, prompt: Text("MM/DD/YYYY").foregroundColor(.white.opacity(0.35)))
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.white)
+                    .keyboardType(.numbersAndPunctuation)
                     .focused($focusedCreateField, equals: .dob)
                     .onChange(of: dateOfBirth) { _, newValue in
                         dateOfBirth = formatDateInput(newValue)
                     }
-                }
-
-                // Contact
-                VStack(alignment: .leading, spacing: 10) {
-                    ModalSectionLabel("Contact (Optional)")
-                    LiquidGlassTextField(
-                        "Phone",
-                        text: $phone,
-                        icon: "phone.fill",
-                        keyboardType: .phonePad
-                    )
-                    .focused($focusedCreateField, equals: .phone)
-
-                    LiquidGlassTextField(
-                        "Email",
-                        text: $email,
-                        icon: "envelope.fill",
-                        keyboardType: .emailAddress
-                    )
-                    .focused($focusedCreateField, equals: .email)
-                }
-
-                // Error
-                if let error = errorMessage {
-                    HStack(spacing: 10) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 15))
-                        Text(error)
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundStyle(Color(hex: "EF4444"))
-                    .padding(14)
-                    .frame(maxWidth: .infinity)
-                    .glassEffect(.regular, in: .rect(cornerRadius: 14))
-                }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 16)
-
-            ModalActionButton(
-                "Create Customer",
-                icon: "person.badge.plus",
-                isEnabled: isCreateValid,
-                isLoading: isCreating,
-                style: .success
-            ) {
-                focusedCreateField = nil
-                Task { await createCustomer() }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
+            .padding(.horizontal, 16)
+            .frame(height: 48)
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
         }
+
+        // Contact
+        VStack(alignment: .leading, spacing: 8) {
+            Text("CONTACT (OPTIONAL)")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
+                .tracking(0.5)
+                .padding(.leading, 4)
+
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    Image(systemName: "phone.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .frame(width: 20)
+                    TextField("", text: $phone, prompt: Text("Phone").foregroundColor(.white.opacity(0.35)))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                        .keyboardType(.phonePad)
+                        .focused($focusedCreateField, equals: .phone)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+
+                Divider().background(.white.opacity(0.08))
+
+                HStack(spacing: 12) {
+                    Image(systemName: "envelope.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .frame(width: 20)
+                    TextField("", text: $email, prompt: Text("Email").foregroundColor(.white.opacity(0.35)))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .focused($focusedCreateField, equals: .email)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
+        }
+
+        // Error
+        if let error = errorMessage {
+            HStack(spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 15))
+                Text(error)
+                    .font(.system(size: 14, weight: .medium))
+            }
+            .foregroundStyle(Design.Colors.Semantic.error)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Design.Colors.Semantic.error.opacity(0.1)))
+        }
+
+        // Create button
+        Button {
+            Haptics.medium()
+            focusedCreateField = nil
+            Task { await createCustomer() }
+        } label: {
+            HStack {
+                if isCreating {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .tint(.white)
+                } else {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Create Customer")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+            }
+            .foregroundStyle(isCreateValid ? .white : .white.opacity(0.4))
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(.white.opacity(isCreateValid ? 0.15 : 0.08), in: RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+        .disabled(!isCreateValid || isCreating)
     }
 
-    private var createHeader: some View {
-        HStack(alignment: .center) {
-            ModalBackButton {
-                focusedCreateField = nil
-                mode = .search
-            }
-
-            Spacer()
-
-            VStack(spacing: 4) {
-                Text("NEW CUSTOMER")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.4))
-                    .tracking(0.5)
-                Text(displayName.isEmpty ? "Enter Details" : displayName)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            ModalCloseButton(action: onDismiss)
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 12)
-    }
-
-    // MARK: - Scanner View
+    // MARK: - Scanner Content
 
     @State private var showFullScreenScanner = false
 
-    private var scannerView: some View {
-        VStack(spacing: 0) {
-            ModalHeader("Scan ID", subtitle: "Camera", onClose: onDismiss)
-
-            VStack(spacing: 20) {
-                ZStack {
-                    ProgressView()
-                        .scaleEffect(1.3)
-                        .tint(.white.opacity(0.6))
-                }
-                .frame(width: 80, height: 80)
-                .glassEffect(.regular, in: .circle)
-
-                Text("Launching scanner...")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.5))
+    @ViewBuilder
+    private var scannerContent: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                ProgressView()
+                    .scaleEffect(1.3)
+                    .tint(.white.opacity(0.6))
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 48)
+            .frame(width: 80, height: 80)
+            .background(Circle().fill(.white.opacity(0.08)))
+
+            Text("Launching scanner...")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.white.opacity(0.5))
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
+        .background(RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.04)))
         .onAppear {
             showFullScreenScanner = true
         }
@@ -423,81 +834,51 @@ private struct CustomerSearchModalContent: View {
                 onDismiss: {
                     showFullScreenScanner = false
                     mode = .search
+                },
+                onScannedIDWithMatches: { scannedID, matches in
+                    // Update local state instead of presenting a new sheet
+                    showFullScreenScanner = false
+                    localScannedID = scannedID
+                    localScannedMatches = matches
+                    mode = .search
+                    print("🆔 Scanner returned to sheet - name: \(scannedID.fullDisplayName), matches: \(matches.count)")
                 }
             )
         }
     }
 
-    // MARK: - Customer Detail View
+    // MARK: - Customer Detail Content
 
     @State private var customerOrders: [Order] = []
     @State private var isLoadingOrders = false
-    @State private var selectedOrderForDetail: Order?
 
-    private func customerDetailView(_ customer: Customer) -> some View {
-        VStack(spacing: 0) {
-            customerDetailHeader(customer)
+    @ViewBuilder
+    private func customerDetailContent(_ customer: Customer) -> some View {
+        customerProfileCard(customer)
+        customerCRMStats(customer)
+        customerContactSection(customer)
+        customerOrdersSection(customer)
 
-            AdaptiveScrollView(maxHeight: 450) {
-                VStack(spacing: 16) {
-                    customerProfileCard(customer)
-                    customerCRMStats(customer)
-                    customerContactSection(customer)
-                    customerOrdersSection(customer)
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
-                .padding(.top, 4)
+        // Select button
+        Button {
+            Haptics.medium()
+            selectCustomer(customer)
+        } label: {
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                Text("Select Customer")
+                    .font(.system(size: 16, weight: .semibold))
             }
-
-            ModalActionButton(
-                "Select Customer",
-                icon: "checkmark.circle.fill",
-                style: .glass
-            ) {
-                selectCustomer(customer)
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 14))
         }
+        .buttonStyle(ScaleButtonStyle())
         .onAppear {
             loadCustomerOrders(for: customer)
         }
-        .fullScreenCover(item: $selectedOrderForDetail) { order in
-            OrderDetailModal(order: order, store: orderStore, isPresented: .constant(true))
-                .onDisappear {
-                    selectedOrderForDetail = nil
-                }
-        }
-    }
-
-    private func customerDetailHeader(_ customer: Customer) -> some View {
-        HStack(alignment: .center) {
-            // Back button
-            ModalBackButton {
-                mode = .search
-            }
-
-            Spacer()
-
-            VStack(spacing: 4) {
-                Text("CUSTOMER PROFILE")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.4))
-                    .tracking(0.5)
-                // Display truncated relationship ID as customer reference
-                Text("#\(customer.id.uuidString.prefix(8).uppercased())")
-                    .font(.system(size: 16, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.6))
-            }
-
-            Spacer()
-
-            ModalCloseButton(action: onDismiss)
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 12)
     }
 
     private func customerProfileCard(_ customer: Customer) -> some View {
@@ -547,8 +928,8 @@ private struct CustomerSearchModalContent: View {
     private func customerCRMStats(_ customer: Customer) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("METRICS")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.4))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
 
@@ -587,8 +968,8 @@ private struct CustomerSearchModalContent: View {
     private func customerContactSection(_ customer: Customer) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("CONTACT INFORMATION")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.4))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
 
@@ -607,7 +988,7 @@ private struct CustomerSearchModalContent: View {
                 }
 
                 // Always show at least one row
-                if customer.formattedPhone == nil && (customer.email == nil || customer.email!.isEmpty) {
+                if customer.formattedPhone == nil && (customer.email ?? "").isEmpty {
                     HStack {
                         Spacer()
                         Text("No contact info on file")
@@ -626,8 +1007,8 @@ private struct CustomerSearchModalContent: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("RECENT ORDERS")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.5))
                     .tracking(0.5)
 
                 Spacer()
@@ -661,7 +1042,7 @@ private struct CustomerSearchModalContent: View {
                     ForEach(Array(customerOrders.prefix(3).enumerated()), id: \.element.id) { index, order in
                         OrderRowCompact(order: order) {
                             Haptics.light()
-                            selectedOrderForDetail = order
+                            SheetCoordinator.shared.present(.orderDetail(order: order))
                         }
 
                         // Divider between rows (not after last)
@@ -702,9 +1083,10 @@ private struct CustomerSearchModalContent: View {
         let response = try await supabase
             .from("orders")
             .select("""
-                id, order_number, store_id, customer_id, order_type, status, payment_status,
+                id, order_number, store_id, customer_id, channel, status, payment_status,
                 subtotal, discount_amount, tax_amount, total_amount, created_at, updated_at,
-                v_store_customers(first_name, last_name, email, phone)
+                v_store_customers(first_name, last_name, email, phone),
+                fulfillments(id, type, status, delivery_location_id, carrier, tracking_number, tracking_url, shipping_cost, created_at, shipped_at, delivered_at, delivery_location:delivery_location_id(id, name))
             """)
             .eq("store_id", value: storeId.uuidString)
             .eq("customer_id", value: customerId.uuidString)
@@ -848,16 +1230,19 @@ private struct CustomerSearchModalContent: View {
             dobFormatted = parsed
         }
 
+        // Use scanned ID data for address/license if available
+        let scanned = effectiveScannedID
+
         let customerData = NewCustomerFromScan(
             firstName: firstName.trimmingCharacters(in: .whitespaces),
-            middleName: nil,
+            middleName: scanned?.middleName,
             lastName: lastName.trimmingCharacters(in: .whitespaces),
             dateOfBirth: dobFormatted,
-            streetAddress: nil,
-            city: nil,
-            state: nil,
-            postalCode: nil,
-            driversLicenseNumber: nil
+            streetAddress: scanned?.streetAddress,
+            city: scanned?.city,
+            state: scanned?.state,
+            postalCode: scanned?.zipCode,
+            driversLicenseNumber: scanned?.licenseNumber
         )
 
         let phoneValue = phone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : phone
@@ -1028,13 +1413,18 @@ private struct OrderRowButtonStyle: ButtonStyle {
 private struct CustomerRow: View {
     let customer: Customer
     let onSelect: () -> Void
+    var onViewProfile: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 10) {
-            // Main content - tappable to select
+            // Main content - tappable to view profile (or select if no profile handler)
             Button {
                 Haptics.light()
-                onSelect()
+                if let viewProfile = onViewProfile {
+                    viewProfile()
+                } else {
+                    onSelect()
+                }
             } label: {
                 HStack(spacing: 12) {
                     // Monochrome avatar
@@ -1071,18 +1461,19 @@ private struct CustomerRow: View {
 
                     Spacer(minLength: 4)
 
-                    // Monochrome stats
+                    // Stats badges
                     HStack(spacing: 6) {
-                        if let points = customer.loyaltyPoints, points > 0 {
-                            HStack(spacing: 3) {
+                        // Loyalty points badge (always show if customer has points field)
+                        if let points = customer.loyaltyPoints {
+                            HStack(spacing: 2) {
                                 Image(systemName: "star.fill")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(.system(size: 8, weight: .bold))
                                 Text("\(points)")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
                             }
-                            .foregroundStyle(.white.opacity(0.5))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
+                            .foregroundStyle(points >= 0 ? .yellow.opacity(0.8) : .red.opacity(0.7))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
                             .background(.white.opacity(0.08), in: .capsule)
                         }
 
@@ -1098,6 +1489,19 @@ private struct CustomerRow: View {
                             .padding(.vertical, 3)
                             .background(.white.opacity(0.08), in: .capsule)
                         }
+                    }
+
+                    // Quick select button (only if profile view is available)
+                    if onViewProfile != nil {
+                        Button {
+                            Haptics.medium()
+                            onSelect()
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 24, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.6))
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     // Chevron inline with the row
@@ -1117,6 +1521,16 @@ private struct CustomerRow: View {
     }
 }
 
+
+// MARK: - ScannedID Extensions
+
+private extension ScannedID {
+    var initials: String {
+        let first = firstName?.first.map(String.init) ?? ""
+        let last = lastName?.first.map(String.init) ?? ""
+        return (first + last).uppercased()
+    }
+}
 
 // MARK: - Preview
 

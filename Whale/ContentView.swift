@@ -27,8 +27,7 @@ struct ContentView: View {
 
     var body: some View {
         Log.ui.debug("ContentView body evaluated - login screen rendering")
-        return
-        ZStack {
+        return ZStack {
             Design.Colors.backgroundPrimary.ignoresSafeArea()
 
             ScrollView {
@@ -67,7 +66,8 @@ struct ContentView: View {
                                 .autocapitalization(.none)
                                 .autocorrectionDisabled()
                         }
-                        .glassInput()
+                        .padding(Design.Spacing.md)
+                        .glassBackground(intensity: .medium, cornerRadius: Design.Radius.md)
 
                         // Password field
                         HStack {
@@ -78,7 +78,8 @@ struct ContentView: View {
                                 .foregroundStyle(Design.Colors.Text.primary)
                                 .textContentType(isSignUp ? .newPassword : .password)
                         }
-                        .glassInput()
+                        .padding(Design.Spacing.md)
+                        .glassBackground(intensity: .medium, cornerRadius: Design.Radius.md)
 
                         // Stay logged in toggle (with biometric)
                         if !isSignUp && biometricType != .none {
@@ -140,7 +141,7 @@ struct ContentView: View {
                         .padding(.top, Design.Spacing.xs)
                     }
                     .padding(Design.Spacing.xl)
-                    .glassCard(cornerRadius: Design.Radius.xxl, opacity: 0.3, borderOpacity: 0.08)
+                    .glassBackground(intensity: .medium, cornerRadius: Design.Radius.xxl)
                     .shadow(color: .black.opacity(0.5), radius: 20, x: 0, y: 10)
                     .padding(.horizontal, Design.Spacing.xl)
 
