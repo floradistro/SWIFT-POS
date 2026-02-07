@@ -150,20 +150,6 @@ final class POSWindowSession: ObservableObject, Identifiable {
     @Published private(set) var cashSalesTotal: Decimal = 0
     @Published private(set) var safeDrops: [SafeDrop] = []
 
-    struct SafeDrop: Identifiable, Codable {
-        let id: UUID
-        let amount: Decimal
-        let timestamp: Date
-        let notes: String?
-
-        init(amount: Decimal, notes: String? = nil) {
-            self.id = UUID()
-            self.amount = amount
-            self.timestamp = Date()
-            self.notes = notes
-        }
-    }
-
     /// Expected drawer balance = opening + cash sales - safe drops
     var expectedDrawerBalance: Decimal {
         openingCash + cashSalesTotal - totalSafeDrops
@@ -266,26 +252,6 @@ final class POSWindowSession: ObservableObject, Identifiable {
             expectedBalance: expectedDrawerBalance,
             dropCount: safeDrops.count
         )
-    }
-
-    struct DrawerSummary {
-        let openingCash: Decimal
-        let cashSales: Decimal
-        let safeDrops: Decimal
-        let expectedBalance: Decimal
-        let dropCount: Int
-    }
-
-    enum DrawerError: LocalizedError {
-        case invalidAmount
-        case insufficientFunds
-
-        var errorDescription: String? {
-            switch self {
-            case .invalidAmount: return "Amount must be greater than zero"
-            case .insufficientFunds: return "Not enough cash in drawer"
-            }
-        }
     }
 
     // MARK: - Product State (per-window - location-specific inventory)
