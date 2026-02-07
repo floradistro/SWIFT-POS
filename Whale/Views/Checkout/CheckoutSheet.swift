@@ -198,6 +198,8 @@ struct CheckoutSheet: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .glassEffect(.regular, in: .capsule)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Customer: \(customer.displayName)")
                     }
 
                     // Total
@@ -321,6 +323,7 @@ struct CheckoutSheet: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Loyalty Section
@@ -333,6 +336,7 @@ struct CheckoutSheet: View {
                 Image(systemName: "star.fill")
                     .font(.system(size: 16))
                     .foregroundStyle(.yellow)
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Loyalty Points")
@@ -446,6 +450,8 @@ struct CheckoutSheet: View {
             }
         }
         .buttonStyle(ScaleButtonStyle())
+        .accessibilityLabel(method.label)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     // MARK: - Payment Input
@@ -581,6 +587,7 @@ struct CheckoutSheet: View {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
+                            .accessibilityHidden(true)
                         Text("Labels failed to print")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(.white)
@@ -588,12 +595,14 @@ struct CheckoutSheet: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(.orange.opacity(0.15), in: Capsule())
+                    .accessibilityElement(children: .combine)
                 }
 
                 Image(systemName: isInvoice ? "paperplane.circle.fill" : "checkmark.circle.fill")
                     .font(.system(size: 80))
                     .foregroundStyle(isInvoice ? .blue : .green)
                     .symbolEffect(.bounce, value: checkoutPhase)
+                    .accessibilityLabel(isInvoice ? "Invoice sent" : "Payment complete")
 
                 Text(CurrencyFormatter.format(completedOrder?.total ?? displayTotal))
                     .font(.system(size: 44, weight: .bold, design: .rounded))

@@ -541,6 +541,7 @@ struct QRCodeScanSheet: View {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.white.opacity(0.25))
+                    .accessibilityHidden(true)
             }
             .padding(.vertical, 12)
             .padding(.horizontal, 16)
@@ -557,6 +558,7 @@ struct QRCodeScanSheet: View {
         }
         .buttonStyle(.plain)
         .disabled(isPrinting || isLoading)
+        .accessibilityLabel(title)
     }
 
     func navigateTo(_ screen: QRScanScreen) {
