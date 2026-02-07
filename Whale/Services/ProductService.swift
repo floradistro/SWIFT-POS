@@ -168,6 +168,12 @@ enum ProductService {
         return products
     }
 
+    /// Fetch a single product by ID
+    static func fetchProduct(_ productId: UUID) async throws -> Product? {
+        let products = try await fetchProductsByIds([productId])
+        return products.first
+    }
+
     /// Fetch all categories for a store
     static func fetchCategories(storeId: UUID) async throws -> [ProductCategory] {
         let categories: [ProductCategory] = try await supabase

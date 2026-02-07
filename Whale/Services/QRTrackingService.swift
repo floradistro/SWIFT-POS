@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import Supabase
 import os.log
 
 // MARK: - QR Tracking Service
@@ -392,6 +393,19 @@ enum QRTrackingService {
             // Silent failure - don't block label printing if analytics fails
             Log.network.warning("QR registration error: \(error.localizedDescription)")
         }
+    }
+
+    /// Mark a QR code as split with the given child count
+    static func markQRCodeAsSplit(qrCodeId: UUID, childCount: Int) async throws {
+        struct SplitUpdate: Encodable {
+            let status: String
+            let child_count: Int
+        }
+        try await supabase
+            .from("qr_codes")
+            .update(SplitUpdate(status: "split", child_count: childCount))
+            .eq("id", value: qrCodeId.uuidString)
+            .execute()
     }
 }
 
