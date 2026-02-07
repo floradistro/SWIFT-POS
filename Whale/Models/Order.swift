@@ -982,5 +982,3 @@ extension Order {
         primaryFulfillment?.deliveryLocation?.name
     }
 }
-
-// Note: AnyCodable is defined in Product.swift
