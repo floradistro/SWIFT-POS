@@ -9,7 +9,6 @@ import SwiftUI
 import UIKit
 import AVFoundation
 import Combine
-import BackgroundTasks
 import os.log
 
 @main
@@ -238,22 +237,3 @@ struct RootView: View {
     }
 }
 
-// MARK: - Launch Screen
-
-struct LaunchScreenView: View {
-    var body: some View {
-        ZStack {
-            Design.Colors.backgroundPrimary.ignoresSafeArea()
-
-            VStack(spacing: 20) {
-                Image(systemName: "cart.fill")
-                    .font(.system(size: 60, weight: .light))
-                    .foregroundStyle(Design.Colors.Text.subtle)
-
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: Design.Colors.Text.subtle))
-            }
-        }
-        .preferredColorScheme(.dark)
-    }
-}

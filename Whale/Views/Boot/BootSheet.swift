@@ -1439,9 +1439,6 @@ struct BootEndSessionSheet: View {
 
         cashDrops.append(drop)
 
-        // TODO: Save to database
-        // Task { await CashDropService.save(drop) }
-
         // Reset and go back
         safeDropAmount = ""
         safeDropNotes = ""
@@ -1760,9 +1757,6 @@ struct BootSafeDropSheet: View {
             amount: amountDecimal,
             notes: notes.isEmpty ? nil : notes
         )
-
-        // TODO: Save to database
-        // Task { await CashDropService.save(drop) }
 
         // Show success
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
