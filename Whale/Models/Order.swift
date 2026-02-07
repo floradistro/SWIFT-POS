@@ -15,363 +15,6 @@
 
 import Foundation
 
-// MARK: - Order Channel (NEW - replaces order_type)
-
-enum OrderChannel: String, Codable, CaseIterable, Sendable {
-    case online
-    case retail
-    case invoice
-
-    var displayName: String {
-        switch self {
-        case .online: return "Online"
-        case .retail: return "In-Store"
-        case .invoice: return "Invoice"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .online: return "globe"
-        case .retail: return "storefront"
-        case .invoice: return "doc.text"
-        }
-    }
-}
-
-// MARK: - Fulfillment Type (NEW - replaces delivery_type)
-
-enum FulfillmentType: String, Codable, CaseIterable, Sendable {
-    case ship
-    case pickup
-    case immediate
-
-    var displayName: String {
-        switch self {
-        case .ship: return "Shipping"
-        case .pickup: return "Pickup"
-        case .immediate: return "Walk-in"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .ship: return "shippingbox"
-        case .pickup: return "bag"
-        case .immediate: return "storefront"
-        }
-    }
-}
-
-// MARK: - Fulfillment Status
-
-enum FulfillmentStatus: String, Codable, CaseIterable, Sendable {
-    case pending
-    case allocated
-    case picked
-    case packed
-    case shipped
-    case delivered
-    case cancelled
-
-    var displayName: String {
-        switch self {
-        case .pending: return "Pending"
-        case .allocated: return "Allocated"
-        case .picked: return "Picked"
-        case .packed: return "Packed"
-        case .shipped: return "Shipped"
-        case .delivered: return "Delivered"
-        case .cancelled: return "Cancelled"
-        }
-    }
-
-    var color: String {
-        switch self {
-        case .pending: return "amber"
-        case .allocated, .picked: return "blue"
-        case .packed: return "green"
-        case .shipped: return "sky"
-        case .delivered: return "emerald"
-        case .cancelled: return "red"
-        }
-    }
-}
-
-// MARK: - Order Status
-
-enum OrderStatus: String, Codable, CaseIterable, Sendable {
-    case pending
-    case confirmed
-    case preparing
-    case packing
-    case packed
-    case ready
-    case outForDelivery = "out_for_delivery"
-    case readyToShip = "ready_to_ship"
-    case shipped
-    case inTransit = "in_transit"
-    case delivered
-    case completed
-    case cancelled
-
-    var displayName: String {
-        switch self {
-        case .pending: return "Pending"
-        case .confirmed: return "Confirmed"
-        case .preparing: return "Preparing"
-        case .packing: return "Packing"
-        case .packed: return "Packed"
-        case .ready: return "Ready"
-        case .outForDelivery: return "Out for Delivery"
-        case .readyToShip: return "Ready to Ship"
-        case .shipped: return "Shipped"
-        case .inTransit: return "In Transit"
-        case .delivered: return "Delivered"
-        case .completed: return "Completed"
-        case .cancelled: return "Cancelled"
-        }
-    }
-
-    var color: String {
-        switch self {
-        case .pending: return "amber"
-        case .confirmed, .preparing, .packing: return "blue"
-        case .packed, .ready, .readyToShip: return "green"
-        case .outForDelivery, .shipped, .inTransit: return "sky"
-        case .delivered, .completed: return "emerald"
-        case .cancelled: return "red"
-        }
-    }
-
-    /// Status groups for filtering
-    var group: OrderStatusGroup {
-        switch self {
-        case .pending, .confirmed, .preparing, .packing, .packed, .ready, .readyToShip:
-            return .active
-        case .shipped, .inTransit, .outForDelivery:
-            return .inProgress
-        case .completed, .delivered:
-            return .completed
-        case .cancelled:
-            return .cancelled
-        }
-    }
-}
-
-enum OrderStatusGroup: String, CaseIterable {
-    case active
-    case inProgress
-    case completed
-    case cancelled
-
-    var displayName: String {
-        switch self {
-        case .active: return "Active"
-        case .inProgress: return "In Progress"
-        case .completed: return "Completed"
-        case .cancelled: return "Cancelled"
-        }
-    }
-
-    var statuses: [OrderStatus] {
-        switch self {
-        case .active:
-            return [.pending, .confirmed, .preparing, .packing, .packed, .ready, .readyToShip]
-        case .inProgress:
-            return [.shipped, .inTransit, .outForDelivery]
-        case .completed:
-            return [.completed, .delivered]
-        case .cancelled:
-            return [.cancelled]
-        }
-    }
-}
-
-// MARK: - Payment Status
-
-enum PaymentStatus: String, Codable, Sendable {
-    case pending
-    case paid
-    case partial
-    case failed
-    case refunded
-    case partiallyRefunded = "partially_refunded"
-
-    var displayName: String {
-        switch self {
-        case .pending: return "Pending"
-        case .paid: return "Paid"
-        case .partial: return "Partial"
-        case .failed: return "Failed"
-        case .refunded: return "Refunded"
-        case .partiallyRefunded: return "Partially Refunded"
-        }
-    }
-
-    var color: String {
-        switch self {
-        case .pending: return "amber"
-        case .paid: return "green"
-        case .partial: return "orange"
-        case .failed: return "red"
-        case .refunded, .partiallyRefunded: return "gray"
-        }
-    }
-}
-
-// MARK: - Joined Data Structures
-
-/// Customer info from joined customers table
-struct OrderCustomer: Codable, Sendable {
-    let firstName: String?
-    let lastName: String?
-    let email: String?
-    let phone: String?
-
-    enum CodingKeys: String, CodingKey {
-        case firstName = "first_name"
-        case lastName = "last_name"
-        case email
-        case phone
-    }
-
-    var fullName: String? {
-        let parts = [firstName, lastName].compactMap { $0 }
-        return parts.isEmpty ? nil : parts.joined(separator: " ")
-    }
-
-    /// Create from a Customer model
-    /// Memberwise initializer
-    init(firstName: String?, lastName: String?, email: String?, phone: String?) {
-        self.firstName = firstName
-        self.lastName = lastName
-        self.email = email
-        self.phone = phone
-    }
-
-    /// Create from a Customer model
-    init(customer: Customer) {
-        self.firstName = customer.firstName
-        self.lastName = customer.lastName
-        self.email = customer.email
-        self.phone = customer.phone
-    }
-}
-
-/// Employee/staff info from joined staff table
-struct OrderEmployee: Codable, Sendable {
-    let id: UUID?
-    let firstName: String?
-    let lastName: String?
-    let email: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case firstName = "first_name"
-        case lastName = "last_name"
-        case email
-    }
-
-    var fullName: String? {
-        let parts = [firstName, lastName].compactMap { $0 }
-        return parts.isEmpty ? nil : parts.joined(separator: " ")
-    }
-
-    var initials: String {
-        let first = firstName?.prefix(1).uppercased() ?? ""
-        let last = lastName?.prefix(1).uppercased() ?? ""
-        return first + last
-    }
-}
-
-// MARK: - Fulfillment (NEW)
-
-/// Fulfillment record from fulfillments table
-struct OrderFulfillment: Identifiable, Codable, Sendable {
-    let id: UUID
-    let orderId: UUID?
-    let type: FulfillmentType
-    var status: FulfillmentStatus
-    let deliveryLocationId: UUID?
-    let deliveryAddress: AnyCodable?
-    var carrier: String?
-    var trackingNumber: String?
-    var trackingUrl: String?
-    let shippingCost: Decimal?
-    let createdAt: Date?
-    var shippedAt: Date?
-    var deliveredAt: Date?
-
-    // Joined location data
-    let deliveryLocation: FulfillmentLocation?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case orderId = "order_id"
-        case type
-        case status
-        case deliveryLocationId = "delivery_location_id"
-        case deliveryAddress = "delivery_address"
-        case carrier
-        case trackingNumber = "tracking_number"
-        case trackingUrl = "tracking_url"
-        case shippingCost = "shipping_cost"
-        case createdAt = "created_at"
-        case shippedAt = "shipped_at"
-        case deliveredAt = "delivered_at"
-        case deliveryLocation = "delivery_location"
-    }
-
-    /// Location name from joined data
-    var locationName: String? {
-        deliveryLocation?.name
-    }
-
-    /// Whether fulfillment is complete
-    var isComplete: Bool {
-        status == .delivered || status == .shipped
-    }
-}
-
-/// Location info from joined locations table on fulfillments
-struct FulfillmentLocation: Codable, Sendable {
-    let id: UUID?
-    let name: String?
-    let addressLine1: String?
-    let city: String?
-    let state: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case addressLine1 = "address_line1"
-        case city
-        case state
-    }
-
-    var locationName: String? { name }
-}
-
-/// Location info from joined locations table on orders (order.location_id)
-struct OrderSourceLocation: Codable, Sendable {
-    let id: UUID?
-    let name: String?
-    let addressLine1: String?
-    let city: String?
-    let state: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case addressLine1 = "address_line1"
-        case city
-        case state
-    }
-
-    var locationName: String? { name }
-}
-
 // MARK: - Order
 
 struct Order: Identifiable, Codable, Sendable, Hashable {
@@ -389,7 +32,7 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
     let storeId: UUID?
     let customerId: UUID?
 
-    // Channel & Status (NEW schema)
+    // Channel & Status
     let channel: OrderChannel
     var status: OrderStatus
     var paymentStatus: PaymentStatus
@@ -406,7 +49,7 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
     let updatedAt: Date
     var completedAt: Date?
 
-    // Shipping Address (still on orders for convenience)
+    // Shipping Address
     let shippingName: String?
     let shippingAddressLine1: String?
     let shippingAddressLine2: String?
@@ -513,10 +156,7 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         locationId = Self.decodeOptionalUUID(from: container, forKey: .locationId)
         location = try container.decodeIfPresent(OrderSourceLocation.self, forKey: .location)
 
-        // Try multiple keys for customer data:
-        // - "customers" (direct table join)
-        // - "customer" (RPC function returns singular)
-        // - "v_store_customers" (view-based joins)
+        // Try multiple keys for customer data
         if let c = try container.decodeIfPresent(OrderCustomer.self, forKey: .customers) {
             customers = c
         } else {
@@ -648,181 +288,25 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
     }
 }
 
-// MARK: - Order Item
-
-struct OrderItem: Identifiable, Codable, Sendable {
-    let id: UUID
-    let orderId: UUID
-    let productId: UUID
-    let productName: String
-    let quantity: Int
-    let unitPrice: Decimal
-    let lineTotal: Decimal
-
-    // Tier/pricing schema fields (DB columns: tier_name, tier_qty, tier_price)
-    let tierName: String?
-    let tierQty: Double?
-    let tierPrice: Decimal?
-    let quantityGrams: Double?
-    let quantityDisplay: String?
-
-    // Line subtotal (before discount)
-    let lineSubtotal: Decimal?
-
-    // Variant info (product_name often contains variant in POS context)
-    let variantName: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case orderId = "order_id"
-        case productId = "product_id"
-        case productName = "product_name"
-        case quantity
-        case unitPrice = "unit_price"
-        case lineTotal = "line_total"
-        case tierName = "tier_name"
-        case tierQty = "tier_qty"
-        case tierPrice = "tier_price"
-        case quantityGrams = "quantity_grams"
-        case quantityDisplay = "quantity_display"
-        case lineSubtotal = "line_subtotal"
-        case variantName = "variant_name"
-    }
-
-    // MARK: - Computed Properties for EmailReceiptService compatibility
-
-    /// Tier label (alias for tierName)
-    var tierLabel: String? { tierName }
-
-    /// Tier quantity (alias for tierQty)
-    var tierQuantity: Double? { tierQty }
-
-    /// Variant ID not stored in DB, always nil
-    var variantId: UUID? { nil }
-
-    /// Original line total before discounts
-    var originalLineTotal: Decimal { lineSubtotal ?? lineTotal }
-
-    /// Discount amount (difference between subtotal and total)
-    var discountAmount: Decimal? {
-        guard let subtotal = lineSubtotal, subtotal > lineTotal else { return nil }
-        return subtotal - lineTotal
-    }
-
-    /// Display subtitle combining tier and variant info
-    var displaySubtitle: String? {
-        var parts: [String] = []
-        if let tier = tierName {
-            parts.append(tier)
-        }
-        if let variant = variantName {
-            parts.append(variant)
-        }
-        return parts.isEmpty ? nil : parts.joined(separator: " • ")
-    }
-}
-
-// MARK: - Order Location (Fulfillment per Location)
-
-/// Represents fulfillment status for a specific location in a multi-location order
-struct OrderLocation: Identifiable, Codable, Sendable {
-    let id: UUID
-    let orderId: UUID
-    let locationId: UUID
-    let itemCount: Int?
-    let totalQuantity: Decimal?
-    let fulfillmentStatus: String?
-    let notes: String?
-    let trackingNumber: String?
-    let trackingUrl: String?
-    let shippingLabelUrl: String?
-    let shippingCarrier: String?
-    let shippingService: String?
-    let shippingCost: Decimal?
-    let shippedAt: Date?
-    let fulfilledAt: Date?
-    let createdAt: Date?
-    let updatedAt: Date?
-
-    // Joined location data
-    let location: OrderLocationInfo?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case orderId = "order_id"
-        case locationId = "location_id"
-        case itemCount = "item_count"
-        case totalQuantity = "total_quantity"
-        case fulfillmentStatus = "fulfillment_status"
-        case notes
-        case trackingNumber = "tracking_number"
-        case trackingUrl = "tracking_url"
-        case shippingLabelUrl = "shipping_label_url"
-        case shippingCarrier = "shipping_carrier"
-        case shippingService = "shipping_service"
-        case shippingCost = "shipping_cost"
-        case shippedAt = "shipped_at"
-        case fulfilledAt = "fulfilled_at"
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-        case location
-    }
-
-    /// Location name from joined data
-    var locationName: String? {
-        location?.name
-    }
-
-    /// Whether this location has been shipped
-    var isShipped: Bool {
-        fulfillmentStatus == "shipped" || fulfillmentStatus == "delivered" || fulfillmentStatus == "fulfilled"
-    }
-
-    /// Whether this location is still pending
-    var isPending: Bool {
-        fulfillmentStatus == "unfulfilled" || fulfillmentStatus == "pending" || fulfillmentStatus == nil
-    }
-}
-
-/// Location info from joined locations table on order_locations
-struct OrderLocationInfo: Codable, Sendable {
-    let name: String?
-    let addressLine1: String?
-    let city: String?
-    let state: String?
-
-    enum CodingKeys: String, CodingKey {
-        case name
-        case addressLine1 = "address_line1"
-        case city
-        case state
-    }
-}
-
 // MARK: - Computed Properties
 
 extension Order {
-    /// Primary fulfillment (first one, most orders have only one)
     var primaryFulfillment: OrderFulfillment? {
         fulfillments?.first
     }
 
-    /// Fulfillment type from primary fulfillment
     var fulfillmentType: FulfillmentType {
         primaryFulfillment?.type ?? .immediate
     }
 
-    /// Fulfillment status from primary fulfillment
     var fulfillmentStatus: FulfillmentStatus {
         primaryFulfillment?.status ?? .pending
     }
 
-    /// Delivery location ID from primary fulfillment
     var deliveryLocationId: UUID? {
         primaryFulfillment?.deliveryLocationId
     }
 
-    /// Display name for customer
     var displayCustomerName: String {
         if let name = shippingName, !name.isEmpty, name != "Walk-In" {
             return name
@@ -830,27 +314,22 @@ extension Order {
         return customers?.fullName ?? "Walk-in Customer"
     }
 
-    /// Customer name (for compatibility)
     var customerName: String? {
         customers?.fullName
     }
 
-    /// Customer email (for compatibility)
     var customerEmail: String? {
         customers?.email
     }
 
-    /// Customer phone (for compatibility)
     var customerPhone: String? {
         customers?.phone
     }
 
-    /// Fulfillment location name
     var fulfillmentLocationName: String? {
         primaryFulfillment?.locationName
     }
 
-    /// Formatted date string for display
     var formattedDate: String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -859,7 +338,6 @@ extension Order {
         return formatter.string(from: createdAt)
     }
 
-    /// Formatted total
     var formattedTotal: String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -867,12 +345,10 @@ extension Order {
         return formatter.string(from: totalAmount as NSDecimalNumber) ?? "$0.00"
     }
 
-    /// Short order number for display
     var shortOrderNumber: String {
         String(orderNumber.suffix(6))
     }
 
-    /// Full shipping address
     var fullShippingAddress: String? {
         guard let line1 = shippingAddressLine1 else { return nil }
         var parts = [line1]
@@ -885,19 +361,16 @@ extension Order {
         return parts.joined(separator: "\n")
     }
 
-    /// Time since order was created
     var timeAgo: String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: createdAt, relativeTo: Date())
     }
 
-    /// Display icon based on fulfillment type
     var displayIcon: String {
         fulfillmentType.icon
     }
 
-    /// Display label based on channel and fulfillment type
     var displayTypeLabel: String {
         if channel == .online {
             return fulfillmentType == .ship ? "Online - Shipping" : "Online - Pickup"
@@ -906,7 +379,6 @@ extension Order {
         }
     }
 
-    /// Get tracking info from fulfillment
     var fulfillmentTrackingNumber: String? {
         primaryFulfillment?.trackingNumber ?? trackingNumber
     }
@@ -918,66 +390,11 @@ extension Order {
     var fulfillmentCarrier: String? {
         primaryFulfillment?.carrier
     }
-}
 
-// MARK: - OrderType (UI Abstraction)
-
-/// UI-level order type abstraction computed from channel + fulfillmentType.
-/// Used for filtering and display in the UI - NOT stored in database.
-enum OrderType: String, Codable, CaseIterable, Sendable {
-    case walkIn = "walk_in"
-    case pos
-    case pickup
-    case shipping
-    case delivery
-    case direct  // Invoice/direct orders
-
-    var displayName: String {
-        switch self {
-        case .walkIn, .pos: return "Walk-in"
-        case .pickup: return "Pickup"
-        case .shipping: return "Shipping"
-        case .delivery: return "Delivery"
-        case .direct: return "Invoice"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .walkIn, .pos: return "storefront"
-        case .pickup: return "bag"
-        case .shipping: return "shippingbox"
-        case .delivery: return "car"
-        case .direct: return "doc.text"
-        }
-    }
-
-    /// Derive OrderType from channel + fulfillmentType
-    static func from(channel: OrderChannel, fulfillmentType: FulfillmentType) -> OrderType {
-        switch channel {
-        case .retail:
-            return .walkIn
-        case .online:
-            switch fulfillmentType {
-            case .ship: return .shipping
-            case .pickup: return .pickup
-            case .immediate: return .walkIn
-            }
-        case .invoice:
-            return .direct
-        }
-    }
-}
-
-// MARK: - Order UI Convenience
-
-extension Order {
-    /// Computed orderType from channel + fulfillmentType (for UI filtering)
     var orderType: OrderType {
         OrderType.from(channel: channel, fulfillmentType: fulfillmentType)
     }
 
-    /// Delivery location name from fulfillment (for pickup orders)
     var deliveryLocationName: String? {
         primaryFulfillment?.deliveryLocation?.name
     }
