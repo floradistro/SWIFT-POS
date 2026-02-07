@@ -240,6 +240,49 @@ struct OrderCustomer: Codable, Sendable {
         let parts = [firstName, lastName].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
+
+    /// Create from a Customer model
+    /// Memberwise initializer
+    init(firstName: String?, lastName: String?, email: String?, phone: String?) {
+        self.firstName = firstName
+        self.lastName = lastName
+        self.email = email
+        self.phone = phone
+    }
+
+    /// Create from a Customer model
+    init(customer: Customer) {
+        self.firstName = customer.firstName
+        self.lastName = customer.lastName
+        self.email = customer.email
+        self.phone = customer.phone
+    }
+}
+
+/// Employee/staff info from joined staff table
+struct OrderEmployee: Codable, Sendable {
+    let id: UUID?
+    let firstName: String?
+    let lastName: String?
+    let email: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case firstName = "first_name"
+        case lastName = "last_name"
+        case email
+    }
+
+    var fullName: String? {
+        let parts = [firstName, lastName].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    var initials: String {
+        let first = firstName?.prefix(1).uppercased() ?? ""
+        let last = lastName?.prefix(1).uppercased() ?? ""
+        return first + last
+    }
 }
 
 // MARK: - Fulfillment (NEW)
@@ -306,6 +349,27 @@ struct FulfillmentLocation: Codable, Sendable {
         case city
         case state
     }
+
+    var locationName: String? { name }
+}
+
+/// Location info from joined locations table on orders (order.location_id)
+struct OrderSourceLocation: Codable, Sendable {
+    let id: UUID?
+    let name: String?
+    let addressLine1: String?
+    let city: String?
+    let state: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case addressLine1 = "address_line1"
+        case city
+        case state
+    }
+
+    var locationName: String? { name }
 }
 
 // MARK: - Order
@@ -355,6 +419,14 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
     var trackingUrl: String?
     var staffNotes: String?
 
+    // Employee who created the order
+    let employeeId: UUID?
+    let employee: OrderEmployee?
+
+    // Source location (where order was placed)
+    let locationId: UUID?
+    let location: OrderSourceLocation?
+
     // Joined data
     let customers: OrderCustomer?
     var items: [OrderItem]?
@@ -387,6 +459,10 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         case trackingNumber = "tracking_number"
         case trackingUrl = "tracking_url"
         case staffNotes = "staff_notes"
+        case employeeId = "employee_id"
+        case employee
+        case locationId = "location_id"
+        case location
         case customers
         case items = "order_items"
         case fulfillments
@@ -428,6 +504,14 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         trackingNumber = try container.decodeIfPresent(String.self, forKey: .trackingNumber)
         trackingUrl = try container.decodeIfPresent(String.self, forKey: .trackingUrl)
         staffNotes = try container.decodeIfPresent(String.self, forKey: .staffNotes)
+
+        // Employee
+        employeeId = Self.decodeOptionalUUID(from: container, forKey: .employeeId)
+        employee = try container.decodeIfPresent(OrderEmployee.self, forKey: .employee)
+
+        // Source location
+        locationId = Self.decodeOptionalUUID(from: container, forKey: .locationId)
+        location = try container.decodeIfPresent(OrderSourceLocation.self, forKey: .location)
 
         // Try multiple keys for customer data:
         // - "customers" (direct table join)
@@ -520,6 +604,10 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         trackingNumber: String? = nil,
         trackingUrl: String? = nil,
         staffNotes: String? = nil,
+        employeeId: UUID? = nil,
+        employee: OrderEmployee? = nil,
+        locationId: UUID? = nil,
+        location: OrderSourceLocation? = nil,
         customers: OrderCustomer? = nil,
         items: [OrderItem]? = nil,
         fulfillments: [OrderFulfillment]? = nil,
@@ -549,6 +637,10 @@ struct Order: Identifiable, Codable, Sendable, Hashable {
         self.trackingNumber = trackingNumber
         self.trackingUrl = trackingUrl
         self.staffNotes = staffNotes
+        self.employeeId = employeeId
+        self.employee = employee
+        self.locationId = locationId
+        self.location = location
         self.customers = customers
         self.items = items
         self.fulfillments = fulfillments
@@ -567,6 +659,19 @@ struct OrderItem: Identifiable, Codable, Sendable {
     let unitPrice: Decimal
     let lineTotal: Decimal
 
+    // Tier/pricing schema fields (DB columns: tier_name, tier_qty, tier_price)
+    let tierName: String?
+    let tierQty: Double?
+    let tierPrice: Decimal?
+    let quantityGrams: Double?
+    let quantityDisplay: String?
+
+    // Line subtotal (before discount)
+    let lineSubtotal: Decimal?
+
+    // Variant info (product_name often contains variant in POS context)
+    let variantName: String?
+
     enum CodingKeys: String, CodingKey {
         case id
         case orderId = "order_id"
@@ -575,6 +680,45 @@ struct OrderItem: Identifiable, Codable, Sendable {
         case quantity
         case unitPrice = "unit_price"
         case lineTotal = "line_total"
+        case tierName = "tier_name"
+        case tierQty = "tier_qty"
+        case tierPrice = "tier_price"
+        case quantityGrams = "quantity_grams"
+        case quantityDisplay = "quantity_display"
+        case lineSubtotal = "line_subtotal"
+        case variantName = "variant_name"
+    }
+
+    // MARK: - Computed Properties for EmailReceiptService compatibility
+
+    /// Tier label (alias for tierName)
+    var tierLabel: String? { tierName }
+
+    /// Tier quantity (alias for tierQty)
+    var tierQuantity: Double? { tierQty }
+
+    /// Variant ID not stored in DB, always nil
+    var variantId: UUID? { nil }
+
+    /// Original line total before discounts
+    var originalLineTotal: Decimal { lineSubtotal ?? lineTotal }
+
+    /// Discount amount (difference between subtotal and total)
+    var discountAmount: Decimal? {
+        guard let subtotal = lineSubtotal, subtotal > lineTotal else { return nil }
+        return subtotal - lineTotal
+    }
+
+    /// Display subtitle combining tier and variant info
+    var displaySubtitle: String? {
+        var parts: [String] = []
+        if let tier = tierName {
+            parts.append(tier)
+        }
+        if let variant = variantName {
+            parts.append(variant)
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " • ")
     }
 }
 

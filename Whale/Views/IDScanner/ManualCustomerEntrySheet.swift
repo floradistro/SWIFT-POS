@@ -67,12 +67,18 @@ private struct CustomerSearchContent: View {
         case create
         case scanner
         case detail(Customer)
+        case orderDetail(Order, Customer)
+        case orderHistory(Customer)
 
         static func == (lhs: Mode, rhs: Mode) -> Bool {
             switch (lhs, rhs) {
             case (.search, .search), (.create, .create), (.scanner, .scanner):
                 return true
             case (.detail(let c1), .detail(let c2)):
+                return c1.id == c2.id
+            case (.orderDetail(let o1, _), .orderDetail(let o2, _)):
+                return o1.id == o2.id
+            case (.orderHistory(let c1), .orderHistory(let c2)):
                 return c1.id == c2.id
             default:
                 return false
@@ -85,6 +91,8 @@ private struct CustomerSearchContent: View {
             case .create: hasher.combine(1)
             case .scanner: hasher.combine(2)
             case .detail(let customer): hasher.combine(customer.id)
+            case .orderDetail(let order, _): hasher.combine(order.id)
+            case .orderHistory(let customer): hasher.combine(100 + customer.id.hashValue)
             }
         }
     }
@@ -105,6 +113,25 @@ private struct CustomerSearchContent: View {
     @State private var isCreating = false
     @State private var errorMessage: String?
 
+    // Loyalty points adjustment
+    @State private var showPointsAdjustment = false
+    @State private var pointsAdjustmentValue = ""
+    @State private var adjustingPointsForCustomer: Customer?
+    @State private var isAdjustingPoints = false
+    @State private var pointsAdjustmentMessage: String?
+    @State private var updatedLoyaltyPoints: Int?  // Immediate UI update after adjustment
+
+    // Customer editing
+    @State private var isEditingCustomer = false
+    @State private var editFirstName = ""
+    @State private var editLastName = ""
+    @State private var editEmail = ""
+    @State private var editPhone = ""
+    @State private var editDateOfBirth = ""
+    @State private var isSavingCustomer = false
+    @State private var editErrorMessage: String?
+    @State private var updatedCustomer: Customer?  // Updated customer after save
+
     @FocusState private var isSearchFocused: Bool
     @FocusState private var focusedCreateField: CreateField?
 
@@ -115,7 +142,15 @@ private struct CustomerSearchContent: View {
 
     var body: some View {
         Group {
-            if case .detail(let customer) = mode {
+            if case .orderHistory(let customer) = mode {
+                // Full order history list
+                orderHistoryFullScreen(customer: customer)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            } else if case .orderDetail(let order, let customer) = mode {
+                // Full-height order detail (in-place, no new sheet)
+                orderDetailFullScreen(order: order, customer: customer)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            } else if case .detail(let customer) = mode {
                 // Full-height customer detail (no NavigationStack header)
                 customerDetailFullScreen(customer)
                     .transition(.asymmetric(
@@ -134,7 +169,7 @@ private struct CustomerSearchContent: View {
                                 createContent
                             case .scanner:
                                 scannerContent
-                            case .detail:
+                            case .detail, .orderDetail, .orderHistory:
                                 EmptyView()
                             }
                         }
@@ -169,21 +204,33 @@ private struct CustomerSearchContent: View {
 
     @ViewBuilder
     private func customerDetailFullScreen(_ customer: Customer) -> some View {
+        // Use updated customer if available, otherwise use passed customer
+        let displayCustomer = updatedCustomer ?? customer
+
         VStack(spacing: 0) {
             // Custom header with liquid glass back button
             HStack(spacing: 14) {
                 // Back button with liquid glass
                 Button {
                     Haptics.light()
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        detailAppearAnimation = false
-                        mode = .search
+                    if isEditingCustomer {
+                        // Cancel edit mode
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            isEditingCustomer = false
+                            editErrorMessage = nil
+                        }
+                    } else {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            detailAppearAnimation = false
+                            updatedCustomer = nil  // Clear on exit
+                            mode = .search
+                        }
                     }
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 14, weight: .semibold))
-                        Text("Back")
+                        Text(isEditingCustomer ? "Cancel" : "Back")
                             .font(.system(size: 15, weight: .medium))
                     }
                     .foregroundStyle(.white.opacity(0.8))
@@ -194,6 +241,50 @@ private struct CustomerSearchContent: View {
                 .glassEffect(.regular.interactive(), in: Capsule())
 
                 Spacer()
+
+                // Edit/Save button
+                if isEditingCustomer {
+                    Button {
+                        Haptics.medium()
+                        Task { await saveCustomerEdits(for: customer) }
+                    } label: {
+                        HStack(spacing: 5) {
+                            if isSavingCustomer {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                                    .tint(.white)
+                            } else {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            Text("Save")
+                                .font(.system(size: 15, weight: .medium))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive(), in: Capsule())
+                    .disabled(isSavingCustomer)
+                } else {
+                    Button {
+                        Haptics.light()
+                        startEditingCustomer(displayCustomer)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Edit")
+                                .font(.system(size: 15, weight: .medium))
+                        }
+                        .foregroundStyle(.white.opacity(0.8))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive(), in: Capsule())
+                }
 
                 // Done button
                 Button {
@@ -213,7 +304,11 @@ private struct CustomerSearchContent: View {
             // Scrollable content
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
-                    customerDetailContent(customer)
+                    if isEditingCustomer {
+                        customerEditContent(displayCustomer)
+                    } else {
+                        customerDetailContent(displayCustomer)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
@@ -228,6 +323,271 @@ private struct CustomerSearchContent: View {
                 detailAppearAnimation = true
             }
         }
+        .alert("Adjust Loyalty Points", isPresented: $showPointsAdjustment) {
+            TextField("New total points", text: $pointsAdjustmentValue)
+                .keyboardType(.numberPad)
+            Button("Cancel", role: .cancel) {
+                pointsAdjustmentValue = ""
+                adjustingPointsForCustomer = nil
+            }
+            Button("Save") {
+                applyPointsAdjustment()
+            }
+        } message: {
+            if let customer = adjustingPointsForCustomer {
+                Text("Current: \(customer.formattedLoyaltyPoints)\nEnter new total points value.")
+            }
+        }
+        .overlay {
+            // Success/error message toast
+            if let message = pointsAdjustmentMessage {
+                VStack {
+                    Spacer()
+                    Text(message)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.green.opacity(0.9), in: Capsule())
+                        .padding(.bottom, 100)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation { pointsAdjustmentMessage = nil }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Full Screen Order Detail
+
+    @ViewBuilder
+    private func orderDetailFullScreen(order: Order, customer: Customer) -> some View {
+        VStack(spacing: 0) {
+            // Header with back button
+            HStack(spacing: 14) {
+                Button {
+                    Haptics.light()
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        mode = .detail(customer)
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text(customer.displayName)
+                            .font(.system(size: 15, weight: .medium))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(.white.opacity(0.8))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: Capsule())
+
+                Spacer()
+
+                Text("Order #\(order.shortOrderNumber)")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                // Done button
+                Button {
+                    Haptics.light()
+                    onDismiss()
+                } label: {
+                    Text("Done")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            // Shared order detail content
+            OrderDetailContentView(
+                order: order,
+                showCustomerInfo: false,  // Already showing customer in header/breadcrumb
+                customerOverride: customer  // Pass customer context for email display
+            )
+        }
+    }
+
+    // MARK: - Full Order History
+
+    private func orderHistoryFullScreen(customer: Customer) -> some View {
+        VStack(spacing: 0) {
+            // Header with back button
+            HStack(spacing: 14) {
+                Button {
+                    Haptics.light()
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        mode = .detail(customer)
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text(customer.displayName)
+                            .font(.system(size: 15, weight: .medium))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(.white.opacity(0.8))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: Capsule())
+
+                Spacer()
+
+                Text("Order History")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                // Done button
+                Button {
+                    Haptics.light()
+                    onDismiss()
+                } label: {
+                    Text("Done")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            // Search bar
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.4))
+
+                TextField("Search orders...", text: $orderHistorySearchText)
+                    .font(.system(size: 15))
+                    .foregroundStyle(.white)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+
+                if !orderHistorySearchText.isEmpty {
+                    Button {
+                        orderHistorySearchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(.white.opacity(0.06), in: .rect(cornerRadius: 12))
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
+
+            // Order list
+            if isLoadingFullHistory {
+                Spacer()
+                ProgressView()
+                    .scaleEffect(1.2)
+                    .tint(.white.opacity(0.5))
+                Spacer()
+            } else if filteredOrderHistory.isEmpty {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: orderHistorySearchText.isEmpty ? "bag" : "magnifyingglass")
+                        .font(.system(size: 32, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.15))
+                    Text(orderHistorySearchText.isEmpty ? "No orders yet" : "No matching orders")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+                Spacer()
+            } else {
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(filteredOrderHistory.enumerated()), id: \.element.id) { index, order in
+                            OrderRowCompact(order: order) {
+                                Haptics.light()
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    mode = .orderDetail(order, customer)
+                                }
+                            }
+
+                            if index < filteredOrderHistory.count - 1 {
+                                Divider()
+                                    .background(.white.opacity(0.08))
+                                    .padding(.horizontal, 14)
+                            }
+                        }
+                    }
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .glassEffect(.regular, in: .rect(cornerRadius: 14))
+                .contentMargins(.vertical, 1, for: .scrollContent)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+            }
+        }
+        .onAppear {
+            loadFullOrderHistory(for: customer)
+        }
+    }
+
+    private var filteredOrderHistory: [Order] {
+        guard !orderHistorySearchText.isEmpty else { return fullOrderHistory }
+        let query = orderHistorySearchText.lowercased()
+        return fullOrderHistory.filter { order in
+            order.orderNumber.lowercased().contains(query) ||
+            order.formattedTotal.lowercased().contains(query) ||
+            order.status.displayName.lowercased().contains(query) ||
+            order.formattedDate.lowercased().contains(query)
+        }
+    }
+
+    private func loadFullOrderHistory(for customer: Customer) {
+        guard fullOrderHistory.isEmpty else { return }  // Already loaded
+        isLoadingFullHistory = true
+        Task {
+            do {
+                let orders = try await fetchOrdersForCustomer(
+                    customerId: customer.id,
+                    storeId: storeId,
+                    limit: 100  // Get full history
+                )
+                await MainActor.run {
+                    fullOrderHistory = orders
+                    isLoadingFullHistory = false
+                }
+            } catch {
+                Log.network.error("Failed to load full order history: \(error)")
+                await MainActor.run {
+                    fullOrderHistory = []
+                    isLoadingFullHistory = false
+                }
+            }
+        }
+    }
+
+    private func formatCurrency(_ value: Decimal) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        return formatter.string(from: value as NSDecimalNumber) ?? "$0.00"
     }
 
     private var navigationTitle: String {
@@ -238,7 +598,7 @@ private struct CustomerSearchContent: View {
             return "New Customer"
         case .scanner:
             return "Scan ID"
-        case .detail:
+        case .detail, .orderDetail, .orderHistory:
             return ""  // Breadcrumb shows the name
         }
     }
@@ -280,7 +640,7 @@ private struct CustomerSearchContent: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.6))
             }
-        case .detail:
+        case .detail, .orderDetail, .orderHistory:
             EmptyView()  // Breadcrumb handles navigation
         case .scanner:
             EmptyView()
@@ -852,6 +1212,11 @@ private struct CustomerSearchContent: View {
     @State private var customerOrders: [Order] = []
     @State private var isLoadingOrders = false
 
+    // Full order history
+    @State private var fullOrderHistory: [Order] = []
+    @State private var isLoadingFullHistory = false
+    @State private var orderHistorySearchText = ""
+
     @ViewBuilder
     private func customerDetailContent(_ customer: Customer) -> some View {
         customerProfileCard(customer)
@@ -862,7 +1227,7 @@ private struct CustomerSearchContent: View {
         // Select button
         Button {
             Haptics.medium()
-            selectCustomer(customer)
+            selectCustomer(updatedCustomer ?? customer)
         } label: {
             HStack {
                 Image(systemName: "checkmark.circle.fill")
@@ -878,6 +1243,201 @@ private struct CustomerSearchContent: View {
         .buttonStyle(ScaleButtonStyle())
         .onAppear {
             loadCustomerOrders(for: customer)
+        }
+    }
+
+    // MARK: - Customer Edit Content
+
+    @ViewBuilder
+    private func customerEditContent(_ customer: Customer) -> some View {
+        // Name fields
+        VStack(alignment: .leading, spacing: 8) {
+            Text("NAME")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
+                .tracking(0.5)
+                .padding(.leading, 4)
+
+            HStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    TextField("", text: $editFirstName, prompt: Text("First").foregroundColor(.white.opacity(0.35)))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 48)
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
+
+                HStack(spacing: 12) {
+                    TextField("", text: $editLastName, prompt: Text("Last").foregroundColor(.white.opacity(0.35)))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 48)
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
+            }
+        }
+
+        // Contact fields
+        VStack(alignment: .leading, spacing: 8) {
+            Text("CONTACT INFORMATION")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.5))
+                .tracking(0.5)
+                .padding(.leading, 4)
+
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    Image(systemName: "phone.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .frame(width: 20)
+                    TextField("", text: $editPhone, prompt: Text("Phone").foregroundColor(.white.opacity(0.35)))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                        .keyboardType(.phonePad)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+
+                Divider().background(.white.opacity(0.08))
+
+                HStack(spacing: 12) {
+                    Image(systemName: "envelope.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .frame(width: 20)
+                    TextField("", text: $editEmail, prompt: Text("Email").foregroundColor(.white.opacity(0.35)))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+
+                Divider().background(.white.opacity(0.08))
+
+                HStack(spacing: 12) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .frame(width: 20)
+                    TextField("", text: $editDateOfBirth, prompt: Text("MM/DD/YYYY").foregroundColor(.white.opacity(0.35)))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                        .keyboardType(.numbersAndPunctuation)
+                        .onChange(of: editDateOfBirth) { _, newValue in
+                            editDateOfBirth = formatDateInput(newValue)
+                        }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
+        }
+
+        // Error message
+        if let error = editErrorMessage {
+            HStack(spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 15))
+                Text(error)
+                    .font(.system(size: 14, weight: .medium))
+            }
+            .foregroundStyle(Design.Colors.Semantic.error)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Design.Colors.Semantic.error.opacity(0.1)))
+        }
+
+        // Hint text
+        Text("Tap Save to update customer information")
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(.white.opacity(0.4))
+            .frame(maxWidth: .infinity)
+            .padding(.top, 8)
+    }
+
+    private func startEditingCustomer(_ customer: Customer) {
+        editFirstName = customer.firstName ?? ""
+        editLastName = customer.lastName ?? ""
+        editEmail = customer.email ?? ""
+        editPhone = customer.phone ?? ""
+
+        // Convert DOB from YYYY-MM-DD to MM/DD/YYYY for editing
+        if let dob = customer.dateOfBirth, !dob.isEmpty {
+            let inputFormatter = DateFormatter()
+            inputFormatter.dateFormat = "yyyy-MM-dd"
+            if let date = inputFormatter.date(from: dob) {
+                let outputFormatter = DateFormatter()
+                outputFormatter.dateFormat = "MM/dd/yyyy"
+                editDateOfBirth = outputFormatter.string(from: date)
+            } else {
+                editDateOfBirth = ""
+            }
+        } else {
+            editDateOfBirth = ""
+        }
+
+        editErrorMessage = nil
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            isEditingCustomer = true
+        }
+    }
+
+    private func saveCustomerEdits(for customer: Customer) async {
+        editErrorMessage = nil
+        isSavingCustomer = true
+        defer { isSavingCustomer = false }
+
+        // Validate
+        let trimmedFirst = editFirstName.trimmingCharacters(in: .whitespaces)
+        let trimmedLast = editLastName.trimmingCharacters(in: .whitespaces)
+
+        if trimmedFirst.isEmpty || trimmedLast.isEmpty {
+            editErrorMessage = "First and last name are required"
+            return
+        }
+
+        // Parse DOB if provided
+        var dobFormatted: String? = nil
+        if !editDateOfBirth.isEmpty {
+            guard let parsed = parseDate(editDateOfBirth) else {
+                editErrorMessage = "Invalid date format (use MM/DD/YYYY)"
+                return
+            }
+            dobFormatted = parsed
+        }
+
+        // Build update fields
+        let fields = CustomerUpdateFields(
+            firstName: trimmedFirst,
+            lastName: trimmedLast,
+            email: editEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : editEmail.trimmingCharacters(in: .whitespaces),
+            phone: editPhone.trimmingCharacters(in: .whitespaces).isEmpty ? nil : editPhone.trimmingCharacters(in: .whitespaces),
+            dateOfBirth: dobFormatted
+        )
+
+        let result = await CustomerService.updateCustomer(customer.id, fields: fields)
+
+        await MainActor.run {
+            switch result {
+            case .success(let updated):
+                print("✅ Customer updated: \(updated.displayName)")
+                updatedCustomer = updated
+                Haptics.success()
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    isEditingCustomer = false
+                    pointsAdjustmentMessage = "Customer updated successfully"
+                }
+            case .failure(let error):
+                print("❌ Customer update failed: \(error)")
+                editErrorMessage = "Update failed: \(error.localizedDescription)"
+                Haptics.error()
+            }
         }
     }
 
@@ -950,11 +1510,17 @@ private struct CustomerSearchContent: View {
                     icon: "bag.fill"
                 )
 
-                CRMStatBox(
-                    title: "Loyalty Points",
-                    value: customer.formattedLoyaltyPoints,
-                    icon: "star.fill"
-                )
+                // Loyalty Points - long-press to adjust
+                EditableLoyaltyStatBox(
+                    value: displayLoyaltyPoints(for: customer),
+                    isAdjusting: isAdjustingPoints && adjustingPointsForCustomer?.id == customer.id
+                ) {
+                    Haptics.medium()
+                    adjustingPointsForCustomer = customer
+                    pointsAdjustmentValue = ""
+                    updatedLoyaltyPoints = nil  // Clear any previous override
+                    showPointsAdjustment = true
+                }
 
                 CRMStatBox(
                     title: "Avg. Order",
@@ -1017,6 +1583,22 @@ private struct CustomerSearchContent: View {
                     ProgressView()
                         .scaleEffect(0.7)
                         .tint(.white.opacity(0.4))
+                } else if customerOrders.count > 0 {
+                    Button {
+                        Haptics.light()
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            mode = .orderHistory(customer)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("See All")
+                                .font(.system(size: 13, weight: .medium))
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(.white.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.leading, 4)
@@ -1042,7 +1624,9 @@ private struct CustomerSearchContent: View {
                     ForEach(Array(customerOrders.prefix(3).enumerated()), id: \.element.id) { index, order in
                         OrderRowCompact(order: order) {
                             Haptics.light()
-                            SheetCoordinator.shared.present(.orderDetail(order: order))
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                mode = .orderDetail(order, customer)
+                            }
                         }
 
                         // Divider between rows (not after last)
@@ -1082,21 +1666,61 @@ private struct CustomerSearchContent: View {
     private func fetchOrdersForCustomer(customerId: UUID, storeId: UUID, limit: Int) async throws -> [Order] {
         let response = try await supabase
             .from("orders")
-            .select("""
-                id, order_number, store_id, customer_id, channel, status, payment_status,
-                subtotal, discount_amount, tax_amount, total_amount, created_at, updated_at,
-                v_store_customers(first_name, last_name, email, phone),
-                fulfillments(id, type, status, delivery_location_id, carrier, tracking_number, tracking_url, shipping_cost, created_at, shipped_at, delivered_at, delivery_location:delivery_location_id(id, name))
-            """)
+            .select("*, order_items(*), v_store_customers(first_name, last_name, email, phone), users!orders_created_by_user_id_fkey(id, first_name, last_name, email), locations!orders_location_id_fkey(id, name)")
             .eq("store_id", value: storeId.uuidString)
             .eq("customer_id", value: customerId.uuidString)
             .order("created_at", ascending: false)
             .limit(limit)
             .execute()
 
+        // Debug: Log raw response
+        if let jsonString = String(data: response.data, encoding: .utf8) {
+            print("📋 Orders raw response (\(jsonString.count) chars):")
+            print(jsonString.prefix(3000))
+
+            // Check if order_items key exists
+            if jsonString.contains("\"order_items\"") {
+                print("📋 ✅ JSON contains 'order_items' key")
+                // Try to count items
+                let itemMatches = jsonString.components(separatedBy: "\"product_name\"").count - 1
+                print("📋 Found ~\(itemMatches) items in JSON")
+            } else {
+                print("📋 ❌ JSON missing 'order_items' key - items not joined!")
+            }
+            if jsonString.contains("\"users\"") {
+                print("📋 ✅ JSON contains 'users' key")
+            } else {
+                print("📋 ❌ JSON missing 'users' key - FK join not working")
+            }
+            if jsonString.contains("\"locations\"") {
+                print("📋 ✅ JSON contains 'locations' key")
+            } else {
+                print("📋 ❌ JSON missing 'locations' key - FK join not working")
+            }
+        }
+
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode([Order].self, from: response.data)
+
+        do {
+            let orders = try decoder.decode([Order].self, from: response.data)
+            print("📋 Decoded \(orders.count) orders")
+            for order in orders.prefix(2) {
+                print("📋 Order \(order.shortOrderNumber):")
+                print("   - items: \(order.items?.count ?? 0)")
+                print("   - employee: \(order.employee?.fullName ?? "NIL") (id: \(order.employee?.id?.uuidString ?? "nil"))")
+                print("   - location: \(order.location?.name ?? "NIL") (id: \(order.location?.id?.uuidString ?? "nil"))")
+                print("   - employeeId: \(order.employeeId?.uuidString ?? "nil")")
+                print("   - locationId: \(order.locationId?.uuidString ?? "nil")")
+            }
+            return orders
+        } catch {
+            print("📋 Decode error: \(error)")
+            if let jsonString = String(data: response.data, encoding: .utf8) {
+                print("📋 Failed JSON: \(jsonString.prefix(500))")
+            }
+            throw error
+        }
     }
 
     /// Formats a DOB string from YYYY-MM-DD to readable format with age
@@ -1123,13 +1747,6 @@ private struct CustomerSearchContent: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM yyyy"
         return formatter.string(from: date)
-    }
-
-    private func formatCurrency(_ amount: Decimal) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.maximumFractionDigits = 0
-        return formatter.string(from: amount as NSDecimalNumber) ?? "$0"
     }
 
     private func formatAverageOrder(totalSpent: Decimal?, orderCount: Int?) -> String {
@@ -1259,6 +1876,74 @@ private struct CustomerSearchContent: View {
             errorMessage = error.localizedDescription
         }
     }
+
+    // MARK: - Loyalty Points Adjustment
+
+    private func applyPointsAdjustment() {
+        guard let customer = adjustingPointsForCustomer,
+              let newPoints = Int(pointsAdjustmentValue.trimmingCharacters(in: .whitespaces)),
+              newPoints >= 0 else {
+            pointsAdjustmentValue = ""
+            adjustingPointsForCustomer = nil
+            return
+        }
+
+        isAdjustingPoints = true
+        pointsAdjustmentValue = ""
+
+        Task {
+            do {
+                print("📊 Adjusting points for customer \(customer.id) to \(newPoints)")
+                // Set the new balance directly via RPC
+                let result = try await LoyaltyService.shared.setPoints(
+                    customerId: customer.id,
+                    points: newPoints,
+                    reason: "staff_adjustment"
+                )
+
+                await MainActor.run {
+                    print("✅ Points adjustment succeeded: \(result.balanceBefore ?? 0) → \(result.balanceAfter ?? 0)")
+                    // Update local state immediately for instant UI feedback
+                    updatedLoyaltyPoints = result.balanceAfter ?? newPoints
+                    isAdjustingPoints = false
+                    adjustingPointsForCustomer = nil
+
+                    let message: String
+                    if let adjustment = result.adjustment, adjustment != 0 {
+                        let sign = adjustment > 0 ? "+" : ""
+                        message = "Points: \(result.balanceBefore ?? 0) → \(result.balanceAfter ?? 0) (\(sign)\(adjustment))"
+                    } else {
+                        message = result.message ?? "Points updated"
+                    }
+                    withAnimation {
+                        pointsAdjustmentMessage = message
+                    }
+                    Haptics.success()
+                }
+            } catch {
+                print("❌ Points adjustment failed: \(error)")
+                await MainActor.run {
+                    isAdjustingPoints = false
+                    adjustingPointsForCustomer = nil
+                    withAnimation {
+                        pointsAdjustmentMessage = "Failed: \(error.localizedDescription)"
+                    }
+                    Haptics.error()
+                }
+            }
+        }
+    }
+
+    /// Get display points value - uses override if recently updated
+    private func displayLoyaltyPoints(for customer: Customer) -> String {
+        if let override = updatedLoyaltyPoints, adjustingPointsForCustomer == nil {
+            // Check if this customer matches the one we updated
+            if case .detail(let currentCustomer) = mode, currentCustomer.id == customer.id {
+                return "\(override)"
+            }
+        }
+        return customer.formattedLoyaltyPoints
+    }
 }
 
 // MARK: - CRM Stat Box (Monochrome Professional)
@@ -1294,6 +1979,55 @@ private struct CRMStatBox: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity)
         .glassEffect(.regular, in: .rect(cornerRadius: 12))
+    }
+}
+
+// MARK: - Editable Loyalty Stat Box (with long-press)
+
+private struct EditableLoyaltyStatBox: View {
+    let value: String
+    var isAdjusting: Bool = false
+    let onLongPress: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "star.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.yellow.opacity(0.8))
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 3) {
+                if isAdjusting {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .tint(.white)
+                } else {
+                    Text(value)
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+
+                HStack(spacing: 4) {
+                    Text("Loyalty Points")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.5))
+                    Text("• Hold")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.3))
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+        .onLongPressGesture(minimumDuration: 0.5) {
+            onLongPress()
+        }
     }
 }
 

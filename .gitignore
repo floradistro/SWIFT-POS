@@ -3,6 +3,31 @@
 *.xcuserstate
 xcuserdata/
 DerivedData/
+*.xcworkspace/xcuserdata/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Syncthing (IMPORTANT - prevents sync conflicts)
+.stfolder/
+.stignore
+.stversions/
+*sync-conflict*
+*.syncthing*
+
+# Temporary/backup files
+*~
+*.swp
+*.swo
+*.bak
+*.tmp
 
 # dependencies
 /node_modules
