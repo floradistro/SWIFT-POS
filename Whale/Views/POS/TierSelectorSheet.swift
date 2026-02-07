@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import Supabase
 import os.log
 
 struct TierSelectorSheet: View {
@@ -416,15 +415,7 @@ struct TierSelectorSheet: View {
 
     private func loadVariantSchema(schemaId: UUID) async {
         do {
-            let client = await supabaseAsync()
-            let response = try await client
-                .from("pricing_schemas")
-                .select("id, name, tiers")
-                .eq("id", value: schemaId.uuidString)
-                .execute()
-
-            let schemas = try JSONDecoder().decode([PricingSchema].self, from: response.data)
-            if let schema = schemas.first {
+            if let schema = try await ProductService.fetchPricingSchema(id: schemaId) {
                 await MainActor.run {
                     variantTiers = schema.defaultTiers ?? []
                 }
