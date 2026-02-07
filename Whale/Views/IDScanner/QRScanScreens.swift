@@ -80,6 +80,8 @@ extension QRCodeScanSheet {
                     .frame(maxWidth: .infinity)
                 }
                 .padding(.vertical, 8)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Transfer from \(fromLocation) to \(session.selectedLocation?.name ?? "here")")
             }
 
             ModalActionButton("Receive from \(fromLocation)", icon: "tray.and.arrow.down.fill", isLoading: isLoading, style: .success) {
@@ -216,6 +218,8 @@ extension QRCodeScanSheet {
                 .frame(maxWidth: .infinity)
             }
             .padding(.vertical, 8)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Transfer from \(session.selectedLocation?.name ?? "here") to \(selectedTransferDestination?.name ?? "not selected")")
         }
 
         // Location picker - scrollable for many locations
@@ -319,6 +323,8 @@ extension QRCodeScanSheet {
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(isSelected ? color.opacity(0.3) : .white.opacity(0.1), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(location.name), \(location.type)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -497,6 +503,8 @@ extension QRCodeScanSheet {
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(isSelected ? color.opacity(0.3) : .white.opacity(0.1), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(option.count) times \(option.tier.label)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -543,6 +551,7 @@ extension QRCodeScanSheet {
             }
             .scaleEffect(successScale)
             .opacity(successOpacity)
+            .accessibilityHidden(true)
 
             VStack(spacing: 6) {
                 Text("Success")
@@ -587,6 +596,7 @@ extension QRCodeScanSheet {
                 .font(.system(size: 13))
                 .foregroundStyle(.white.opacity(0.4))
                 .frame(width: 20)
+                .accessibilityHidden(true)
 
             Text(label)
                 .font(.system(size: 13))
@@ -598,6 +608,8 @@ extension QRCodeScanSheet {
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.white)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label): \(value)")
     }
 
     func formatSoldDate(_ date: Date) -> String {

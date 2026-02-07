@@ -268,6 +268,7 @@ extension CustomerSearchContent {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.white.opacity(0.4))
+                    .accessibilityHidden(true)
 
                 TextField("Search orders...", text: $orderHistorySearchText)
                     .font(.system(size: 15))
@@ -284,6 +285,7 @@ extension CustomerSearchContent {
                             .foregroundStyle(.white.opacity(0.4))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
                 }
             }
             .padding(.horizontal, 14)
@@ -304,6 +306,7 @@ extension CustomerSearchContent {
                     Image(systemName: orderHistorySearchText.isEmpty ? "bag" : "magnifyingglass")
                         .font(.system(size: 32, weight: .medium))
                         .foregroundStyle(.white.opacity(0.15))
+                        .accessibilityHidden(true)
                     Text(orderHistorySearchText.isEmpty ? "No orders yet" : "No matching orders")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.white.opacity(0.4))
@@ -452,6 +455,7 @@ extension CustomerSearchContent {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 20)
+                        .accessibilityHidden(true)
                     TextField("", text: $editPhone, prompt: Text("Phone").foregroundColor(.white.opacity(0.35)))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.white)
@@ -467,6 +471,7 @@ extension CustomerSearchContent {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 20)
+                        .accessibilityHidden(true)
                     TextField("", text: $editEmail, prompt: Text("Email").foregroundColor(.white.opacity(0.35)))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.white)
@@ -484,6 +489,7 @@ extension CustomerSearchContent {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 20)
+                        .accessibilityHidden(true)
                     TextField("", text: $editDateOfBirth, prompt: Text("MM/DD/YYYY").foregroundColor(.white.opacity(0.35)))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.white)
@@ -502,10 +508,12 @@ extension CustomerSearchContent {
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 15))
+                    .accessibilityHidden(true)
                 Text(error)
                     .font(.system(size: 14, weight: .medium))
             }
             .foregroundStyle(Design.Colors.Semantic.error)
+            .accessibilityElement(children: .combine)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
             .background(RoundedRectangle(cornerRadius: 14).fill(Design.Colors.Semantic.error.opacity(0.1)))
@@ -605,6 +613,7 @@ extension CustomerSearchContent {
                     .font(.system(size: 26, weight: .bold))
                     .foregroundStyle(.white.opacity(0.9))
             }
+            .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(customer.displayName)
@@ -615,6 +624,7 @@ extension CustomerSearchContent {
                     HStack(spacing: 5) {
                         Image(systemName: "crown.fill")
                             .font(.system(size: 11, weight: .bold))
+                            .accessibilityHidden(true)
                         Text(customer.loyaltyTierDisplay)
                             .font(.system(size: 12, weight: .bold))
                     }
@@ -633,6 +643,7 @@ extension CustomerSearchContent {
         }
         .padding(20)
         .glassEffect(.regular, in: .rect(cornerRadius: 20))
+        .accessibilityElement(children: .combine)
     }
 
     func customerCRMStats(_ customer: Customer) -> some View {
@@ -742,10 +753,12 @@ extension CustomerSearchContent {
                                 .font(.system(size: 13, weight: .medium))
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 11, weight: .semibold))
+                                .accessibilityHidden(true)
                         }
                         .foregroundStyle(.white.opacity(0.5))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("See all orders")
                 }
             }
             .padding(.leading, 4)
@@ -757,6 +770,7 @@ extension CustomerSearchContent {
                         Image(systemName: "bag")
                             .font(.system(size: 24, weight: .medium))
                             .foregroundStyle(.white.opacity(0.15))
+                            .accessibilityHidden(true)
                         Text("No order history")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(.white.opacity(0.3))

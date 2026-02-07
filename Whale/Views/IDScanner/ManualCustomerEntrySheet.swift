@@ -244,6 +244,7 @@ struct CustomerSearchContent: View {
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(.white.opacity(0.6))
                 }
+                .accessibilityLabel("Scan ID")
                 Button {
                     prefillCreateFormFromScan()
                     mode = .create
@@ -252,6 +253,7 @@ struct CustomerSearchContent: View {
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(.white.opacity(0.6))
                 }
+                .accessibilityLabel("Create customer")
             }
         case .create:
             Button {
@@ -286,6 +288,7 @@ struct CustomerSearchContent: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(.white.opacity(0.4))
+                .accessibilityHidden(true)
 
             TextField("", text: $searchQuery, prompt: Text("Name, phone, or email...").foregroundColor(.white.opacity(0.35)))
                 .font(.system(size: 15, weight: .medium))
@@ -313,6 +316,7 @@ struct CustomerSearchContent: View {
                         .font(.system(size: 18))
                         .foregroundStyle(.white.opacity(0.3))
                 }
+                .accessibilityLabel("Clear search")
             }
         }
         .padding(.horizontal, 16)
@@ -327,6 +331,7 @@ struct CustomerSearchContent: View {
                 .foregroundStyle(.white)
                 .frame(width: 50, height: 50)
                 .glassEffect(.regular, in: .circle)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(scanned.fullDisplayName)
@@ -354,6 +359,7 @@ struct CustomerSearchContent: View {
         }
         .padding(14)
         .glassEffect(.regular, in: .rect(cornerRadius: 14))
+        .accessibilityElement(children: .combine)
     }
 
     private var resultsArea: some View {
@@ -454,6 +460,7 @@ struct CustomerSearchContent: View {
                             Image(systemName: "checkmark.seal.fill")
                                 .font(.system(size: 12))
                                 .foregroundStyle(Design.Colors.Semantic.success)
+                                .accessibilityLabel("Exact match")
                         }
                     }
 
@@ -473,6 +480,7 @@ struct CustomerSearchContent: View {
                             HStack(spacing: 2) {
                                 Image(systemName: "star.fill")
                                     .font(.system(size: 8, weight: .bold))
+                                    .accessibilityHidden(true)
                                 Text("\(points)")
                                     .font(.system(size: 10, weight: .bold, design: .rounded))
                             }
@@ -480,6 +488,7 @@ struct CustomerSearchContent: View {
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
                             .background(.white.opacity(0.08), in: .capsule)
+                            .accessibilityLabel("\(points) loyalty points")
                         }
                     }
                 }
@@ -493,12 +502,16 @@ struct CustomerSearchContent: View {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 24, weight: .medium))
                         .foregroundStyle(.white.opacity(0.6))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Select \(match.customer.displayName)")
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.3))
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
@@ -513,6 +526,7 @@ struct CustomerSearchContent: View {
             Image(systemName: "person.slash")
                 .font(.system(size: 28, weight: .medium))
                 .foregroundStyle(.white.opacity(0.25))
+                .accessibilityHidden(true)
 
             Text("No customers found")
                 .font(.system(size: 14, weight: .medium))
@@ -545,6 +559,7 @@ struct CustomerSearchContent: View {
             Image(systemName: "person.crop.circle.badge.questionmark")
                 .font(.system(size: 36, weight: .medium))
                 .foregroundStyle(.white.opacity(0.3))
+                .accessibilityHidden(true)
 
             Text("No existing customer found")
                 .font(.system(size: 15, weight: .medium))
@@ -578,6 +593,7 @@ struct CustomerSearchContent: View {
             Image(systemName: "person.crop.circle.badge.magnifyingglass")
                 .font(.system(size: 28, weight: .medium))
                 .foregroundStyle(.white.opacity(0.25))
+                .accessibilityHidden(true)
 
             Text("Search customers")
                 .font(.system(size: 14, weight: .medium))
