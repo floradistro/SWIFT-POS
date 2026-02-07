@@ -58,6 +58,7 @@ extension CustomerSearchContent {
                 Image(systemName: "calendar")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(.white.opacity(0.4))
+                    .accessibilityHidden(true)
                 TextField("", text: $dateOfBirth, prompt: Text("MM/DD/YYYY").foregroundColor(.white.opacity(0.35)))
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.white)
@@ -86,6 +87,7 @@ extension CustomerSearchContent {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 20)
+                        .accessibilityHidden(true)
                     TextField("", text: $phone, prompt: Text("Phone").foregroundColor(.white.opacity(0.35)))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.white)
@@ -102,6 +104,7 @@ extension CustomerSearchContent {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 20)
+                        .accessibilityHidden(true)
                     TextField("", text: $email, prompt: Text("Email").foregroundColor(.white.opacity(0.35)))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.white)
@@ -120,10 +123,12 @@ extension CustomerSearchContent {
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 15))
+                    .accessibilityHidden(true)
                 Text(error)
                     .font(.system(size: 14, weight: .medium))
             }
             .foregroundStyle(Design.Colors.Semantic.error)
+            .accessibilityElement(children: .combine)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
             .background(RoundedRectangle(cornerRadius: 14).fill(Design.Colors.Semantic.error.opacity(0.1)))
@@ -154,6 +159,7 @@ extension CustomerSearchContent {
         }
         .buttonStyle(.plain)
         .disabled(!isCreateValid || isCreating)
+        .accessibilityLabel(isCreating ? "Creating customer" : "Create Customer")
     }
 
     @ViewBuilder

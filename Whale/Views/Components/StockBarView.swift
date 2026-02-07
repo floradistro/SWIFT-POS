@@ -108,6 +108,8 @@ struct StockBarRow: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(formatValue(value)) \(label)")
+        .accessibilityHint("Double tap to edit quantity")
     }
 
     private var editingView: some View {
@@ -129,6 +131,7 @@ struct StockBarRow: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
                         .font(.system(size: 20))
+                        .accessibilityLabel("Saved successfully")
                 } else {
                     Button(action: onCancel) {
                         Image(systemName: "xmark")
@@ -137,6 +140,7 @@ struct StockBarRow: View {
                             .frame(width: 44, height: 44)
                             .background(Circle().fill(Color.white.opacity(0.1)))
                     }
+                    .accessibilityLabel("Cancel")
                     Button(action: onSave) {
                         Image(systemName: "checkmark")
                             .font(.system(size: 14, weight: .semibold))
@@ -144,6 +148,7 @@ struct StockBarRow: View {
                             .frame(width: 44, height: 44)
                             .background(Circle().fill(Color.white.opacity(0.15)))
                     }
+                    .accessibilityLabel("Save quantity")
                 }
             }
 
@@ -168,6 +173,8 @@ struct StockBarRow: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(reason.displayName)
+                        .accessibilityAddTraits(auditReason == reason ? .isSelected : [])
                     }
                 }
             }

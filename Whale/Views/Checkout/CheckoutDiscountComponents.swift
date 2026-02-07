@@ -174,12 +174,14 @@ struct LineItemDiscountOverlay: View {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.3))
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(subtitle)")
     }
 
     private enum DiscountInputType {
@@ -321,6 +323,9 @@ struct CheckoutCartItemRow: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(item.quantity) times \(item.productName), \(CurrencyFormatter.format(item.lineTotal))\(item.discountAmount > 0 ? ", discounted" : "")")
+        .accessibilityHint("Long press for discount options")
         .onLongPressGesture(minimumDuration: 0.4, maximumDistance: 10) {
             Haptics.medium()
             onLongPress(item)

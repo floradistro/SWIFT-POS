@@ -169,10 +169,11 @@ struct FloatingCart: View {
                     Image(systemName: "plus")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.8))
-                        .frame(width: 40, height: 40)
+                        .frame(width: 44, height: 44)
                         .glassEffect(.regular, in: .circle)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Add customer to queue")
             }
             .padding(.horizontal, 4)
         }
@@ -211,8 +212,11 @@ struct FloatingCart: View {
                         .foregroundStyle(.white.opacity(0.5))
                         .frame(width: 18, height: 18)
                         .background(Circle().fill(Color.white.opacity(0.15)))
+                        .padding(13)
+                        .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Remove \(entry.customerName) from queue")
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
@@ -255,6 +259,7 @@ struct FloatingCart: View {
                     .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(.white.opacity(0.5))
                     .frame(width: 36, height: 36)
+                    .accessibilityHidden(true)
             }
 
             if hasItems {
@@ -294,6 +299,7 @@ struct FloatingCart: View {
                     .background(Color.green, in: Capsule())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Checkout, pay \(CurrencyFormatter.format(totals?.total ?? 0))")
             } else if selectedEntry != nil {
                 // Has customer but no items
                 Text("Add items")
@@ -316,8 +322,10 @@ struct FloatingCart: View {
                     Image(systemName: "person.badge.plus")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(.white.opacity(0.6))
-                        .frame(width: 36, height: 36)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
                 }
+                .accessibilityLabel("Add customer")
             }
         }
         .padding(.horizontal, 16)
@@ -341,6 +349,7 @@ struct FloatingCart: View {
         }
         .padding(.top, 4)
         .animation(.easeInOut(duration: 0.2), value: selectedTab)
+        .accessibilityHidden(true)
     }
 
     // MARK: - Actions
