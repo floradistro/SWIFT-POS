@@ -405,6 +405,25 @@ enum OrderService {
             .execute()
     }
 
+    /// Fetch orders for a specific customer by customer_id
+    static func fetchOrdersForCustomer(customerId: UUID, storeId: UUID, limit: Int = 10) async throws -> [Order] {
+        Log.network.debug("Fetching orders for customer: \(customerId.uuidString)")
+
+        let response = try await supabase
+            .from("orders")
+            .select("*, order_items(*), v_store_customers(first_name, last_name, email, phone), users!orders_created_by_user_id_fkey(id, first_name, last_name, email), locations!orders_location_id_fkey(id, name)")
+            .eq("store_id", value: storeId.uuidString)
+            .eq("customer_id", value: customerId.uuidString)
+            .order("created_at", ascending: false)
+            .limit(limit)
+            .execute()
+
+        let data = response.data
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode([Order].self, from: data)
+    }
+
     // NOTE: POS order creation is now handled by the payment-intent Edge Function.
     // The backend creates orders atomically after successful payment processing.
     // See: supabase/functions/payment-intent/index.ts
