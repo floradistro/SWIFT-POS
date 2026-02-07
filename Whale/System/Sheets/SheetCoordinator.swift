@@ -133,7 +133,7 @@ final class SheetCoordinator: ObservableObject {
         guard !sheetQueue.isEmpty else { return }
 
         // Small delay to allow dismiss animation to complete
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+        Task { [weak self] in try? await Task.sleep(for: .seconds(0.3)); await MainActor.run {
             guard let self = self, let next = self.sheetQueue.first else { return }
             self.sheetQueue.removeFirst()
 
@@ -142,6 +142,7 @@ final class SheetCoordinator: ObservableObject {
             } else {
                 self.activeSheet = next
             }
+        }
         }
     }
 }

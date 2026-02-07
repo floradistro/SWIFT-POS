@@ -193,7 +193,7 @@ struct LineItemDiscountOverlay: View {
             isPresented = false
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+        Task { @MainActor in try? await Task.sleep(for: .seconds(0.15));
             let (title, placeholder, message): (String, String, String) = {
                 switch type {
                 case .customPrice:

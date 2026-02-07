@@ -135,7 +135,8 @@ struct TierSelectorSheet: View {
                         Button {
                             Haptics.light()
                             dismiss()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .seconds(0.3))
                                 onShowDetail?()
                             }
                         } label: {
@@ -378,7 +379,8 @@ struct TierSelectorSheet: View {
             Button {
                 Haptics.medium()
                 dismiss()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(0.3))
                     onPrintLabels?()
                 }
             } label: {
@@ -388,7 +390,8 @@ struct TierSelectorSheet: View {
             Button {
                 Haptics.light()
                 dismiss()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(0.3))
                     onShowDetail?()
                 }
             } label: {

@@ -566,7 +566,7 @@ struct QRCodeScanSheet: View {
             contentOpacity = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+        Task { @MainActor in try? await Task.sleep(for: .seconds(0.15));
             currentScreen = screen
 
             withAnimation(.easeIn(duration: 0.2)) {

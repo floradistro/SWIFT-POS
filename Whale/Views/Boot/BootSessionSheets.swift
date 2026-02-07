@@ -763,7 +763,7 @@ struct BootSafeDropSheet: View {
         }
 
         // Dismiss after delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        Task { @MainActor in try? await Task.sleep(for: .seconds(1.5));
             dismiss()
         }
     }
@@ -773,7 +773,7 @@ struct BootSafeDropSheet: View {
             modalScale = 0.9
             modalOpacity = 0
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+        Task { @MainActor in try? await Task.sleep(for: .seconds(0.2));
             isPresented = false
         }
     }

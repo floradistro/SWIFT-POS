@@ -63,7 +63,7 @@ struct NativeScannerView: UIViewControllerRepresentable {
             nav.navigationBar.prefersLargeTitles = false
             nav.modalPresentationStyle = .fullScreen
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { try? scanner.startScanning() }
+            Task { @MainActor in try? await Task.sleep(for: .seconds(0.3)); try? scanner.startScanning() }
             return nav
         } else {
             let fallback = UIHostingController(rootView: UnsupportedScannerView(onDismiss: onDismiss))
@@ -265,9 +265,7 @@ struct NativeScannerView: UIViewControllerRepresentable {
             hostingRef = host
 
             // Small delay to ensure scanner is fully stopped before presenting
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                scanner.present(host, animated: false)
-            }
+            Task { @MainActor in try? await Task.sleep(for: .seconds(0.05)); scanner.present(host, animated: false) }
         }
 
         @MainActor
@@ -313,9 +311,7 @@ struct NativeScannerView: UIViewControllerRepresentable {
             host.modalTransitionStyle = .crossDissolve
             hostingRef = host
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                scanner.present(host, animated: false)
-            }
+            Task { @MainActor in try? await Task.sleep(for: .seconds(0.05)); scanner.present(host, animated: false) }
         }
 
         @MainActor
@@ -338,9 +334,7 @@ struct NativeScannerView: UIViewControllerRepresentable {
             host.modalTransitionStyle = .crossDissolve
             hostingRef = host
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                scanner.present(host, animated: false)
-            }
+            Task { @MainActor in try? await Task.sleep(for: .seconds(0.05)); scanner.present(host, animated: false) }
         }
 
         @MainActor
@@ -361,9 +355,7 @@ struct NativeScannerView: UIViewControllerRepresentable {
             let capturedScannedID = scannedID
             let capturedMatches = matches
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                SheetCoordinator.shared.present(.customerScanned(storeId: capturedStoreId, scannedID: capturedScannedID, matches: capturedMatches))
-            }
+            Task { @MainActor in try? await Task.sleep(for: .seconds(0.3)); SheetCoordinator.shared.present(.customerScanned(storeId: capturedStoreId, scannedID: capturedScannedID, matches: capturedMatches)) }
         }
 
         @MainActor

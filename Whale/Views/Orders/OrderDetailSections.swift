@@ -82,7 +82,7 @@ extension OrderDetailContentView {
             .padding(.top, 8)
             .transition(.move(edge: .top).combined(with: .opacity))
             .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                Task { @MainActor in try? await Task.sleep(for: .seconds(2.5));
                     withAnimation { showActionMessage = false }
                 }
             }

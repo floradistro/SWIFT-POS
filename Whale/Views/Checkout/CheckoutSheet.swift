@@ -614,7 +614,7 @@ struct CheckoutSheet: View {
                         UIPasteboard.general.string = paymentUrl
                         copiedLink = true
                         Haptics.success()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedLink = false }
+                        Task { @MainActor in try? await Task.sleep(for: .seconds(2)); copiedLink = false }
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: copiedLink ? "checkmark" : "doc.on.doc")

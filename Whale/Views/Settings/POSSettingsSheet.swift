@@ -107,7 +107,8 @@ struct POSSettingsSheet: View {
                     subtitle: location.displayAddress
                 ) {
                     dismiss()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(0.3))
                         SheetCoordinator.shared.present(.locationPicker)
                     }
                 }
@@ -121,7 +122,8 @@ struct POSSettingsSheet: View {
                     subtitle: currentRegister != nil ? "Change register" : nil
                 ) {
                     dismiss()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(0.3))
                         SheetCoordinator.shared.present(.registerPicker)
                     }
                 }
@@ -132,7 +134,8 @@ struct POSSettingsSheet: View {
                     title: "Select Location"
                 ) {
                     dismiss()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(0.3))
                         SheetCoordinator.shared.present(.locationPicker)
                     }
                 }
@@ -261,7 +264,8 @@ struct POSSettingsSheet: View {
             ) {
                 if let posSession = windowSession?.posSession {
                     dismiss()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(0.3))
                         SheetCoordinator.shared.present(.safeDrop(session: posSession))
                     }
                 }
@@ -316,7 +320,8 @@ struct POSSettingsSheet: View {
                     subtitle: "Move inventory between locations"
                 ) {
                     dismiss()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(0.3))
                         SheetCoordinator.shared.present(.createTransfer(storeId: storeId, sourceLocation: location))
                     }
                 }
@@ -482,32 +487,35 @@ class PrinterPickerHostController: UIViewController {
         picker.delegate = self
 
         // Use a slight delay to ensure view hierarchy is ready
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            guard let self = self, let view = self.view else {
-                self?.finishPicking()
-                return
-            }
-
-            // Present from center of this view controller's view
-            let sourceRect = CGRect(x: view.bounds.midX - 1, y: view.bounds.midY - 1, width: 2, height: 2)
-
-            let presented = picker.present(from: sourceRect, in: view, animated: true) { [weak self] controller, selected, error in
-                Log.label.debug("Picker completion: selected=\(selected), error=\(error?.localizedDescription ?? "none")")
-                if selected, let printer = controller.selectedPrinter {
-                    DispatchQueue.main.async {
-                        self?.printerSettings?.printerUrl = printer.url
-                        self?.printerSettings?.printerName = printer.displayName
-                        Log.label.info("Saved printer: \(printer.displayName)")
-                    }
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(0.2))
+            await MainActor.run {
+                guard let self = self, let view = self.view else {
+                    self?.finishPicking()
+                    return
                 }
-                self?.finishPicking()
-            }
 
-            Log.label.debug("picker.present returned: \(presented)")
-            if !presented {
-                Log.label.debug("Failed to present - trying alternative method")
-                // Try presenting from the view controller itself
-                self.tryAlternativePresentation(picker: picker)
+                // Present from center of this view controller's view
+                let sourceRect = CGRect(x: view.bounds.midX - 1, y: view.bounds.midY - 1, width: 2, height: 2)
+
+                let presented = picker.present(from: sourceRect, in: view, animated: true) { [weak self] controller, selected, error in
+                    Log.label.debug("Picker completion: selected=\(selected), error=\(error?.localizedDescription ?? "none")")
+                    if selected, let printer = controller.selectedPrinter {
+                        DispatchQueue.main.async {
+                            self?.printerSettings?.printerUrl = printer.url
+                            self?.printerSettings?.printerName = printer.displayName
+                            Log.label.info("Saved printer: \(printer.displayName)")
+                        }
+                    }
+                    self?.finishPicking()
+                }
+
+                Log.label.debug("picker.present returned: \(presented)")
+                if !presented {
+                    Log.label.debug("Failed to present - trying alternative method")
+                    // Try presenting from the view controller itself
+                    self.tryAlternativePresentation(picker: picker)
+                }
             }
         }
     }
