@@ -167,7 +167,7 @@ struct OrdersView: View {
     private var activeFiltersBar: some View {
         HStack(spacing: 8) {
             Text("Filters:")
-                .font(.system(size: 11, weight: .medium))
+                .font(Design.Typography.caption2).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.5))
 
             if store.dateRangeStart != nil || store.dateRangeEnd != nil {
@@ -193,7 +193,7 @@ struct OrdersView: View {
                 Haptics.light()
             } label: {
                 Text("Clear All")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Design.Typography.caption2).fontWeight(.semibold)
                     .foregroundStyle(Design.Colors.Semantic.accent)
             }
         }
@@ -229,12 +229,12 @@ struct OrdersView: View {
     private func filterChip(text: String, icon: String, onRemove: @escaping () -> Void) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 10))
+                .font(Design.Typography.caption2)
             Text(text)
-                .font(.system(size: 11, weight: .medium))
+                .font(Design.Typography.caption2).fontWeight(.medium)
             Button(action: onRemove) {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 12))
+                    .font(Design.Typography.caption1)
             }
         }
         .foregroundStyle(.white.opacity(0.8))

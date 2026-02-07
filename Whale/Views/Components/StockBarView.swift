@@ -81,7 +81,7 @@ struct StockBarRow: View {
 
             if let error = errorMessage {
                 Text(error)
-                    .font(.system(size: 11))
+                    .font(Design.Typography.caption2)
                     .foregroundStyle(.red)
             }
         }
@@ -102,7 +102,7 @@ struct StockBarRow: View {
                 .frame(height: 8)
 
                 Text("\(formatValue(value)) \(label)")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Design.Typography.caption1).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.7))
                     .frame(minWidth: 80, alignment: .trailing)
             }
@@ -117,7 +117,7 @@ struct StockBarRow: View {
             HStack(spacing: 8) {
                 TextField("Qty", text: $editValue)
                     .keyboardType(.decimalPad)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(Design.Typography.callout).fontWeight(.semibold)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -130,12 +130,12 @@ struct StockBarRow: View {
                 } else if isSuccess {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
-                        .font(.system(size: 20))
+                        .font(Design.Typography.title3)
                         .accessibilityLabel("Saved successfully")
                 } else {
                     Button(action: onCancel) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                             .foregroundStyle(.white.opacity(0.6))
                             .frame(width: 44, height: 44)
                             .background(Circle().fill(Color.white.opacity(0.1)))
@@ -143,7 +143,7 @@ struct StockBarRow: View {
                     .accessibilityLabel("Cancel")
                     Button(action: onSave) {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                             .foregroundStyle(.white)
                             .frame(width: 44, height: 44)
                             .background(Circle().fill(Color.white.opacity(0.15)))
@@ -161,9 +161,9 @@ struct StockBarRow: View {
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: reason.icon)
-                                    .font(.system(size: 10))
+                                    .font(Design.Typography.caption2)
                                 Text(reason.displayName)
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(Design.Typography.caption2).fontWeight(.medium)
                             }
                             .foregroundStyle(auditReason == reason ? .white : .white.opacity(0.5))
                             .padding(.horizontal, 10)

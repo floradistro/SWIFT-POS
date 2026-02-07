@@ -25,15 +25,15 @@ struct FilterChip: View {
             HStack(spacing: 4) {
                 if let icon = icon {
                     Image(systemName: icon)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(Design.Typography.caption2).fontWeight(.semibold)
                 }
 
                 Text(label)
-                    .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
+                    .font(Design.Typography.caption1).fontWeight(isSelected ? .semibold : .medium)
 
                 if let count = count, count > 0 {
                     Text("\(count)")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .font(Design.Typography.caption2Rounded).fontWeight(.bold)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(.fill.tertiary, in: .capsule)
@@ -89,10 +89,10 @@ struct DateFilterChip: View {
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "calendar")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(Design.Typography.caption2).fontWeight(.semibold)
 
                 Text(displayText)
-                    .font(.system(size: 12, weight: hasDateFilter ? .semibold : .medium))
+                    .font(Design.Typography.caption1).fontWeight(hasDateFilter ? .semibold : .medium)
 
                 if hasDateFilter {
                     Button {
@@ -103,7 +103,7 @@ struct DateFilterChip: View {
                         Haptics.light()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 11))
+                            .font(Design.Typography.caption2)
                             .foregroundStyle(.white.opacity(0.5))
                     }
                     .accessibilityLabel("Clear date filter")
@@ -174,7 +174,7 @@ struct DateRangePickerSheet: View {
                                     Haptics.light()
                                 } label: {
                                     Text(preset.rawValue)
-                                        .font(.system(size: 13, weight: selectedPreset == preset ? .semibold : .medium))
+                                        .font(Design.Typography.footnote).fontWeight(selectedPreset == preset ? .semibold : .medium)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
                                         .background(selectedPreset == preset ? Color.accentColor : Color(.tertiarySystemFill))
@@ -194,10 +194,10 @@ struct DateRangePickerSheet: View {
                         } label: {
                             VStack(spacing: 4) {
                                 Text("START")
-                                    .font(.system(size: 10, weight: .semibold))
+                                    .font(Design.Typography.caption2).fontWeight(.semibold)
                                     .foregroundStyle(.secondary)
                                 Text(selectedStart, format: .dateTime.month(.abbreviated).day().year())
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(Design.Typography.subhead).fontWeight(.semibold)
                                     .foregroundStyle(isSelectingStart ? Color.accentColor : .primary)
                             }
                             .frame(maxWidth: .infinity)
@@ -216,10 +216,10 @@ struct DateRangePickerSheet: View {
                         } label: {
                             VStack(spacing: 4) {
                                 Text("END")
-                                    .font(.system(size: 10, weight: .semibold))
+                                    .font(Design.Typography.caption2).fontWeight(.semibold)
                                     .foregroundStyle(.secondary)
                                 Text(selectedEnd, format: .dateTime.month(.abbreviated).day().year())
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(Design.Typography.subhead).fontWeight(.semibold)
                                     .foregroundStyle(!isSelectingStart ? Color.accentColor : .primary)
                             }
                             .frame(maxWidth: .infinity)

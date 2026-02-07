@@ -86,7 +86,7 @@ struct AdvancedOrderFiltersSheet: View {
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("From")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(Design.Typography.caption1).fontWeight(.medium)
                                 .foregroundStyle(.secondary)
                             DatePicker("", selection: $customStartDate, displayedComponents: .date)
                                 .labelsHidden()
@@ -97,7 +97,7 @@ struct AdvancedOrderFiltersSheet: View {
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text("To")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(Design.Typography.caption1).fontWeight(.medium)
                                 .foregroundStyle(.secondary)
                             DatePicker("", selection: $customEndDate, displayedComponents: .date)
                                 .labelsHidden()
@@ -116,7 +116,7 @@ struct AdvancedOrderFiltersSheet: View {
                         selectedDatePreset = .all
                     } label: {
                         Text("Clear Date Filter")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                             .foregroundStyle(Design.Colors.Semantic.error)
                     }
                 }
@@ -131,7 +131,7 @@ struct AdvancedOrderFiltersSheet: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Minimum")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Design.Typography.caption1).fontWeight(.medium)
                         .foregroundStyle(.secondary)
                     HStack {
                         Text("$")
@@ -152,7 +152,7 @@ struct AdvancedOrderFiltersSheet: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Maximum")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Design.Typography.caption1).fontWeight(.medium)
                         .foregroundStyle(.secondary)
                     HStack {
                         Text("$")
@@ -209,9 +209,9 @@ struct AdvancedOrderFiltersSheet: View {
                         Image(systemName: "globe")
                             .foregroundStyle(Design.Colors.Semantic.accent)
                         Text("Online Orders Only")
-                            .font(.system(size: 15, weight: .medium))
+                            .font(Design.Typography.subhead).fontWeight(.medium)
                         Text("(Pickup, Shipping, Delivery)")
-                            .font(.system(size: 12))
+                            .font(Design.Typography.caption1)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -238,7 +238,7 @@ struct AdvancedOrderFiltersSheet: View {
         HStack {
             Spacer()
             Text("\(store.filteredOrders.count) orders match")
-                .font(.system(size: 14, weight: .medium))
+                .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(.secondary)
             Spacer()
         }
@@ -257,7 +257,7 @@ struct AdvancedOrderFiltersSheet: View {
             }
         } label: {
             Text(label)
-                .font(.system(size: 13, weight: selectedDatePreset == preset ? .semibold : .medium))
+                .font(Design.Typography.footnote).fontWeight(selectedDatePreset == preset ? .semibold : .medium)
                 .foregroundStyle(selectedDatePreset == preset ? .white : .primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -279,7 +279,7 @@ struct AdvancedOrderFiltersSheet: View {
             maxAmountText = max.map { "\($0)" } ?? ""
         } label: {
             Text(label)
-                .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
+                .font(Design.Typography.caption1).fontWeight(isSelected ? .semibold : .medium)
                 .foregroundStyle(isSelected ? .white : .primary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
@@ -304,7 +304,7 @@ struct AdvancedOrderFiltersSheet: View {
                         .frame(width: 8, height: 8)
                 }
                 Text(label)
-                    .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
+                    .font(Design.Typography.footnote).fontWeight(isSelected ? .semibold : .medium)
             }
             .foregroundStyle(isSelected ? .white : .primary)
             .frame(maxWidth: .infinity)
@@ -326,9 +326,9 @@ struct AdvancedOrderFiltersSheet: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 12))
+                    .font(Design.Typography.caption1)
                 Text(label)
-                    .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
+                    .font(Design.Typography.footnote).fontWeight(isSelected ? .semibold : .medium)
             }
             .foregroundStyle(isSelected ? .white : .primary)
             .frame(maxWidth: .infinity)
@@ -364,10 +364,10 @@ private struct FilterSection<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(Design.Typography.footnote).fontWeight(.semibold)
                     .foregroundStyle(Design.Colors.Semantic.accent)
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(Design.Typography.callout).fontWeight(.semibold)
             }
 
             content()

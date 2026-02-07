@@ -18,19 +18,19 @@ struct CRMStatBox: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(Design.Typography.callout).fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.4))
                 .frame(width: 20)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(value)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .font(Design.Typography.bodyRounded).fontWeight(.bold)
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
 
                 Text(title)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(Design.Typography.caption2).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.5))
                     .lineLimit(1)
             }
@@ -56,7 +56,7 @@ struct EditableLoyaltyStatBox: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "star.fill")
-                .font(.system(size: 16, weight: .semibold))
+                .font(Design.Typography.callout).fontWeight(.semibold)
                 .foregroundStyle(.yellow.opacity(0.8))
                 .frame(width: 20)
 
@@ -67,7 +67,7 @@ struct EditableLoyaltyStatBox: View {
                         .tint(.white)
                 } else {
                     Text(value)
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .font(Design.Typography.bodyRounded).fontWeight(.bold)
                         .foregroundStyle(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -75,10 +75,10 @@ struct EditableLoyaltyStatBox: View {
 
                 HStack(spacing: 4) {
                     Text("Loyalty Points")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(Design.Typography.caption2).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.5))
                     Text("• Hold")
-                        .font(.system(size: 9, weight: .medium))
+                        .font(Design.Typography.caption2).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.3))
                 }
             }
@@ -108,18 +108,18 @@ struct ContactInfoRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .medium))
+                .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.35))
                 .frame(width: 20)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(label.uppercased())
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(Design.Typography.caption2).fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.3))
                     .tracking(0.5)
 
                 Text(value)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.8))
                     .lineLimit(2)
             }
@@ -146,29 +146,29 @@ struct OrderRowCompact: View {
             HStack(spacing: 12) {
                 // Order number
                 Text("#\(order.shortOrderNumber)")
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .font(Design.Typography.footnoteMono).fontWeight(.bold)
                     .foregroundStyle(.white.opacity(0.8))
 
                 // Order type icon
                 Image(systemName: order.orderType.icon)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Design.Typography.caption2).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.4))
 
                 Spacer()
 
                 // Date
                 Text(formatOrderDate(order.createdAt))
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Design.Typography.caption1).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.5))
 
                 // Amount
                 Text(formatAmount(order.totalAmount))
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(Design.Typography.footnoteRounded).fontWeight(.bold)
                     .foregroundStyle(.white)
 
                 // Status text (monochrome)
                 Text(order.status.displayName)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(Design.Typography.caption2).fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.6))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -176,7 +176,7 @@ struct OrderRowCompact: View {
 
                 // Chevron to indicate tappable
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Design.Typography.caption2).fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.3))
                     .accessibilityHidden(true)
             }
@@ -239,25 +239,25 @@ struct CustomerRow: View {
                             .frame(width: 44, height: 44)
 
                         Text(customer.initials)
-                            .font(.system(size: 15, weight: .bold))
+                            .font(Design.Typography.subhead).fontWeight(.bold)
                             .foregroundStyle(.white.opacity(0.8))
                     }
 
                     // Customer info
                     VStack(alignment: .leading, spacing: 3) {
                         Text(customer.displayName)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(Design.Typography.subhead).fontWeight(.semibold)
                             .foregroundStyle(.white)
                             .lineLimit(1)
 
                         HStack(spacing: 8) {
                             if let phone = customer.formattedPhone {
                                 Text(phone)
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(Design.Typography.caption1).fontWeight(.medium)
                                     .foregroundStyle(.white.opacity(0.45))
                             } else if let email = customer.email, !email.isEmpty {
                                 Text(email)
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(Design.Typography.caption1).fontWeight(.medium)
                                     .foregroundStyle(.white.opacity(0.45))
                                     .lineLimit(1)
                             }
@@ -272,9 +272,9 @@ struct CustomerRow: View {
                         if let points = customer.loyaltyPoints {
                             HStack(spacing: 2) {
                                 Image(systemName: "star.fill")
-                                    .font(.system(size: 8, weight: .bold))
+                                    .font(Design.Typography.caption2).fontWeight(.bold)
                                 Text("\(points)")
-                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .font(Design.Typography.caption2Rounded).fontWeight(.bold)
                             }
                             .foregroundStyle(points >= 0 ? .yellow.opacity(0.8) : .red.opacity(0.7))
                             .padding(.horizontal, 5)
@@ -285,9 +285,9 @@ struct CustomerRow: View {
                         if let orders = customer.totalOrders, orders > 0 {
                             HStack(spacing: 3) {
                                 Image(systemName: "bag.fill")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(Design.Typography.caption2).fontWeight(.bold)
                                 Text("\(orders)")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(Design.Typography.caption2Rounded).fontWeight(.bold)
                             }
                             .foregroundStyle(.white.opacity(0.5))
                             .padding(.horizontal, 6)
@@ -303,7 +303,7 @@ struct CustomerRow: View {
                             onSelect()
                         } label: {
                             Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 24, weight: .medium))
+                                .font(Design.Typography.title2).fontWeight(.medium)
                                 .foregroundStyle(.white.opacity(0.6))
                                 .frame(width: 44, height: 44)
                                 .contentShape(Circle())
@@ -314,7 +314,7 @@ struct CustomerRow: View {
 
                     // Chevron inline with the row
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                         .foregroundStyle(.white.opacity(0.3))
                         .accessibilityHidden(true)
                 }

@@ -90,14 +90,14 @@ struct ProductAnalyticsInline: View {
 
                 VStack(alignment: .leading, spacing: 0) {
                     Text("\(Int(velocity?.totalUnits ?? 0))")
-                        .font(.system(size: isCompact ? 14 : 16, weight: .semibold, design: .rounded))
+                        .font(isCompact ? Design.Typography.footnoteRounded : Design.Typography.calloutRounded).fontWeight(.semibold)
                         .foregroundStyle(.white)
 
                     HStack(spacing: 2) {
                         Image(systemName: trendDirection.icon)
-                            .font(.system(size: 8, weight: .bold))
+                            .font(Design.Typography.caption2).fontWeight(.bold)
                         Text("7d")
-                            .font(.system(size: 9, weight: .medium))
+                            .font(Design.Typography.caption2).fontWeight(.medium)
                     }
                     .foregroundStyle(trendDirection.color)
                 }
@@ -192,7 +192,7 @@ struct StockPill: View {
     var body: some View {
         HStack(spacing: 4) {
             Text("\(quantity)")
-                .font(.system(size: isCompact ? 13 : 14, weight: .semibold, design: .rounded))
+                .font(Design.Typography.footnoteRounded).fontWeight(.semibold)
                 .foregroundStyle(.white)
 
             Circle()
@@ -201,7 +201,7 @@ struct StockPill: View {
 
             if daysSupply > 0 && !isCompact {
                 Text("\(daysSupply)d")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(Design.Typography.caption2).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.5))
             }
         }
@@ -316,24 +316,24 @@ struct ProductInsightsPanel: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(Int(velocity?.totalUnits ?? 0))")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .font(Design.Typography.title3Rounded).fontWeight(.bold)
                             .foregroundStyle(.white)
 
                         Text("sold")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Design.Typography.caption2).fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.5))
                     }
 
                     HStack(spacing: 4) {
                         Text("7 days")
-                            .font(.system(size: 11))
+                            .font(Design.Typography.caption2)
                             .foregroundStyle(.white.opacity(0.4))
 
                         if let vel = velocity {
                             Text("·")
                                 .foregroundStyle(.white.opacity(0.3))
                             Text(vel.health.label)
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(Design.Typography.caption2).fontWeight(.semibold)
                                 .foregroundStyle(velocityColor)
                         }
                     }
@@ -354,21 +354,21 @@ struct ProductInsightsPanel: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(product.availableStock)")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .font(Design.Typography.title3Rounded).fontWeight(.bold)
                             .foregroundStyle(.white)
 
                         Text("units")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Design.Typography.caption2).fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.5))
                     }
 
                     if daysOfStock > 0 {
                         Text("~\(daysOfStock)d supply")
-                            .font(.system(size: 11))
+                            .font(Design.Typography.caption2)
                             .foregroundStyle(stockColor)
                     } else {
                         Text("in stock")
-                            .font(.system(size: 11))
+                            .font(Design.Typography.caption2)
                             .foregroundStyle(.white.opacity(0.4))
                     }
                 }

@@ -248,7 +248,7 @@ struct POSContentBrowser: View {
                     .frame(width: 44, height: 44)
             } else {
                 Image(systemName: "viewfinder")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(Design.Typography.headline)
                     .foregroundStyle(.white.opacity(0.9))
                     .frame(width: 44, height: 44)
             }

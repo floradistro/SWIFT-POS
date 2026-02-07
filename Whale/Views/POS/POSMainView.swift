@@ -155,7 +155,7 @@ struct POSMainView: View {
                         .frame(width: 44, height: 44)
                 } else {
                     Image(systemName: "building.2")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(Design.Typography.headline)
                         .foregroundStyle(.white.opacity(0.9))
                         .frame(width: 44, height: 44)
                 }
@@ -174,12 +174,12 @@ struct POSMainView: View {
             // Title
             VStack(spacing: 6) {
                 Text("Select Location")
-                    .font(.system(size: 26, weight: .bold))
+                    .font(Design.Typography.title2).fontWeight(.bold)
                     .foregroundStyle(.white)
 
                 if let storeName = session.store?.businessName {
                     Text(storeName)
-                        .font(.system(size: 15))
+                        .font(Design.Typography.subhead)
                         .foregroundStyle(.white.opacity(0.4))
                 }
             }
@@ -187,10 +187,10 @@ struct POSMainView: View {
             if session.locations.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "mappin.slash")
-                        .font(.system(size: 36))
+                        .font(Design.Typography.largeTitle)
                         .foregroundStyle(.white.opacity(0.2))
                     Text("No locations available")
-                        .font(.system(size: 15))
+                        .font(Design.Typography.subhead)
                         .foregroundStyle(.white.opacity(0.4))
                 }
                 .padding(.top, 40)
@@ -225,12 +225,12 @@ struct POSMainView: View {
                 // Text
                 VStack(alignment: .leading, spacing: 3) {
                     Text(location.name)
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(Design.Typography.headline)
                         .foregroundStyle(.white)
 
                     if let address = location.displayAddress {
                         Text(address)
-                            .font(.system(size: 13))
+                            .font(Design.Typography.footnote)
                             .foregroundStyle(.white.opacity(0.4))
                             .lineLimit(1)
                     }
@@ -240,7 +240,7 @@ struct POSMainView: View {
 
                 // Type pill
                 Text(location.type.capitalized)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Design.Typography.caption2).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.4))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -248,7 +248,7 @@ struct POSMainView: View {
 
                 // Checkmark
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20))
+                    .font(Design.Typography.title3)
                     .foregroundStyle(isSelected ? .white : .white.opacity(0.2))
             }
             .padding(.horizontal, 20)
@@ -424,7 +424,7 @@ struct POSMainView: View {
             HStack(spacing: 12) {
                 // Selection count
                 Text("\(multiSelect.selectedCount) selected")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Design.Typography.subhead).fontWeight(.semibold)
                     .foregroundStyle(.white)
 
                 Spacer()
@@ -440,9 +440,9 @@ struct POSMainView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "printer.fill")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(Design.Typography.footnote).fontWeight(.semibold)
                             Text("Print")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(Design.Typography.footnote).fontWeight(.bold)
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, 18)
@@ -458,9 +458,9 @@ struct POSMainView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(Design.Typography.footnote).fontWeight(.semibold)
                             Text("Export")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(Design.Typography.footnote).fontWeight(.bold)
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, 18)
@@ -479,9 +479,9 @@ struct POSMainView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "printer.fill")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(Design.Typography.footnote).fontWeight(.semibold)
                             Text("Print")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(Design.Typography.footnote).fontWeight(.bold)
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, 18)
@@ -496,9 +496,9 @@ struct POSMainView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(Design.Typography.footnote).fontWeight(.semibold)
                             Text("Ready")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(Design.Typography.footnote).fontWeight(.bold)
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, 18)
@@ -516,7 +516,7 @@ struct POSMainView: View {
                     }
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(Design.Typography.footnote).fontWeight(.bold)
                         .foregroundStyle(.white.opacity(0.7))
                         .frame(width: 36, height: 36)
                 }

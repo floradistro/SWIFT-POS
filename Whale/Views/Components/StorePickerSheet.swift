@@ -29,19 +29,19 @@ struct StorePickerSheet: View {
                         } label: {
                             HStack(spacing: 14) {
                                 Image(systemName: "building.2.fill")
-                                    .font(.system(size: 18))
+                                    .font(Design.Typography.headline)
                                     .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
                                     .frame(width: 28)
 
                                 Text(association.displayName)
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(Design.Typography.callout).fontWeight(.medium)
                                     .foregroundStyle(.white)
 
                                 Spacer()
 
                                 if isSelected {
                                     Image(systemName: "checkmark")
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .font(Design.Typography.footnote).fontWeight(.semibold)
                                         .foregroundStyle(.white)
                                 }
                             }

@@ -137,6 +137,7 @@ enum Design {
         static let largeTitleRounded = Font.system(.largeTitle, design: .rounded)
         static let title2Rounded     = Font.system(.title2, design: .rounded)
         static let title3Rounded     = Font.system(.title3, design: .rounded)
+        static let bodyRounded       = Font.system(.body, design: .rounded)
         static let headlineRounded   = Font.system(.headline, design: .rounded)
         static let calloutRounded    = Font.system(.callout, design: .rounded)
         static let subheadRounded    = Font.system(.subheadline, design: .rounded)

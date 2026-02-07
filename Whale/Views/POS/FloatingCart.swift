@@ -167,7 +167,7 @@ struct FloatingCart: View {
                     onFindCustomer?()
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                         .foregroundStyle(.white.opacity(0.8))
                         .frame(width: 44, height: 44)
                         .glassEffect(.regular, in: .circle)
@@ -191,7 +191,7 @@ struct FloatingCart: View {
             HStack(spacing: 6) {
                 // Customer initials
                 Text(entry.customerInitials)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(Design.Typography.caption1).fontWeight(.bold)
                     .foregroundStyle(.white)
                     .frame(width: 28, height: 28)
                     .background(Circle().fill(isActive ? Color.accentColor : Color.white.opacity(0.25)))
@@ -199,7 +199,7 @@ struct FloatingCart: View {
                 // Item count if any
                 if entry.cartItemCount > 0 {
                     Text("\(entry.cartItemCount)")
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .font(Design.Typography.caption2Rounded).fontWeight(.semibold)
                         .foregroundStyle(.white.opacity(0.8))
                 }
 
@@ -208,7 +208,7 @@ struct FloatingCart: View {
                     Task { await removeFromQueue(cartId: entry.cartId) }
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(Design.Typography.caption2).fontWeight(.bold)
                         .foregroundStyle(.white.opacity(0.5))
                         .frame(width: 18, height: 18)
                         .background(Circle().fill(Color.white.opacity(0.15)))
@@ -249,14 +249,14 @@ struct FloatingCart: View {
                     }
                 } label: {
                     Text(entry.customerInitials)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(Design.Typography.footnote).fontWeight(.bold)
                         .foregroundStyle(.white)
                         .frame(width: 36, height: 36)
                         .background(Circle().fill(Color.accentColor))
                 }
             } else {
                 Image(systemName: "cart.fill")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(Design.Typography.headline).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.5))
                     .frame(width: 36, height: 36)
                     .accessibilityHidden(true)
@@ -265,7 +265,7 @@ struct FloatingCart: View {
             if hasItems {
                 // Item count badge
                 Text("\(itemCount)")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(Design.Typography.footnoteRounded).fontWeight(.bold)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
@@ -276,7 +276,7 @@ struct FloatingCart: View {
                 // Total
                 if let totals = totals {
                     Text(CurrencyFormatter.format(totals.total))
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(Design.Typography.headlineRounded).fontWeight(.bold)
                         .foregroundStyle(.white)
                 }
 
@@ -289,9 +289,9 @@ struct FloatingCart: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "creditcard")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                         Text("Pay")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(Design.Typography.footnote).fontWeight(.bold)
                     }
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
@@ -303,14 +303,14 @@ struct FloatingCart: View {
             } else if selectedEntry != nil {
                 // Has customer but no items
                 Text("Add items")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.5))
 
                 Spacer()
             } else {
                 // No customer, no items
                 Text("Add customer")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.5))
 
                 Spacer()
@@ -320,7 +320,7 @@ struct FloatingCart: View {
                     onFindCustomer?()
                 } label: {
                     Image(systemName: "person.badge.plus")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(Design.Typography.callout).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.6))
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())

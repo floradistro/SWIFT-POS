@@ -16,10 +16,10 @@ struct StatPill: View {
     var body: some View {
         VStack(spacing: 3) {
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(Design.Typography.caption2).fontWeight(.medium)
                 .foregroundStyle(.secondary)
             Text(value)
-                .font(.system(size: 14, weight: .semibold))
+                .font(Design.Typography.footnote).fontWeight(.semibold)
                 .foregroundStyle(.primary)
         }
         .padding(.horizontal, 14)
@@ -37,11 +37,11 @@ struct DetailRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(.system(size: 13))
+                .font(Design.Typography.footnote)
                 .foregroundStyle(.secondary)
             Spacer()
             Text(value)
-                .font(.system(size: 13, weight: .medium))
+                .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(.primary)
         }
     }

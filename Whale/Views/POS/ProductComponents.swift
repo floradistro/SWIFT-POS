@@ -88,7 +88,7 @@ struct ProductGridCard: View {
 
                             if isSelected {
                                 Image(systemName: "checkmark")
-                                    .font(.system(size: 12, weight: .bold))
+                                    .font(Design.Typography.caption1).fontWeight(.bold)
                                     .foregroundStyle(.white)
                             }
                         }
@@ -100,13 +100,13 @@ struct ProductGridCard: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(product.name)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                         .foregroundStyle(.white)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
 
                     Text(product.categoryName ?? " ")
-                        .font(.system(size: 11))
+                        .font(Design.Typography.caption2)
                         .foregroundStyle(.white.opacity(0.5))
                         .lineLimit(1)
                 }
@@ -199,12 +199,12 @@ private struct StockBadge: View {
         HStack(spacing: 4) {
             if quantity <= 0 {
                 Text("OUT")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(Design.Typography.caption2).fontWeight(.bold)
             } else {
                 Image(systemName: "shippingbox.fill")
-                    .font(.system(size: 9))
+                    .font(Design.Typography.caption2)
                 Text("\(quantity)")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .font(Design.Typography.caption1Rounded).fontWeight(.semibold)
             }
         }
         .foregroundStyle(color)
@@ -238,7 +238,7 @@ struct CartItemRow: View {
                 HStack(spacing: 6) {
                     if let variantName = item.variantName {
                         Text(variantName)
-                            .font(.system(size: 10, weight: .bold))
+                            .font(Design.Typography.caption2).fontWeight(.bold)
                             .foregroundStyle(.white)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -247,7 +247,7 @@ struct CartItemRow: View {
 
                     if let tierLabel = item.tierLabel {
                         Text(tierLabel)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(Design.Typography.caption2).fontWeight(.semibold)
                             .foregroundStyle(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -270,7 +270,7 @@ struct CartItemRow: View {
                     onUpdateQuantity(item.quantity - 1)
                 } label: {
                     Image(systemName: "minus")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(Design.Typography.caption1).fontWeight(.semibold)
                         .foregroundStyle(Design.Colors.Text.tertiary)
                         .frame(width: 28, height: 28)
                         .background(Design.Colors.Glass.thin)
@@ -291,7 +291,7 @@ struct CartItemRow: View {
                     onUpdateQuantity(item.quantity + 1)
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(Design.Typography.caption1).fontWeight(.semibold)
                         .foregroundStyle(Design.Colors.Text.tertiary)
                         .frame(width: 28, height: 28)
                         .background(Design.Colors.Glass.thin)
@@ -344,7 +344,7 @@ struct CategoryPill: View {
             onTap()
         } label: {
             Text(name)
-                .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
+                .font(Design.Typography.caption1).fontWeight(isSelected ? .semibold : .medium)
                 .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)

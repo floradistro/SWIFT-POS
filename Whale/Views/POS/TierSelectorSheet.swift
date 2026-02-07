@@ -95,12 +95,12 @@ struct TierSelectorSheet: View {
                     if let sku = product.sku {
                         HStack {
                             Text(sku)
-                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .font(Design.Typography.caption2Mono).fontWeight(.medium)
                                 .foregroundStyle(.white.opacity(0.4))
                             Spacer()
                             if let cat = product.categoryName {
                                 Text(cat)
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(Design.Typography.caption2).fontWeight(.medium)
                                     .foregroundStyle(.white.opacity(0.3))
                             }
                         }
@@ -141,7 +141,7 @@ struct TierSelectorSheet: View {
                             }
                         } label: {
                             Image(systemName: "info.circle")
-                                .font(.system(size: 17))
+                                .font(Design.Typography.body)
                                 .foregroundStyle(.white.opacity(0.7))
                         }
 
@@ -192,7 +192,7 @@ struct TierSelectorSheet: View {
                 .frame(height: 8)
 
                 Text("\(localStock)g")
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .font(Design.Typography.subheadRounded).fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.8))
                     .frame(minWidth: 50, alignment: .trailing)
             }
@@ -220,7 +220,7 @@ struct TierSelectorSheet: View {
             HStack(spacing: 10) {
                 TextField("Qty", text: $auditQuantity)
                     .keyboardType(.decimalPad)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(Design.Typography.headline)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
@@ -235,7 +235,7 @@ struct TierSelectorSheet: View {
                         showQuickAudit = false
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                             .foregroundStyle(.white.opacity(0.6))
                             .frame(width: 44, height: 44)
                             .background(Circle().fill(.white.opacity(0.1)))
@@ -243,7 +243,7 @@ struct TierSelectorSheet: View {
 
                     Button { submitAudit() } label: {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                             .foregroundStyle(.white)
                             .frame(width: 44, height: 44)
                             .background(Circle().fill(.white.opacity(0.15)))
@@ -260,7 +260,7 @@ struct TierSelectorSheet: View {
                             auditReason = reason
                         } label: {
                             Text(reason.displayName)
-                                .font(.system(size: 14, weight: auditReason == reason ? .semibold : .medium))
+                                .font(Design.Typography.footnote).fontWeight(auditReason == reason ? .semibold : .medium)
                                 .foregroundStyle(auditReason == reason ? .white : .white.opacity(0.6))
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
@@ -274,7 +274,7 @@ struct TierSelectorSheet: View {
 
             if let error = auditError {
                 Text(error)
-                    .font(.system(size: 11))
+                    .font(Design.Typography.caption2)
                     .foregroundStyle(Design.Colors.Semantic.error)
             }
         }
@@ -315,7 +315,7 @@ struct TierSelectorSheet: View {
     private func variantChip(name: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(name)
-                .font(.system(size: 15, weight: isSelected ? .semibold : .medium))
+                .font(Design.Typography.subhead).fontWeight(isSelected ? .semibold : .medium)
                 .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
                 .padding(.horizontal, 18)
                 .padding(.vertical, 12)
@@ -333,7 +333,7 @@ struct TierSelectorSheet: View {
         VStack(spacing: 10) {
             if currentTiers.isEmpty {
                 Text("No pricing available")
-                    .font(.system(size: 14))
+                    .font(Design.Typography.footnote)
                     .foregroundStyle(.white.opacity(0.4))
                     .frame(height: 60)
             } else {
@@ -356,11 +356,11 @@ struct TierSelectorSheet: View {
         } label: {
             HStack {
                 Text(tier.label)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(Design.Typography.callout).fontWeight(.semibold)
                     .foregroundStyle(.white)
                 Spacer()
                 Text(CurrencyFormatter.format(tier.defaultPrice))
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(Design.Typography.headlineRounded).fontWeight(.bold)
                     .foregroundStyle(.white)
             }
             .padding(.horizontal, 18)
@@ -409,7 +409,7 @@ struct TierSelectorSheet: View {
             }
         } label: {
             Image(systemName: "ellipsis.circle")
-                .font(.system(size: 17))
+                .font(Design.Typography.body)
                 .foregroundStyle(.white.opacity(0.7))
         }
     }

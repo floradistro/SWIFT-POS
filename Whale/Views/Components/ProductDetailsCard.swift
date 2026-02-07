@@ -118,10 +118,10 @@ struct ProductDetailsCard: View {
         if let description = product.description, !description.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Description")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Design.Typography.caption1).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.5))
                 Text(description)
-                    .font(.system(size: 14))
+                    .font(Design.Typography.footnote)
                     .foregroundStyle(.white.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -141,7 +141,7 @@ struct ProductDetailsCard: View {
                     Image(systemName: "doc.badge.checkmark")
                         .foregroundStyle(Design.Colors.Semantic.success)
                     Text("Certificate of Analysis")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Design.Typography.caption1).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.5))
                     Spacer()
                 }
