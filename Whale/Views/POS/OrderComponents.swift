@@ -104,6 +104,7 @@ struct OrderListRow: View {
                                 .font(.system(size: 22))
                                 .foregroundStyle(isMultiSelected ? Design.Colors.Semantic.accent : .white.opacity(0.3))
                                 .scaleEffect(isMultiSelected ? 1.0 : 0.9)
+                                .accessibilityHidden(true)
                         }
                     }
                     .padding(.horizontal, horizontalPadding)
@@ -112,6 +113,9 @@ struct OrderListRow: View {
                 .background(isMultiSelected ? Color.white.opacity(0.06) : Color.clear)
             }
             .buttonStyle(OrderListRowButtonStyle(isPressed: $isPressed))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(order.displayCustomerName), order \(order.shortOrderNumber), \(order.formattedTotal), \(order.status.displayName)")
+            .accessibilityAddTraits(isMultiSelected ? .isSelected : [])
             .contextMenu {
                 Button {
                     onOpenInDock()
@@ -206,10 +210,12 @@ struct OrderListStatusPill: View {
                 Circle()
                     .fill(Color.orange)
                     .frame(width: 6, height: 6)
+                    .accessibilityHidden(true)
             } else if isComplete {
                 Circle()
                     .fill(Design.Colors.Semantic.success)
                     .frame(width: 6, height: 6)
+                    .accessibilityHidden(true)
             }
 
             Text(statusText)
@@ -265,11 +271,13 @@ struct PaymentStatusBadge: View {
             Circle()
                 .fill(statusColor)
                 .frame(width: 6, height: 6)
+                .accessibilityHidden(true)
 
             Text(status.displayName)
                 .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.white.opacity(0.7))
         }
+        .accessibilityElement(children: .combine)
     }
 
     private var statusColor: Color {

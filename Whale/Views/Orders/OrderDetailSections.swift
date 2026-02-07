@@ -68,6 +68,7 @@ extension OrderDetailContentView {
         .buttonStyle(.plain)
         .disabled(isLoading || disabled)
         .opacity(isLoading ? 0.7 : (disabled ? 0.5 : 1))
+        .accessibilityLabel(isLoading ? "\(label), loading" : label)
     }
 
     func actionMessageBanner(_ message: String) -> some View {

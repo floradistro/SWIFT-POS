@@ -41,6 +41,8 @@ struct CRMStatBox: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity)
         .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title): \(value)")
     }
 }
 
@@ -90,6 +92,9 @@ struct EditableLoyaltyStatBox: View {
         .onLongPressGesture(minimumDuration: 0.5) {
             onLongPress()
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Loyalty Points: \(value)")
+        .accessibilityHint("Long press to adjust points")
     }
 }
 
@@ -123,6 +128,8 @@ struct ContactInfoRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label): \(value)")
     }
 }
 
@@ -171,12 +178,15 @@ struct OrderRowCompact: View {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.3))
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 14)
             .contentShape(Rectangle())
         }
         .buttonStyle(OrderRowButtonStyle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Order \(order.shortOrderNumber), \(formatAmount(order.totalAmount)), \(order.status.displayName)")
     }
 
     private func formatOrderDate(_ date: Date) -> String {
@@ -295,14 +305,18 @@ struct CustomerRow: View {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 24, weight: .medium))
                                 .foregroundStyle(.white.opacity(0.6))
+                                .frame(width: 44, height: 44)
+                                .contentShape(Circle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel("Select \(customer.displayName)")
                     }
 
                     // Chevron inline with the row
                     Image(systemName: "chevron.right")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.3))
+                        .accessibilityHidden(true)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)

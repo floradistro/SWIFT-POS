@@ -131,6 +131,10 @@ struct ProductGridCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(GridCardPressStyle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(product.name), \(product.categoryName ?? ""), \(product.inStock ? "in stock" : "out of stock")")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint(isMultiSelectMode ? "Double tap to toggle selection" : (hasTiers ? "Double tap to select size" : "Double tap to add to cart"))
         .contextMenu {
             Button {
                 Haptics.light()
@@ -271,8 +275,11 @@ struct CartItemRow: View {
                         .frame(width: 28, height: 28)
                         .background(Design.Colors.Glass.thin)
                         .clipShape(Circle())
+                        .padding(8)
+                        .contentShape(Circle())
                 }
                 .buttonStyle(LiquidPressStyle())
+                .accessibilityLabel("Decrease quantity")
 
                 Text("\(item.quantity)")
                     .font(Design.Typography.subhead)
@@ -289,8 +296,11 @@ struct CartItemRow: View {
                         .frame(width: 28, height: 28)
                         .background(Design.Colors.Glass.thin)
                         .clipShape(Circle())
+                        .padding(8)
+                        .contentShape(Circle())
                 }
                 .buttonStyle(LiquidPressStyle())
+                .accessibilityLabel("Increase quantity")
             }
 
             Text(formatCurrency(item.lineTotal))
@@ -345,5 +355,7 @@ struct CategoryPill: View {
         }
         .tint(.white)
         .glassEffect(.regular.interactive(), in: .capsule)
+        .accessibilityLabel(name)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

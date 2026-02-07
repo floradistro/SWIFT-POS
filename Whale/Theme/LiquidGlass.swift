@@ -111,6 +111,7 @@ struct LiquidGlassSearchBar: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(isFocused ? .white : .white.opacity(0.5))
+                .accessibilityHidden(true)
 
             TextField(placeholder, text: $text)
                 .font(.system(size: 17))
@@ -131,6 +132,7 @@ struct LiquidGlassSearchBar: View {
                 .buttonStyle(.plain)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
+                .accessibilityLabel("Clear search")
             }
         }
         .padding(.leading, 14)
@@ -204,6 +206,8 @@ struct LiquidGlassPill: View {
         }
         .tint(.white)
         .glassEffect(.regular.interactive(), in: .capsule)
+        .accessibilityLabel(count.map { "\(label), \($0)" } ?? label)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

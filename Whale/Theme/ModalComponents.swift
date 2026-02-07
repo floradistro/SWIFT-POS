@@ -82,10 +82,12 @@ struct ModalCloseButton: View {
             Image(systemName: "xmark")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
-                .frame(width: 40, height: 40)
+                .frame(width: 44, height: 44)
                 .background(Circle().fill(.white.opacity(0.1)))
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Close")
     }
 }
 
@@ -102,10 +104,12 @@ struct ModalBackButton: View {
             Image(systemName: "chevron.left")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
-                .frame(width: 40, height: 40)
+                .frame(width: 44, height: 44)
                 .background(Circle().fill(.white.opacity(0.1)))
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Back")
     }
 }
 
@@ -179,6 +183,7 @@ struct ModalActionButton: View {
         }
         .buttonStyle(.plain)
         .disabled(isLoading || !isEnabled)
+        .accessibilityLabel(isLoading ? "\(title), loading" : title)
     }
 }
 
@@ -234,6 +239,7 @@ struct ModalInfoRow: View {
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(valueColor)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 

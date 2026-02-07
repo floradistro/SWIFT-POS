@@ -49,6 +49,8 @@ struct FilterChip: View {
         }
         .tint(.white)
         .glassEffect(.regular.interactive(), in: .capsule)
+        .accessibilityLabel(count.map { "\(label), \($0)" } ?? label)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -104,6 +106,7 @@ struct DateFilterChip: View {
                             .font(.system(size: 11))
                             .foregroundStyle(.white.opacity(0.5))
                     }
+                    .accessibilityLabel("Clear date filter")
                 }
             }
             .foregroundStyle(.white)

@@ -36,6 +36,7 @@ struct LiquidGlassTextField: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(isFocused ? .primary : .secondary)
                     .frame(width: 24)
+                    .accessibilityHidden(true)
             }
 
             TextField(placeholder, text: $text)
@@ -102,6 +103,7 @@ struct GlassChip: View {
                 Circle()
                     .fill(color)
                     .frame(width: 6, height: 6)
+                    .accessibilityHidden(true)
             }
             Text(text)
                 .font(.system(size: 11, weight: .semibold))
@@ -109,6 +111,7 @@ struct GlassChip: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
         .glassEffect(.regular, in: .capsule)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -127,6 +130,7 @@ struct GlassQuickAmount: View {
                 .padding(.vertical, 12)
         }
         .glassEffect(.regular.interactive(), in: .capsule)
+        .accessibilityLabel("Add \(amount) dollars")
     }
 }
 
@@ -139,12 +143,14 @@ struct GlassCurrencyField: View {
             Text("$")
                 .font(.system(size: 36, weight: .bold))
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
 
             TextField("0.00", text: $amount)
                 .font(.system(size: 36, weight: .bold))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.leading)
                 .focused($isFocused)
+                .accessibilityLabel("Dollar amount")
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -178,6 +184,7 @@ struct TopFadeGradient: View {
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 

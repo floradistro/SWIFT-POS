@@ -233,6 +233,7 @@ extension POSContentBrowser {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
     }
 
     func errorState(_ message: String, retry: @escaping () async -> Void) -> some View {
@@ -264,6 +265,7 @@ extension POSContentBrowser {
             Image(systemName: icon)
                 .font(.system(size: 48))
                 .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
 
             Text(message)
                 .font(.headline)
