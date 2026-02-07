@@ -113,38 +113,54 @@ enum Design {
         }
     }
 
-    // MARK: - Typography (Apple San Francisco)
+    // MARK: - Typography (Dynamic Type enabled)
+    //
+    // All tokens use Font.system(.textStyle) which automatically scales
+    // with the user's Dynamic Type setting. Weights are applied at call
+    // sites via .fontWeight() to keep tokens composable.
 
     enum Typography {
-        // Large Titles (iOS 34pt)
-        static let largeTitle = Font.system(size: 34, weight: .bold)
+        // MARK: - Core scale
+        static let largeTitle = Font.system(.largeTitle)        // 34pt default
+        static let title1     = Font.system(.title)             // 28pt
+        static let title2     = Font.system(.title2)            // 22pt
+        static let title3     = Font.system(.title3)            // 20pt
+        static let headline   = Font.system(.headline)          // 17pt semibold
+        static let body       = Font.system(.body)              // 17pt
+        static let callout    = Font.system(.callout)           // 16pt
+        static let subhead    = Font.system(.subheadline)       // 15pt
+        static let footnote   = Font.system(.footnote)          // 13pt
+        static let caption1   = Font.system(.caption)           // 12pt
+        static let caption2   = Font.system(.caption2)          // 11pt
+
+        // MARK: - Rounded variants (prices, quantities, badges)
+        static let largeTitleRounded = Font.system(.largeTitle, design: .rounded)
+        static let title2Rounded     = Font.system(.title2, design: .rounded)
+        static let title3Rounded     = Font.system(.title3, design: .rounded)
+        static let headlineRounded   = Font.system(.headline, design: .rounded)
+        static let calloutRounded    = Font.system(.callout, design: .rounded)
+        static let subheadRounded    = Font.system(.subheadline, design: .rounded)
+        static let footnoteRounded   = Font.system(.footnote, design: .rounded)
+        static let caption1Rounded   = Font.system(.caption, design: .rounded)
+        static let caption2Rounded   = Font.system(.caption2, design: .rounded)
+
+        // MARK: - Monospaced variants (QR codes, IDs, transfer numbers)
+        static let footnoteMono = Font.system(.footnote, design: .monospaced)
+        static let caption1Mono = Font.system(.caption, design: .monospaced)
+        static let caption2Mono = Font.system(.caption2, design: .monospaced)
+
+        // MARK: - Financial display
+        static let priceHero    = Font.system(.largeTitle, design: .rounded)
+        static let priceLarge   = Font.system(.title3, design: .rounded)
+        static let priceRegular = Font.system(.subheadline)
+
+        // MARK: - Semantic aliases
+        static let uppercaseLabel = Font.system(.caption2)
+        static let button         = Font.system(.subheadline)
+        static let buttonLarge    = Font.system(.headline)
+
+        // MARK: - Tracking values
         static let largeTitleTracking: CGFloat = -0.5
-
-        // Titles
-        static let title1 = Font.system(size: 28, weight: .bold)
-        static let title2 = Font.system(size: 22, weight: .bold)
-        static let title3 = Font.system(size: 20, weight: .semibold)
-
-        // Headlines & Body
-        static let headline = Font.system(size: 17, weight: .semibold)
-        static let body = Font.system(size: 17, weight: .regular)
-        static let callout = Font.system(size: 16, weight: .regular)
-        static let subhead = Font.system(size: 15, weight: .semibold)
-
-        // Captions
-        static let footnote = Font.system(size: 13, weight: .regular)
-        static let caption1 = Font.system(size: 12, weight: .regular)
-        static let caption2 = Font.system(size: 11, weight: .semibold)
-
-        // Financial Display
-        static let priceHero = Font.system(size: 36, weight: .bold)
-        static let priceLarge = Font.system(size: 20, weight: .bold)
-        static let priceRegular = Font.system(size: 15, weight: .semibold)
-
-        // Labels
-        static let uppercaseLabel = Font.system(size: 11, weight: .semibold)
-        static let button = Font.system(size: 15, weight: .semibold)
-        static let buttonLarge = Font.system(size: 17, weight: .semibold)
     }
 
     // MARK: - Spacing (4px base unit)
@@ -228,6 +244,7 @@ extension View {
     func uppercaseLabel() -> some View {
         self
             .font(Design.Typography.uppercaseLabel)
+            .fontWeight(.semibold)
             .tracking(0.6)
             .textCase(.uppercase)
             .foregroundStyle(Design.Colors.Text.disabled)
@@ -237,6 +254,7 @@ extension View {
     func priceHero() -> some View {
         self
             .font(Design.Typography.priceHero)
+            .fontWeight(.bold)
             .tracking(-1)
             .foregroundStyle(Design.Colors.Text.primary)
     }
@@ -245,7 +263,14 @@ extension View {
     func sectionTitle() -> some View {
         self
             .font(Design.Typography.title3)
+            .fontWeight(.semibold)
             .foregroundStyle(Design.Colors.Text.primary)
+    }
+
+    /// Cap Dynamic Type scaling for POS interface density.
+    /// Applied once at the root view; all descendants inherit the limit.
+    func posDynamicTypeRange() -> some View {
+        self.dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }
 

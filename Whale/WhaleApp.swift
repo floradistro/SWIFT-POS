@@ -216,6 +216,7 @@ struct RootView: View {
         // BootSheet handles the entire flow:
         // splash → login → Face ID verify → location → register → start shift → POS
         BootSheet()
+            .posDynamicTypeRange()
             .environmentObject(session)
             .task {
                 // CRITICAL: Run startup ONLY after first frame renders
