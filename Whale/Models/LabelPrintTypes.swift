@@ -11,6 +11,7 @@ import os.log
 
 // MARK: - Label Printer Settings
 
+@MainActor
 final class LabelPrinterSettings: ObservableObject {
     static let shared = LabelPrinterSettings()
 

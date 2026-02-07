@@ -13,7 +13,7 @@ import SwiftUI
 /// Beautiful inline analytics with sparkline and stock indicator
 struct ProductAnalyticsInline: View {
     let product: Product
-    @ObservedObject private var velocityService = VelocityService.shared
+    @StateObject private var velocityService = VelocityService.shared
     @Environment(\.horizontalSizeClass) var sizeClass
 
     private var isCompact: Bool { sizeClass == .compact }
@@ -275,7 +275,7 @@ struct StockLevelBar: View {
 /// Now replaced by ProductAnalyticsBar in list rows
 struct ProductInsightsPanel: View {
     let product: Product
-    @ObservedObject private var velocityService = VelocityService.shared
+    @StateObject private var velocityService = VelocityService.shared
 
     private var velocity: ProductVelocity? {
         velocityService.velocity(for: product.id)

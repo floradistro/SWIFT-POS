@@ -35,9 +35,9 @@ enum POSTab: String, CaseIterable {
 struct POSMainView: View {
     @EnvironmentObject private var session: SessionObserver
     @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
-    @ObservedObject private var productStore = POSStore.shared
-    @ObservedObject private var orderStore = OrderStore.shared
-    @ObservedObject private var multiSelect = MultiSelectManager.shared
+    @StateObject private var productStore = POSStore.shared
+    @StateObject private var orderStore = OrderStore.shared
+    @StateObject private var multiSelect = MultiSelectManager.shared
 
     @State private var selectedTab: POSTab = .products
     @State private var searchText = ""

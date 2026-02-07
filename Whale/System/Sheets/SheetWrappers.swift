@@ -18,7 +18,7 @@ struct CheckoutSheetWrapper: View {
     @EnvironmentObject private var session: SessionObserver
     @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
     @StateObject private var paymentStore = PaymentStore()
-    @ObservedObject private var dealStore = DealStore.shared
+    @StateObject private var dealStore = DealStore.shared
 
     private var posStore: POSStore {
         POSStore.shared
@@ -411,7 +411,7 @@ struct RegisterPickerSheet: View {
 // MARK: - Printer Settings
 
 struct PrinterSettingsSheet: View {
-    @ObservedObject private var settings = LabelPrinterSettings.shared
+    @StateObject private var settings = LabelPrinterSettings.shared
 
     var body: some View {
         NavigationStack {

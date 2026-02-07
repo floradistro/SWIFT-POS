@@ -17,7 +17,7 @@ struct POSContentBrowser: View {
     @Binding var searchText: String
     @ObservedObject var productStore: POSStore
     @ObservedObject var orderStore: OrderStore
-    @ObservedObject var multiSelect = MultiSelectManager.shared
+    @StateObject var multiSelect = MultiSelectManager.shared
 
     // Callbacks from POSMainView for menu actions
     var onScanID: (() -> Void)?

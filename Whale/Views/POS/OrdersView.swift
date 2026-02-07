@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct OrdersView: View {
-    @ObservedObject private var store = OrderStore.shared
+    @StateObject private var store = OrderStore.shared
     @State private var showAdvancedFilters = false
 
     var body: some View {

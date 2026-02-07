@@ -9,7 +9,7 @@ import SwiftUI
 
 struct LabelPrinterSetupView: View {
     @Binding var isPresented: Bool
-    @ObservedObject private var settings = LabelPrinterSettings.shared
+    @StateObject private var settings = LabelPrinterSettings.shared
     @State private var isSelectingPrinter = false
 
     var body: some View {

@@ -16,7 +16,7 @@ struct POSSettingsSheet: View {
     @EnvironmentObject private var session: SessionObserver
     @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
     @Environment(\.dismiss) private var dismiss
-    @ObservedObject private var printerSettings = LabelPrinterSettings.shared
+    @StateObject private var printerSettings = LabelPrinterSettings.shared
     @State private var showPrinterPicker = false
 
     private var currentLocation: Location? {

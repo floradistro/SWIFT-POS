@@ -107,7 +107,7 @@ struct LabelTemplateSheet: View {
     @State private var editingCustomItemId: UUID?
     @FocusState private var isCustomInputFocused: Bool
 
-    @ObservedObject private var settings = LabelPrinterSettings.shared
+    @StateObject private var settings = LabelPrinterSettings.shared
 
     /// Whether current location is a warehouse (can add stock via labels)
     private var isWarehouse: Bool {

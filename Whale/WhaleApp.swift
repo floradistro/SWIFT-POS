@@ -204,9 +204,8 @@ enum AppRoute: Equatable {
 struct RootView: View {
     // Session observed HERE, not at App level
     // This prevents App.body from being invalidated on state changes
-    // Using @ObservedObject because SessionObserver.shared is a singleton (lifecycle managed by static property)
-    @ObservedObject private var session = SessionObserver.shared
-    @ObservedObject private var sheetCoordinator = SheetCoordinator.shared
+    @StateObject private var session = SessionObserver.shared
+    @StateObject private var sheetCoordinator = SheetCoordinator.shared
 
     init() {
         Log.session.debug("RootView.init")

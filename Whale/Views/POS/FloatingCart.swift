@@ -16,8 +16,8 @@ struct FloatingCart: View {
     @EnvironmentObject private var session: SessionObserver
 
     @StateObject private var paymentStore = PaymentStore()
-    @ObservedObject private var dealStore = DealStore.shared
-    @ObservedObject private var sheetCoordinator = SheetCoordinator.shared
+    @StateObject private var dealStore = DealStore.shared
+    @StateObject private var sheetCoordinator = SheetCoordinator.shared
 
     var onScanID: () -> Void
     var onFindCustomer: (() -> Void)?
