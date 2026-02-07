@@ -864,23 +864,6 @@ final class PaymentStore: ObservableObject {
         )
     }
 
-    /// Terminal config response from vault RPC
-    private struct TerminalConfig: Decodable {
-        let processorName: String?
-        let authkey: String?
-        let tpn: String?
-        let environment: String?
-        let isActive: Bool?
-
-        enum CodingKeys: String, CodingKey {
-            case processorName = "processor_name"
-            case authkey
-            case tpn
-            case environment
-            case isActive = "is_active"
-        }
-    }
-
     /// Get terminal client for the current session (reads credentials from vault)
     private func getTerminalClient(for sessionInfo: SessionInfo) async -> (any PaymentTerminal)? {
         do {

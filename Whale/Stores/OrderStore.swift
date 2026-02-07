@@ -609,17 +609,6 @@ final class OrderStore: ObservableObject {
         }
     }
 
-    enum DateRangePreset {
-        case today
-        case yesterday
-        case last7Days
-        case last30Days
-        case thisMonth
-        case lastMonth
-        case custom
-        case all
-    }
-
     // MARK: - Real-time
 
     private func subscribeToOrders() async {
