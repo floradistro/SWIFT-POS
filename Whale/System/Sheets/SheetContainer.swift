@@ -8,6 +8,7 @@
 
 import SwiftUI
 import Supabase
+import os.log
 
 struct SheetContainer: View {
     let sheetType: SheetType
@@ -84,7 +85,7 @@ struct SheetContainer: View {
                 scannedMatches: matches
             )
             .onAppear {
-                print("📋 SheetContainer creating customerScanned sheet - scannedID: \(scannedID.fullDisplayName), matches: \(matches.count)")
+                Log.ui.debug("SheetContainer creating customerScanned sheet - scannedID: \(scannedID.fullDisplayName), matches: \(matches.count)")
             }
 
         // MARK: Orders

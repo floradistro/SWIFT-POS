@@ -21,9 +21,9 @@ enum LabelPrintService {
         let effectiveStartPosition = startPosition ?? LabelPrinterSettings.shared.startPosition
 
         if startPosition == nil {
-            print("🏷️ printLabels: Using saved position \(effectiveStartPosition + 1) (not explicitly provided)")
+            Log.label.debug("printLabels: Using saved position \(effectiveStartPosition + 1) (not explicitly provided)")
         } else {
-            print("🏷️ printLabels: Using explicit position \(effectiveStartPosition + 1)")
+            Log.label.debug("printLabels: Using explicit position \(effectiveStartPosition + 1)")
         }
 
         Log.ui.info("Printing \(products.count) labels starting at position \(effectiveStartPosition + 1)")
@@ -38,7 +38,7 @@ enum LabelPrintService {
         }
 
         let imageCache = await LabelRenderer.prefetchImages(for: products)
-        print("🏷️ Prefetched \(imageCache.count) product images")
+        Log.label.debug("Prefetched \(imageCache.count) product images")
         let renderer = LabelRenderer(products: products, startPosition: effectiveStartPosition, config: config, sealedDate: sealedDate)
         renderer.setImageCache(imageCache)
 
@@ -77,7 +77,7 @@ enum LabelPrintService {
     @MainActor
     static func printOrderLabels(_ orders: [Order], config: LabelConfig = .default) async -> Bool {
         let startPos = LabelPrinterSettings.shared.startPosition
-        print("🏷️ printOrderLabels: Using saved start position \(startPos + 1)")
+        Log.label.debug("printOrderLabels: Using saved start position \(startPos + 1)")
 
         // Use optimized RPC fetch if printing single order
         if orders.count == 1, let order = orders.first {
@@ -91,15 +91,15 @@ enum LabelPrintService {
     /// Optimized single-order print using RPC (Apple standard: single database round trip)
     @MainActor
     private static func printOrderLabelsOptimized(orderId: UUID, config: LabelConfig, startPosition: Int) async -> Bool {
-        print("🏷️ Using optimized RPC fetch for order \(orderId)")
+        Log.label.debug("Using optimized RPC fetch for order \(orderId)")
 
         do {
             guard let orderData = try await OrderService.fetchOrderForPrinting(orderId: orderId) else {
-                print("🏷️ Order not found: \(orderId)")
+                Log.label.error("Order not found: \(orderId)")
                 return false
             }
 
-            print("🏷️ Fetched order with \(orderData.items.count) items via RPC")
+            Log.label.debug("Fetched order with \(orderData.items.count) items via RPC")
 
             // Convert to products for printing
             var products: [Product] = []
@@ -109,10 +109,10 @@ enum LabelPrintService {
                 }
             }
 
-            print("🏷️ Printing \(products.count) total labels")
+            Log.label.info("Printing \(products.count) total labels")
             return await printLabels(products, startPosition: startPosition, config: config)
         } catch {
-            print("🏷️ Error in optimized fetch: \(error.localizedDescription)")
+            Log.label.error("Error in optimized fetch: \(error.localizedDescription)")
             return false
         }
     }
@@ -120,7 +120,7 @@ enum LabelPrintService {
     /// Legacy multi-order print path
     @MainActor
     private static func printOrderLabelsLegacy(_ orders: [Order], config: LabelConfig, startPosition: Int) async -> Bool {
-        print("🏷️ Using legacy multi-order print path")
+        Log.label.debug("Using legacy multi-order print path")
 
         // Collect unique product IDs and their quantities
         var productIdCounts: [UUID: Int] = [:]
@@ -132,17 +132,17 @@ enum LabelPrintService {
         }
 
         guard !productIdCounts.isEmpty else {
-            print("🏷️ No products to print")
+            Log.label.warning("No products to print")
             return true
         }
 
         // Fetch full product data
         let productIds = Array(productIdCounts.keys)
-        print("🏷️ Fetching full product data for \(productIds.count) unique products")
+        Log.label.debug("Fetching full product data for \(productIds.count) unique products")
 
         do {
             let fullProducts = try await ProductService.fetchProductsByIds(productIds)
-            print("🏷️ Fetched \(fullProducts.count) full products")
+            Log.label.debug("Fetched \(fullProducts.count) full products")
 
             let productLookup = Dictionary(uniqueKeysWithValues: fullProducts.map { ($0.id, $0) })
 
@@ -155,10 +155,10 @@ enum LabelPrintService {
                 }
             }
 
-            print("🏷️ Printing \(products.count) total labels")
+            Log.label.info("Printing \(products.count) total labels")
             return await printLabels(products, startPosition: startPosition, config: config)
         } catch {
-            print("🏷️ Error fetching products: \(error.localizedDescription)")
+            Log.label.error("Error fetching products: \(error.localizedDescription)")
             return false
         }
     }
@@ -197,7 +197,7 @@ enum LabelPrintService {
 
         guard !printProducts.isEmpty else { return true }
 
-        print("🏷️ autoPrintCartLabels: Printing \(printProducts.count) labels starting at position \(settings.startPosition + 1)")
+        Log.label.info("autoPrintCartLabels: Printing \(printProducts.count) labels starting at position \(settings.startPosition + 1)")
         Log.ui.info("Auto-printing \(printProducts.count) labels with sale codes")
 
         guard let printerUrl = settings.printerUrl else { return false }

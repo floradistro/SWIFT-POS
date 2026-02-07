@@ -8,6 +8,7 @@
 
 import SwiftUI
 import UIKit
+import os.log
 
 // MARK: - Create Content
 
@@ -199,7 +200,7 @@ extension CustomerSearchContent {
                     localScannedID = scannedID
                     localScannedMatches = matches
                     mode = .search
-                    print("🆔 Scanner returned to sheet - name: \(scannedID.fullDisplayName), matches: \(matches.count)")
+                    Log.scanner.debug("Scanner returned to sheet - name: \(scannedID.fullDisplayName), matches: \(matches.count)")
                 }
             )
         }

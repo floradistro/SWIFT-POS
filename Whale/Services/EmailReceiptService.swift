@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import os.log
 import Supabase
 
 // MARK: - Loyalty Data for Receipt
@@ -26,28 +27,28 @@ enum EmailReceiptService {
     /// Send an email receipt for a completed order.
     /// Fetches complete order if needed, sends to server template.
     static func sendReceipt(for order: Order, to email: String) async throws {
-        print("📧 sendReceipt called for order: \(order.orderNumber)")
-        print("📧 Passed order has \(order.items?.count ?? 0) items")
+        Log.email.debug("sendReceipt called for order: \(order.orderNumber)")
+        Log.email.debug("Passed order has \(order.items?.count ?? 0) items")
 
         // ALWAYS fetch full order with items to ensure complete data
         let fullOrder: Order
         if let items = order.items, !items.isEmpty {
             fullOrder = order
-            print("📧 Using passed order (has \(items.count) items)")
+            Log.email.debug("Using passed order (has \(items.count) items)")
         } else {
-            print("📧 Fetching complete order with items...")
+            Log.email.debug("Fetching complete order with items...")
             fullOrder = try await fetchOrderWithItems(orderId: order.id)
-            print("📧 Fetched order has \(fullOrder.items?.count ?? 0) items")
+            Log.email.debug("Fetched order has \(fullOrder.items?.count ?? 0) items")
         }
 
         // Debug: Log what we're sending
-        print("📧 Order Number: \(fullOrder.shortOrderNumber)")
-        print("📧 Total: \(fullOrder.totalAmount)")
-        print("📧 Items count: \(fullOrder.items?.count ?? 0)")
+        Log.email.debug("Order Number: \(fullOrder.shortOrderNumber)")
+        Log.email.debug("Total: \(fullOrder.totalAmount)")
+        Log.email.debug("Items count: \(fullOrder.items?.count ?? 0)")
         if let items = fullOrder.items {
             for (i, item) in items.enumerated() {
                 let totalQty = item.tierQuantity.map { $0 * Double(item.quantity) }
-                print("📧 Item[\(i)]: \(item.productName) qty=\(item.quantity) tier=\(item.tierLabel ?? "nil") tierQty=\(item.tierQuantity ?? 0) totalQty=\(totalQty ?? 0)")
+                Log.email.debug("Item[\(i)]: \(item.productName) qty=\(item.quantity) tier=\(item.tierLabel ?? "nil") tierQty=\(item.tierQuantity ?? 0) totalQty=\(totalQty ?? 0)")
             }
         }
 
@@ -65,7 +66,7 @@ enum EmailReceiptService {
 
         // Fetch loyalty transactions for this order (points earned/redeemed)
         let loyaltyData = await fetchLoyaltyData(orderId: fullOrder.id)
-        print("📧 Loyalty data: pointsEarned=\(loyaltyData.pointsEarned) pointsRedeemed=\(loyaltyData.pointsRedeemed) discountAmount=\(loyaltyData.discountAmount)")
+        Log.email.debug("Loyalty data: pointsEarned=\(loyaltyData.pointsEarned) pointsRedeemed=\(loyaltyData.pointsRedeemed) discountAmount=\(loyaltyData.discountAmount)")
 
         // Build template data with full tier/pricing info for each item
         let templateData = buildTemplateData(order: fullOrder, customerEmail: email, loyaltyData: loyaltyData)
@@ -86,8 +87,8 @@ enum EmailReceiptService {
         // Debug: Log the payload
         if let payloadJson = try? JSONSerialization.data(withJSONObject: payload, options: .prettyPrinted),
            let payloadString = String(data: payloadJson, encoding: .utf8) {
-            print("📧 Sending payload to send-email:")
-            print(payloadString.prefix(3000))
+            Log.email.debug("Sending payload to send-email:")
+            Log.email.debug("\(payloadString.prefix(3000))")
         }
 
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
@@ -100,7 +101,7 @@ enum EmailReceiptService {
 
         // Log response for debugging
         if let responseText = String(data: data, encoding: .utf8) {
-            print("📧 send-email response: \(responseText)")
+            Log.email.debug("send-email response: \(responseText)")
         }
 
         guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
@@ -121,7 +122,7 @@ enum EmailReceiptService {
             if !result.success {
                 throw EmailReceiptError.serverError(result.error ?? result.message ?? "Failed to send receipt")
             }
-            print("📧 Receipt sent successfully, emailId: \(result.emailId ?? "unknown")")
+            Log.email.info("Receipt sent successfully, emailId: \(result.emailId ?? "unknown")")
         }
     }
 
@@ -308,7 +309,7 @@ enum EmailReceiptService {
                 discountAmount: discountAmount
             )
         } catch {
-            print("📧 Failed to fetch loyalty data: \(error)")
+            Log.email.error("Failed to fetch loyalty data: \(error)")
             return .empty
         }
     }
@@ -317,7 +318,7 @@ enum EmailReceiptService {
 
     /// Fetches a complete order with all items from the database.
     private static func fetchOrderWithItems(orderId: UUID) async throws -> Order {
-        print("📧 Fetching order \(orderId) with items...")
+        Log.email.debug("Fetching order \(orderId) with items...")
 
         let response = try await supabase
             .from("orders")
@@ -328,13 +329,13 @@ enum EmailReceiptService {
 
         // Debug: Show raw response
         if let jsonString = String(data: response.data, encoding: .utf8) {
-            print("📧 Raw order JSON (\(jsonString.count) chars):")
-            print(jsonString.prefix(2000))
+            Log.email.debug("Raw order JSON (\(jsonString.count) chars):")
+            Log.email.debug("\(jsonString.prefix(2000))")
 
             if jsonString.contains("\"order_items\"") {
-                print("📧 ✅ JSON contains order_items")
+                Log.email.debug("JSON contains order_items")
             } else {
-                print("📧 ❌ JSON missing order_items!")
+                Log.email.error("JSON missing order_items!")
             }
         }
 
@@ -343,10 +344,10 @@ enum EmailReceiptService {
 
         do {
             let order = try decoder.decode(Order.self, from: response.data)
-            print("📧 Decoded order: \(order.orderNumber), items: \(order.items?.count ?? 0)")
+            Log.email.info("Decoded order: \(order.orderNumber), items: \(order.items?.count ?? 0)")
             return order
         } catch {
-            print("📧 ❌ Decode error: \(error)")
+            Log.email.error("Decode error: \(error)")
             throw EmailReceiptError.invalidOrder
         }
     }

@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import os.log
 
 // MARK: - Section Cards
 
@@ -42,7 +43,7 @@ extension OrderDetailContentView {
         }
         .padding(.horizontal, 4)
         .onAppear {
-            print("📧 actionsCard - customer: \(effectiveCustomer?.fullName ?? "nil"), email: \(effectiveCustomerEmail ?? "nil")")
+            Log.email.debug("actionsCard - customer: \(effectiveCustomer?.fullName ?? "nil"), email: \(effectiveCustomerEmail ?? "nil")")
         }
     }
 
@@ -92,12 +93,12 @@ extension OrderDetailContentView {
     func sendReceipt() {
         guard let email = effectiveCustomerEmail else { return }
 
-        print("📧 OrderDetailContentView.sendReceipt()")
-        print("📧 order.id: \(order.id)")
-        print("📧 order.orderNumber: \(order.orderNumber)")
-        print("📧 order.totalAmount: \(order.totalAmount)")
-        print("📧 order.items?.count: \(order.items?.count ?? 0)")
-        print("📧 email: \(email)")
+        Log.email.debug("OrderDetailContentView.sendReceipt()")
+        Log.email.debug("order.id: \(order.id)")
+        Log.email.debug("order.orderNumber: \(order.orderNumber)")
+        Log.email.debug("order.totalAmount: \(order.totalAmount)")
+        Log.email.debug("order.items?.count: \(order.items?.count ?? 0)")
+        Log.email.debug("email: \(email)")
 
         isSendingReceipt = true
 

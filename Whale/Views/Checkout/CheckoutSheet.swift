@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import os.log
 
 struct CheckoutSheet: View {
     @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
@@ -808,18 +809,18 @@ struct CheckoutSheet: View {
 
     private func triggerAutoPrintIfEnabled(with completion: SaleCompletion?) {
         let settings = LabelPrinterSettings.shared
-        print("🏷️ triggerAutoPrintIfEnabled called")
-        print("🏷️ autoPrintEnabled: \(settings.autoPrintEnabled)")
-        print("🏷️ isPrinterConfigured: \(settings.isPrinterConfigured)")
-        print("🏷️ printerUrl: \(settings.printerUrl?.absoluteString ?? "nil")")
-        print("🏷️ orderId: \(completion?.orderId.uuidString ?? "nil")")
+        Log.label.debug("triggerAutoPrintIfEnabled called")
+        Log.label.debug("autoPrintEnabled: \(settings.autoPrintEnabled)")
+        Log.label.debug("isPrinterConfigured: \(settings.isPrinterConfigured)")
+        Log.label.debug("printerUrl: \(settings.printerUrl?.absoluteString ?? "nil")")
+        Log.label.debug("orderId: \(completion?.orderId.uuidString ?? "nil")")
 
         guard settings.autoPrintEnabled else {
-            print("🏷️ Auto-print disabled, skipping")
+            Log.label.debug("Auto-print disabled, skipping")
             return
         }
         guard let completion = completion else {
-            print("🏷️ No completion, skipping")
+            Log.label.debug("No completion, skipping")
             return
         }
         let orderId = completion.orderId

@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import os.log
 
 // MARK: - Data Loading
 
@@ -18,7 +19,7 @@ extension QRCodeScanSheet {
         do {
             product = try await ProductService.fetchProduct(productId)
         } catch {
-            print("Failed to load product: \(error.localizedDescription)")
+            Log.scanner.error("Failed to load product: \(error.localizedDescription)")
         }
     }
 
@@ -28,7 +29,7 @@ extension QRCodeScanSheet {
         do {
             order = try await OrderService.fetchOrder(orderId: orderId)
         } catch {
-            print("Failed to load order: \(error.localizedDescription)")
+            Log.scanner.error("Failed to load order: \(error.localizedDescription)")
         }
     }
 
@@ -36,7 +37,7 @@ extension QRCodeScanSheet {
         // ATOMIC: Use the QR code's current_transfer_id to look up the active transfer
         // No need to search by product_id - QR code is the source of truth
         guard qrCode.isInTransit, let transferId = qrCode.currentTransferId else {
-            print("📦 QR code \(qrCode.code) status=\(qrCode.status.displayName), no active transfer")
+            Log.scanner.debug("QR code \(qrCode.code) status=\(qrCode.status.displayName), no active transfer")
             return
         }
 
@@ -48,9 +49,9 @@ extension QRCodeScanSheet {
 
         if let transfer = transfer {
             activeTransfer = transfer
-            print("📦 ATOMIC: Found transfer \(transfer.transferNumber) from \(transfer.sourceLocationName ?? "?") to \(transfer.destinationLocationName ?? "?")")
+            Log.scanner.info("ATOMIC: Found transfer \(transfer.transferNumber) from \(transfer.sourceLocationName ?? "?") to \(transfer.destinationLocationName ?? "?")")
         } else {
-            print("📦 Warning: QR code has current_transfer_id but transfer not found")
+            Log.scanner.warning("QR code has current_transfer_id but transfer not found")
         }
     }
 
@@ -58,7 +59,7 @@ extension QRCodeScanSheet {
         do {
             availableLocations = try await LocationService.fetchActiveLocations(storeId: storeId)
         } catch {
-            print("Failed to load locations: \(error.localizedDescription)")
+            Log.scanner.error("Failed to load locations: \(error.localizedDescription)")
         }
     }
 }
@@ -339,7 +340,7 @@ extension QRCodeScanSheet {
             do {
                 try await QRTrackingService.markQRCodeAsSplit(qrCodeId: qrCode.id, childCount: selected.count)
             } catch {
-                print("Failed to update split QR code status: \(error.localizedDescription)")
+                Log.scanner.error("Failed to update split QR code status: \(error.localizedDescription)")
             }
 
             await MainActor.run {

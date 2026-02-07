@@ -10,6 +10,7 @@
 import Foundation
 import Combine
 import Supabase
+import os.log
 
 extension Notification.Name {
     static let queueDidChange = Notification.Name("queueDidChange")
@@ -90,17 +91,17 @@ final class LocationQueueStore: ObservableObject {
         switch event {
         case .queueUpdated(let locationId):
             guard locationId == self.locationId else { return }
-            print("🔔 Queue updated for location \(locationId)")
+            Log.cart.debug("Queue updated for location \(locationId)")
             await loadQueue()
 
         case .queueCustomerAdded(let locationId, let customerId):
             guard locationId == self.locationId else { return }
-            print("🔔 Customer \(customerId) added to queue")
+            Log.cart.debug("Customer \(customerId) added to queue")
             await loadQueue()
 
         case .queueCustomerRemoved(let locationId, let customerId):
             guard locationId == self.locationId else { return }
-            print("🔔 Customer \(customerId) removed from queue")
+            Log.cart.debug("Customer \(customerId) removed from queue")
             await loadQueue()
 
         default:
@@ -135,7 +136,7 @@ final class LocationQueueStore: ObservableObject {
             isLoading = false
             // Post notification for UI updates
             NotificationCenter.default.post(name: .queueDidChange, object: locationId)
-            print("📡 LocationQueueStore: Queue loaded with \(entries.count) entries")
+            Log.cart.info("LocationQueueStore: Queue loaded with \(entries.count) entries")
         } catch {
             self.error = error.localizedDescription
             isLoading = false
@@ -160,10 +161,10 @@ final class LocationQueueStore: ObservableObject {
             selectedCartId = cartId
             // Post notification for UI updates
             NotificationCenter.default.post(name: .queueDidChange, object: locationId)
-            print("📡 LocationQueueStore: Added to queue, now \(entries.count) entries")
+            Log.cart.info("LocationQueueStore: Added to queue, now \(entries.count) entries")
         } catch {
             self.error = error.localizedDescription
-            print("📡 LocationQueueStore: Failed to add to queue: \(error)")
+            Log.cart.error("LocationQueueStore: Failed to add to queue: \(error)")
         }
     }
 
@@ -182,7 +183,7 @@ final class LocationQueueStore: ObservableObject {
             }
             // Post notification for UI updates
             NotificationCenter.default.post(name: .queueDidChange, object: locationId)
-            print("📡 LocationQueueStore: Removed from queue, now \(entries.count) entries")
+            Log.cart.info("LocationQueueStore: Removed from queue, now \(entries.count) entries")
         } catch {
             self.error = error.localizedDescription
         }
@@ -220,13 +221,13 @@ final class LocationQueueStore: ObservableObject {
     /// Now handled automatically by EventBus in init
     func subscribeToRealtime() {
         // EventBus subscription is set up in init - no-op for compatibility
-        print("📡 LocationQueueStore: Using EventBus for realtime (legacy call ignored)")
+        Log.cart.debug("LocationQueueStore: Using EventBus for realtime (legacy call ignored)")
     }
 
     /// Unsubscribe from realtime updates (for backward compatibility)
     func unsubscribeFromRealtime() {
         // EventBus manages connection lifecycle - no-op for compatibility
-        print("📡 LocationQueueStore: EventBus manages connection (legacy call ignored)")
+        Log.cart.debug("LocationQueueStore: EventBus manages connection (legacy call ignored)")
     }
 
     // MARK: - Polling (optional - for real-time sync without websockets)

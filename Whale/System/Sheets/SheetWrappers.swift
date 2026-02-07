@@ -8,6 +8,7 @@
 
 import SwiftUI
 import Supabase
+import os.log
 
 // MARK: - Checkout
 
@@ -401,7 +402,7 @@ struct RegisterPickerSheet: View {
                 .value
             registers = response
         } catch {
-            print("Failed to load registers: \(error)")
+            Log.ui.error("Failed to load registers: \(error)")
         }
         isLoading = false
     }

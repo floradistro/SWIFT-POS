@@ -138,20 +138,20 @@ final class VelocityService: ObservableObject {
 
     /// Fetch velocity for multiple products (batch)
     func fetchVelocity(for productIds: [UUID], storeId: UUID, forceRefresh: Bool = false) async {
-        print("📊 VelocityService.fetchVelocity called with \(productIds.count) products")
+        Log.network.debug("VelocityService.fetchVelocity called with \(productIds.count) products")
 
         // Skip if cache is valid and not forcing refresh
         if !forceRefresh && isCacheValid {
             // Check if all requested products are in cache
             let allCached = productIds.allSatisfy { velocityCache[$0] != nil }
             if allCached {
-                print("📊 VelocityService: Using cached data")
+                Log.network.debug("VelocityService: Using cached data")
                 return
             }
         }
 
         guard !isLoading else {
-            print("📊 VelocityService: Already loading, skipping")
+            Log.network.debug("VelocityService: Already loading, skipping")
             return
         }
 
@@ -159,22 +159,22 @@ final class VelocityService: ObservableObject {
         lastError = nil
 
         do {
-            print("📊 VelocityService: Calling fetchBatch...")
+            Log.network.debug("VelocityService: Calling fetchBatch...")
             let velocities = try await fetchBatch(productIds: productIds, storeId: storeId)
-            print("📊 VelocityService: Got \(velocities.count) velocities from API")
+            Log.network.debug("VelocityService: Got \(velocities.count) velocities from API")
 
             // Update cache
             for (idString, velocity) in velocities {
                 if let uuid = UUID(uuidString: idString) {
                     velocityCache[uuid] = velocity
-                    print("📊 Cached: \(idString.prefix(8)) -> \(velocity.health.rawValue), \(velocity.totalUnits) sold")
+                    Log.network.debug("Cached: \(idString.prefix(8)) -> \(velocity.health.rawValue), \(velocity.totalUnits) sold")
                 }
             }
             cacheTimestamp = Date()
 
-            print("📊 VelocityService: Cache now has \(velocityCache.count) items")
+            Log.network.debug("VelocityService: Cache now has \(self.velocityCache.count) items")
         } catch {
-            print("📊 VelocityService ERROR: \(error.localizedDescription)")
+            Log.network.error("VelocityService error: \(error.localizedDescription)")
             lastError = error.localizedDescription
         }
 

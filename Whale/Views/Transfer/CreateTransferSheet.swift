@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os.log
 
 // MARK: - Create Transfer Sheet
 
@@ -300,7 +301,7 @@ struct CreateTransferSheet: View {
 
             VStack(spacing: 12) {
                 ModalActionButton("Print Package Label", icon: "printer") {
-                    print("📄 Print: \(createdTransfer?.qrCode ?? "")")
+                    Log.inventory.debug("Print: \(createdTransfer?.qrCode ?? "")")
                 }
                 Button {
                     if let transfer = createdTransfer { onTransferCreated(transfer) }

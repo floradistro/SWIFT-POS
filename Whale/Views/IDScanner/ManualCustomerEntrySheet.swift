@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import os.log
 
 struct ManualCustomerEntrySheet: View {
     let storeId: UUID
@@ -205,7 +206,7 @@ struct CustomerSearchContent: View {
         .presentationDragIndicator(.visible)
         .preferredColorScheme(.dark)
         .onAppear {
-            print("📋 CustomerSearchContent appeared - isScannedMode: \(isScannedMode), scannedID: \(scannedID?.fullDisplayName ?? "nil"), matches: \(scannedMatches?.count ?? 0)")
+            Log.scanner.debug("CustomerSearchContent appeared - isScannedMode: \(isScannedMode), scannedID: \(scannedID?.fullDisplayName ?? "nil"), matches: \(scannedMatches?.count ?? 0)")
         }
     }
 

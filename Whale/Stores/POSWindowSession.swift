@@ -10,6 +10,7 @@ import Foundation
 import SwiftUI
 import Combine
 import Supabase
+import os.log
 
 // MARK: - Environment Key
 
@@ -87,7 +88,7 @@ final class POSWindowSessionManager: ObservableObject {
             register: nil
         )
         sessions[sessionId] = newSession
-        print("🪟 POSWindowSessionManager: Created main window session \(sessionId) (no location - uses global)")
+        Log.session.debug("POSWindowSessionManager: Created main window session \(sessionId) (no location - uses global)")
         return newSession
     }
 
@@ -113,14 +114,14 @@ final class POSWindowSessionManager: ObservableObject {
         }
 
         sessions[sessionId] = newSession
-        print("🪟 POSWindowSessionManager: Created new session \(sessionId) at location \(location.name)")
+        Log.session.info("POSWindowSessionManager: Created new session \(sessionId) at location \(location.name)")
         return newSession
     }
 
     /// Remove a session when window is closed
     func removeSession(_ sessionId: UUID) {
         sessions.removeValue(forKey: sessionId)
-        print("🪟 POSWindowSessionManager: Removed session \(sessionId)")
+        Log.session.info("POSWindowSessionManager: Removed session \(sessionId)")
     }
 
     /// Get all active session IDs
@@ -207,7 +208,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
         cashSalesTotal = 0
         totalSafeDrops = 0
         safeDrops = []
-        print("📠 POSWindowSession: Register changed to \(newRegister.displayName) (#\(newRegister.registerNumber))")
+        Log.session.info("POSWindowSession: Register changed to \(newRegister.displayName) (#\(newRegister.registerNumber))")
         objectWillChange.send()
     }
 
@@ -217,7 +218,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
     func setOpeningCash(_ amount: Decimal) {
         openingCash = amount
         drawerBalance = amount
-        print("💵 POSWindowSession: Opening cash set to \(amount) for \(register?.displayName ?? "unknown register")")
+        Log.session.info("POSWindowSession: Opening cash set to \(amount) for \(self.register?.displayName ?? "unknown register")")
     }
 
     /// Record a cash sale (adds to drawer balance)
@@ -225,7 +226,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
         cashSalesTotal += amount
         drawerBalance += amount
         objectWillChange.send()
-        print("💵 POSWindowSession: Cash sale +\(amount), drawer now \(drawerBalance)")
+        Log.session.info("POSWindowSession: Cash sale +\(amount), drawer now \(self.drawerBalance)")
     }
 
     /// Perform a safe drop (removes cash from drawer)
@@ -240,7 +241,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
         objectWillChange.send()
 
         // TODO: Save to database
-        print("💵 POSWindowSession: Safe drop -\(amount), drawer now \(drawerBalance)")
+        Log.session.info("POSWindowSession: Safe drop -\(amount), drawer now \(self.drawerBalance)")
     }
 
     /// Get drawer summary for end-of-day
@@ -371,7 +372,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
             objectWillChange.send()
             products = cached.products
             categories = cached.categories
-            print("🪟 POSWindowSession: Using cached products for location \(locationId)")
+            Log.session.debug("POSWindowSession: Using cached products for location \(locationId)")
             return
         }
 
@@ -497,7 +498,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
         // Fetch from server
         do {
             guard let cart = try await CartService.shared.getCart(cartId: cartId) else {
-                print("🪟 POSWindowSession: loadCartById - Cart not found on server: \(cartId)")
+                Log.session.error("POSWindowSession: loadCartById - Cart not found on server: \(cartId)")
                 return false
             }
 
@@ -513,19 +514,19 @@ final class POSWindowSession: ObservableObject, Identifiable {
                         .execute()
                         .value
                     _customerCache[customerId] = customer
-                    print("🪟 POSWindowSession: loadCartById - Cached customer \(customer.displayName) for cart \(cartId)")
+                    Log.session.info("POSWindowSession: loadCartById - Cached customer \(customer.displayName) for cart \(cartId)")
                 } catch {
-                    print("🪟 POSWindowSession: loadCartById - Failed to fetch customer \(customerId): \(error)")
+                    Log.session.error("POSWindowSession: loadCartById - Failed to fetch customer \(customerId): \(error)")
                 }
             }
 
             let newIndex = carts.count
             carts.append(cart)
             activeCartIndex = newIndex
-            print("🪟 POSWindowSession: loadCartById - Loaded cart \(cartId) from server, now at index \(newIndex)")
+            Log.session.info("POSWindowSession: loadCartById - Loaded cart \(cartId) from server, now at index \(newIndex)")
             return true
         } catch {
-            print("🪟 POSWindowSession: loadCartById - Failed to load cart \(cartId): \(error)")
+            Log.session.error("POSWindowSession: loadCartById - Failed to load cart \(cartId): \(error)")
             return false
         }
     }
@@ -534,14 +535,14 @@ final class POSWindowSession: ObservableObject, Identifiable {
 
     /// Add product with basic quantity (no tier)
     func addToCart(_ product: Product, quantity: Int = 1) async {
-        print("🛒 POSWindowSession.addToCart called - product: \(product.name), activeCartIndex: \(activeCartIndex), cartsCount: \(carts.count)")
+        Log.cart.debug("POSWindowSession.addToCart called - product: \(product.name), activeCartIndex: \(self.activeCartIndex), cartsCount: \(self.carts.count)")
         guard let cart = activeCart else {
             cartError = "No active cart"
-            print("🛒 POSWindowSession.addToCart FAILED - no active cart")
+            Log.cart.error("POSWindowSession.addToCart FAILED - no active cart")
             return
         }
 
-        print("🛒 POSWindowSession.addToCart - using cart: \(cart.id)")
+        Log.cart.debug("POSWindowSession.addToCart - using cart: \(cart.id)")
         isCartLoading = true
 
         do {
@@ -572,7 +573,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
                 quantity: quantity,
                 inventoryId: inventoryId
             )
-            print("🛒 POSWindowSession.addToCart SUCCESS - items: \(updatedCart.items.count), inventoryId: \(inventoryId?.uuidString ?? "nil")")
+            Log.cart.info("POSWindowSession.addToCart SUCCESS - items: \(updatedCart.items.count), inventoryId: \(inventoryId?.uuidString ?? "nil")")
 
             if let index = carts.firstIndex(where: { $0.id == cart.id }) {
                 carts[index] = updatedCart
@@ -581,20 +582,20 @@ final class POSWindowSession: ObservableObject, Identifiable {
 
         } catch {
             cartError = error.localizedDescription
-            print("🛒 POSWindowSession.addToCart ERROR: \(error.localizedDescription)")
+            Log.cart.error("POSWindowSession.addToCart ERROR: \(error.localizedDescription)")
             isCartLoading = false
         }
     }
 
     /// Add product with specific pricing tier
     func addToCart(_ product: Product, tier: PricingTier) async {
-        print("🛒 POSWindowSession.addToCart(tier) called - product: \(product.name), tier: \(tier.label), activeCartIndex: \(activeCartIndex), cartsCount: \(carts.count)")
+        Log.cart.debug("POSWindowSession.addToCart(tier) called - product: \(product.name), tier: \(tier.label), activeCartIndex: \(self.activeCartIndex), cartsCount: \(self.carts.count)")
         guard let cart = activeCart else {
             cartError = "No active cart"
-            print("🛒 POSWindowSession.addToCart(tier) FAILED - no active cart")
+            Log.cart.error("POSWindowSession.addToCart(tier) FAILED - no active cart")
             return
         }
-        print("🛒 POSWindowSession.addToCart(tier) - using cart: \(cart.id)")
+        Log.cart.debug("POSWindowSession.addToCart(tier) - using cart: \(cart.id)")
 
         isCartLoading = true
 
@@ -621,7 +622,7 @@ final class POSWindowSession: ObservableObject, Identifiable {
                 .value
 
             inventoryId = inventory.first?.id
-            print("🛒 POSWindowSession.addToCart(tier) - inventory_id: \(inventoryId?.uuidString ?? "nil") for location: \(cart.locationId)")
+            Log.cart.debug("POSWindowSession.addToCart(tier) - inventory_id: \(inventoryId?.uuidString ?? "nil") for location: \(cart.locationId)")
 
             let updatedCart = try await CartService.shared.addToCart(
                 cartId: cart.id,

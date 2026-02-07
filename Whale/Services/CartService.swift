@@ -12,6 +12,7 @@
 //
 
 import Foundation
+import os.log
 
 // MARK: - Cart Service
 
@@ -224,7 +225,7 @@ actor CartService {
         request.setValue("Bearer \(SupabaseConfig.anonKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        print("🛒 CartService POST \(path) - request body: \(body)")
+        Log.network.debug("CartService POST \(path) - request body: \(body)")
 
         let (data, response) = try await session.data(for: request)
 
@@ -233,7 +234,7 @@ actor CartService {
         }
 
         let responseString = String(data: data, encoding: .utf8) ?? "nil"
-        print("🛒 CartService RESPONSE (\(path)) status=\(httpResponse.statusCode): \(responseString.prefix(1000))")
+        Log.network.debug("CartService RESPONSE (\(path)) status=\(httpResponse.statusCode): \(responseString.prefix(1000))")
 
         guard httpResponse.statusCode == 200 else {
             throw CartError.httpError(httpResponse.statusCode)
@@ -243,8 +244,8 @@ actor CartService {
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
-            print("🛒 CartService DECODE ERROR: \(error)")
-            print("🛒 CartService RAW RESPONSE: \(responseString)")
+            Log.network.error("CartService decode error: \(error)")
+            Log.network.error("CartService raw response: \(responseString)")
             throw error
         }
     }

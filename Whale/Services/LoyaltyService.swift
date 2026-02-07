@@ -12,6 +12,7 @@
 
 import Foundation
 import Supabase
+import os.log
 
 // MARK: - Loyalty Response Types
 
@@ -234,7 +235,7 @@ actor LoyaltyService {
     /// Uses RPC function to bypass RLS and properly update store_customer_profiles.
     /// Used for manual adjustments by staff.
     func setPoints(customerId: UUID, points: Int, reason: String = "manual_adjustment") async throws -> LoyaltySetResult {
-        print("🔄 LoyaltyService.setPoints: customerId=\(customerId), points=\(points)")
+        Log.network.debug("LoyaltyService.setPoints: customerId=\(customerId), points=\(points)")
 
         let result: LoyaltySetResult = try await supabase
             .rpc("set_loyalty_points", params: [
@@ -246,9 +247,9 @@ actor LoyaltyService {
             .value
 
         if result.success {
-            print("✅ LoyaltyService.setPoints: Success - \(result.balanceBefore ?? 0) → \(result.balanceAfter ?? 0)")
+            Log.network.info("LoyaltyService.setPoints: Success - \(result.balanceBefore ?? 0) -> \(result.balanceAfter ?? 0)")
         } else {
-            print("❌ LoyaltyService.setPoints: Failed - \(result.error ?? "Unknown error")")
+            Log.network.error("LoyaltyService.setPoints: Failed - \(result.error ?? "Unknown error")")
             throw LoyaltyError.unknown(result.error ?? "Failed to update points")
         }
 

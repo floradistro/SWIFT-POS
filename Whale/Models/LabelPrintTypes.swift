@@ -88,26 +88,26 @@ final class LabelPrinterManager {
 
     /// Print labels for an order (auto-print flow)
     func printOrder(_ order: Order) async throws {
-        print("🏷️ LabelPrinterManager.printOrder called for order \(order.orderNumber)")
+        Log.label.info("LabelPrinterManager.printOrder called for order \(order.orderNumber)")
 
         guard LabelPrinterSettings.shared.autoPrintEnabled else {
-            print("🏷️ Auto-print disabled in printOrder check")
+            Log.label.debug("Auto-print disabled in printOrder check")
             logger.info("Auto-print disabled, skipping")
             return
         }
 
         guard LabelPrinterSettings.shared.isPrinterConfigured else {
-            print("🏷️ No printer configured - printerUrl is nil")
+            Log.label.warning("No printer configured - printerUrl is nil")
             logger.warning("No printer configured, skipping auto-print")
             throw LabelPrintError.noPrinterConfigured
         }
 
-        print("🏷️ Printer configured: \(LabelPrinterSettings.shared.printerName ?? "unknown")")
-        print("🏷️ Order items count: \(order.items?.count ?? 0)")
+        Log.label.debug("Printer configured: \(LabelPrinterSettings.shared.printerName ?? "unknown")")
+        Log.label.debug("Order items count: \(order.items?.count ?? 0)")
 
         // Build config from order context with store logo
         let storeLogoUrl = await SessionObserver.shared.store?.fullLogoUrl
-        print("🏷️ Store logo URL: \(storeLogoUrl?.absoluteString ?? "none")")
+        Log.label.debug("Store logo URL: \(storeLogoUrl?.absoluteString ?? "none")")
 
         let config = LabelConfig(
             storeId: order.storeId,
@@ -123,15 +123,15 @@ final class LabelPrinterManager {
             saleCode: nil
         )
 
-        print("🏷️ Calling printOrderLabels with startPosition: \(LabelPrinterSettings.shared.startPosition)")
+        Log.label.debug("Calling printOrderLabels with startPosition: \(LabelPrinterSettings.shared.startPosition)")
         let success = await LabelPrintService.printOrderLabels([order], config: config)
 
         if !success {
-            print("🏷️ printOrderLabels returned false")
+            Log.label.error("printOrderLabels returned false")
             throw LabelPrintError.printFailed
         }
 
-        print("🏷️ Auto-print completed successfully for order \(order.orderNumber)")
+        Log.label.info("Auto-print completed successfully for order \(order.orderNumber)")
         logger.info("Auto-printed labels for order \(order.orderNumber)")
     }
 }

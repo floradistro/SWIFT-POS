@@ -18,12 +18,12 @@ struct WhaleApp: App {
     // Any observed state here causes the entire view tree to rebuild on mutations
 
     init() {
-        print("🟥 WhaleApp.init START")
-        print("🟥 WhaleApp.init END")
+        Log.session.debug("WhaleApp.init START")
+        Log.session.debug("WhaleApp.init END")
     }
 
     var body: some Scene {
-        print("🟧 WhaleApp.body START")
+        Log.session.debug("WhaleApp.body START")
         return WindowGroup {
             RootView()
             // NOTE: .environmentObject moved to RootView to prevent App-level rebuilds
@@ -209,11 +209,11 @@ struct RootView: View {
     @ObservedObject private var sheetCoordinator = SheetCoordinator.shared
 
     init() {
-        print("🟨 RootView.init")
+        Log.session.debug("RootView.init")
     }
 
     var body: some View {
-        let _ = print("🟩 RootView.body")
+        let _ = Log.session.debug("RootView.body")
         // BootSheet handles the entire flow:
         // splash → login → Face ID verify → location → register → start shift → POS
         BootSheet()

@@ -9,6 +9,7 @@ import SwiftUI
 import VisionKit
 import Vision
 import AudioToolbox
+import os.log
 
 // MARK: - ID Scanner View
 
@@ -344,7 +345,7 @@ struct NativeScannerView: UIViewControllerRepresentable {
 
         @MainActor
         private func showCustomerSheet(on scanner: DataScannerViewController, scannedID: ScannedID, matches: [CustomerMatch]) {
-            print("🆔 Scanned ID - name: \(scannedID.fullDisplayName), matches: \(matches.count)")
+            Log.scanner.debug("Scanned ID - name: \(scannedID.fullDisplayName), matches: \(matches.count)")
 
             // If callback provided, use it instead of SheetCoordinator (for embedded scanner)
             if let callback = onScannedIDWithMatches {

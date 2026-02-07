@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import os.log
 
 // MARK: - End Session Modal
 
@@ -741,7 +742,7 @@ struct BootSafeDropSheet: View {
                         notes: notes.isEmpty ? nil : notes
                     )
                 } catch {
-                    print("Safe drop failed: \(error)")
+                    Log.session.error("Safe drop failed: \(error)")
                 }
             }
         }

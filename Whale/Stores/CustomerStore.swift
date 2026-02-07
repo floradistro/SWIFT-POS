@@ -9,6 +9,7 @@
 import SwiftUI
 import Combine
 import Supabase
+import os.log
 
 @MainActor
 final class CustomerStore: ObservableObject {
@@ -143,7 +144,7 @@ final class CustomerStore: ObservableObject {
 
             customers = response
         } catch {
-            print("Failed to load customers: \(error)")
+            Log.network.error("Failed to load customers: \(error)")
         }
     }
 

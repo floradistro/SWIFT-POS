@@ -94,7 +94,7 @@ struct POSMainView: View {
     @State private var showLocationPicker = false
 
     var body: some View {
-        let _ = print("🛒 POSMainView.body - windowSession: \(windowSession != nil), locationId: \(effectiveLocationId?.uuidString ?? "nil"), storeId: \(effectiveStoreId?.uuidString ?? "nil")")
+        let _ = Log.session.debug("POSMainView.body - windowSession: \(windowSession != nil), locationId: \(effectiveLocationId?.uuidString ?? "nil"), storeId: \(effectiveStoreId?.uuidString ?? "nil")")
 
         // Show location picker if no location selected
         if effectiveLocationId == nil {
@@ -370,7 +370,7 @@ struct POSMainView: View {
                     return
                 }
 
-                print("🪟 POSMainView: Loading products into windowSession for location \(ws.location?.name ?? "unknown")")
+                Log.session.debug("POSMainView: Loading products into windowSession for location \(ws.location?.name ?? "unknown")")
                 Log.cart.info("POSMainView.task starting - storeId: \(storeId), locationId: \(effectiveLocationId?.uuidString ?? "nil"), isMultiWindow: true")
 
                 // Configure stores with this window's location
@@ -595,7 +595,7 @@ struct POSMainView: View {
     }
 
     private func handleCustomerSelected(_ customer: Customer) {
-        print("🛒 handleCustomerSelected: \(customer.firstName ?? "?") \(customer.lastName ?? "?")")
+        Log.cart.debug("handleCustomerSelected: \(customer.firstName ?? "?") \(customer.lastName ?? "?")")
         Task {
             await addCustomerToQueue(customer)
         }
@@ -605,7 +605,7 @@ struct POSMainView: View {
     /// Add customer to cart and backend location queue
     private func addCustomerToQueue(_ customer: Customer) async {
         let locationId = effectiveLocationId
-        print("🛒 addCustomerToQueue: customer=\(customer.firstName ?? "?") \(customer.lastName ?? "?"), locationId=\(locationId?.uuidString ?? "NIL")")
+        Log.cart.debug("addCustomerToQueue: customer=\(customer.firstName ?? "?") \(customer.lastName ?? "?"), locationId=\(locationId?.uuidString ?? "NIL")")
 
         // First, add customer to local cart (creates server cart)
         var cartId: UUID?
@@ -616,7 +616,7 @@ struct POSMainView: View {
                 return
             }
             cartId = ws.activeCart?.id
-            print("🛒 addCustomerToQueue: windowSession cart created, cartId=\(cartId?.uuidString ?? "NIL")")
+            Log.cart.debug("addCustomerToQueue: windowSession cart created, cartId=\(cartId?.uuidString ?? "NIL")")
         } else {
             await productStore.addCustomer(customer)
             if let error = productStore.cartError {
@@ -624,23 +624,23 @@ struct POSMainView: View {
                 return
             }
             cartId = productStore.activeCart?.id
-            print("🛒 addCustomerToQueue: productStore cart created, cartId=\(cartId?.uuidString ?? "NIL")")
+            Log.cart.debug("addCustomerToQueue: productStore cart created, cartId=\(cartId?.uuidString ?? "NIL")")
         }
 
         // Then add to backend location queue
         guard let locationId = locationId, let cartId = cartId else {
-            print("🛒 addCustomerToQueue: FAILED - locationId=\(locationId?.uuidString ?? "NIL"), cartId=\(cartId?.uuidString ?? "NIL")")
+            Log.cart.error("addCustomerToQueue: FAILED - locationId=\(locationId?.uuidString ?? "NIL"), cartId=\(cartId?.uuidString ?? "NIL")")
             return
         }
 
-        print("🛒 addCustomerToQueue: Adding to queue - locationId=\(locationId), cartId=\(cartId)")
+        Log.cart.info("addCustomerToQueue: Adding to queue - locationId=\(locationId), cartId=\(cartId)")
         let queueStore = LocationQueueStore.shared(for: locationId)
         await queueStore.addToQueue(
             cartId: cartId,
             customerId: customer.id,
             userId: session.userId
         )
-        print("🛒 addCustomerToQueue: Done!")
+        Log.cart.info("addCustomerToQueue: Done!")
     }
 
 }

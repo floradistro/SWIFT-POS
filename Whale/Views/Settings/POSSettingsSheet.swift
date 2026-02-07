@@ -8,6 +8,7 @@
 
 import SwiftUI
 import UIKit
+import os.log
 
 // MARK: - POS Settings Sheet
 
@@ -491,20 +492,20 @@ class PrinterPickerHostController: UIViewController {
             let sourceRect = CGRect(x: view.bounds.midX - 1, y: view.bounds.midY - 1, width: 2, height: 2)
 
             let presented = picker.present(from: sourceRect, in: view, animated: true) { [weak self] controller, selected, error in
-                print("🖨️ Picker completion: selected=\(selected), error=\(error?.localizedDescription ?? "none")")
+                Log.label.debug("Picker completion: selected=\(selected), error=\(error?.localizedDescription ?? "none")")
                 if selected, let printer = controller.selectedPrinter {
                     DispatchQueue.main.async {
                         self?.printerSettings?.printerUrl = printer.url
                         self?.printerSettings?.printerName = printer.displayName
-                        print("🖨️ Saved printer: \(printer.displayName)")
+                        Log.label.info("Saved printer: \(printer.displayName)")
                     }
                 }
                 self?.finishPicking()
             }
 
-            print("🖨️ picker.present returned: \(presented)")
+            Log.label.debug("picker.present returned: \(presented)")
             if !presented {
-                print("🖨️ Failed to present - trying alternative method")
+                Log.label.debug("Failed to present - trying alternative method")
                 // Try presenting from the view controller itself
                 self.tryAlternativePresentation(picker: picker)
             }
@@ -516,7 +517,7 @@ class PrinterPickerHostController: UIViewController {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = windowScene.windows.first(where: { $0.isKeyWindow }) ?? windowScene.windows.first,
               let rootVC = window.rootViewController else {
-            print("🖨️ Could not find root view controller")
+            Log.label.error("Could not find root view controller")
             finishPicking()
             return
         }
@@ -527,13 +528,13 @@ class PrinterPickerHostController: UIViewController {
             topVC = presented
         }
 
-        print("🖨️ Trying to present from topVC: \(type(of: topVC))")
+        Log.label.debug("Trying to present from topVC: \(type(of: topVC))")
 
         // Present from the top view controller's view
         let sourceRect = CGRect(x: topVC.view.bounds.midX - 1, y: 100, width: 2, height: 2)
 
         let presented = picker.present(from: sourceRect, in: topVC.view, animated: true) { [weak self] controller, selected, error in
-            print("🖨️ Alt picker completion: selected=\(selected)")
+            Log.label.debug("Alt picker completion: selected=\(selected)")
             if selected, let printer = controller.selectedPrinter {
                 DispatchQueue.main.async {
                     self?.printerSettings?.printerUrl = printer.url
@@ -543,7 +544,7 @@ class PrinterPickerHostController: UIViewController {
             self?.finishPicking()
         }
 
-        print("🖨️ Alt present returned: \(presented)")
+        Log.label.debug("Alt present returned: \(presented)")
         if !presented {
             finishPicking()
         }
@@ -557,16 +558,16 @@ class PrinterPickerHostController: UIViewController {
 
 extension PrinterPickerHostController: UIPrinterPickerControllerDelegate {
     func printerPickerControllerDidDismiss(_ printerPickerController: UIPrinterPickerController) {
-        print("🖨️ Printer picker dismissed by user")
+        Log.label.debug("Printer picker dismissed by user")
         finishPicking()
     }
 
     func printerPickerControllerDidSelectPrinter(_ printerPickerController: UIPrinterPickerController) {
-        print("🖨️ Printer selected via delegate")
+        Log.label.debug("Printer selected via delegate")
     }
 
     func printerPickerControllerParentViewController(_ printerPickerController: UIPrinterPickerController) -> UIViewController? {
-        print("🖨️ Delegate asked for parent view controller")
+        Log.label.debug("Delegate asked for parent view controller")
         return self
     }
 }

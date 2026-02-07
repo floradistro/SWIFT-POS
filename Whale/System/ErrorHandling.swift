@@ -23,6 +23,9 @@ enum Log {
     nonisolated(unsafe) static let scanner = Logger(subsystem: logSubsystem, category: "scanner")
     nonisolated(unsafe) static let deals = Logger(subsystem: logSubsystem, category: "deals")
     nonisolated(unsafe) static let cart = Logger(subsystem: logSubsystem, category: "cart")
+    nonisolated(unsafe) static let inventory = Logger(subsystem: logSubsystem, category: "inventory")
+    nonisolated(unsafe) static let label = Logger(subsystem: logSubsystem, category: "label")
+    nonisolated(unsafe) static let email = Logger(subsystem: logSubsystem, category: "email")
 }
 
 // MARK: - App Error

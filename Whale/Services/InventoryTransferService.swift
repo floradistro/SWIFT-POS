@@ -48,7 +48,7 @@ final class InventoryTransferService {
         notes: String?,
         userId: UUID?
     ) async throws -> InventoryTransfer {
-        print("📦 Creating transfer: \(sourceLocationId) → \(destinationLocationId)")
+        Log.inventory.debug("Creating transfer: \(sourceLocationId) -> \(destinationLocationId)")
 
         // Generate transfer number
         let transferNumber = "TRF-\(Int(Date().timeIntervalSince1970) % 1000000)"
@@ -100,7 +100,7 @@ final class InventoryTransferService {
                 .execute()
         }
 
-        print("✅ Transfer created: \(transferNumber) with \(items.count) items")
+        Log.inventory.info("Transfer created: \(transferNumber) with \(items.count) items")
 
         // Return the transfer
         return InventoryTransfer(
@@ -133,7 +133,7 @@ final class InventoryTransferService {
 
     /// Lookup a transfer by QR code (P prefix)
     func lookupTransfer(qrCode: String, storeId: UUID) async throws -> TransferLookupResult {
-        print("📦 Looking up transfer: \(qrCode)")
+        Log.inventory.debug("Looking up transfer: \(qrCode)")
 
         // Extract transfer ID from QR (P + UUID)
         let transferIdString = String(qrCode.dropFirst()) // Remove P prefix
@@ -181,7 +181,7 @@ final class InventoryTransferService {
         let items = try decoder.decode([InventoryTransferItem].self, from: itemsResponse.data)
         transfer.items = items
 
-        print("✅ Found transfer \(transfer.transferNumber) with \(items.count) items")
+        Log.inventory.info("Found transfer \(transfer.transferNumber) with \(items.count) items")
 
         return TransferLookupResult(
             success: true,
@@ -202,7 +202,7 @@ final class InventoryTransferService {
         userId: UUID?,
         itemConditions: [UUID: ItemCondition]? = nil
     ) async throws -> Bool {
-        print("📦 Receiving transfer: \(transferId)")
+        Log.inventory.debug("Receiving transfer: \(transferId)")
 
         let now = ISO8601DateFormatter().string(from: Date())
 
@@ -215,7 +215,7 @@ final class InventoryTransferService {
             .execute()
 
         let transfer = try JSONDecoder().decode(ReceiveTransferInfo.self, from: transferResponse.data)
-        print("📦 Transfer: \(transfer.source_location_id) → \(transfer.destination_location_id)")
+        Log.inventory.debug("Transfer: \(transfer.source_location_id) -> \(transfer.destination_location_id)")
 
         // 2. Get transfer items with product info and qr_code_id
         let itemsResponse = try await supabase
@@ -225,7 +225,7 @@ final class InventoryTransferService {
             .execute()
 
         let items = try JSONDecoder().decode([ReceiveTransferItem].self, from: itemsResponse.data)
-        print("📦 Processing \(items.count) items")
+        Log.inventory.debug("Processing \(items.count) items")
 
         // 3. For each item, update inventory (deduct from source, add to destination)
         for item in items {
@@ -260,7 +260,7 @@ final class InventoryTransferService {
             .eq("id", value: transferId.uuidString)
             .execute()
 
-        print("✅ Transfer received with \(items.count) items - inventory updated!")
+        Log.inventory.info("Transfer received with \(items.count) items - inventory updated")
         return true
     }
 
@@ -274,12 +274,12 @@ final class InventoryTransferService {
         itemConditions: [UUID: ItemCondition]?,
         now: String
     ) async throws {
-        print("📦 Processing item: product=\(item.product_id), qty=\(item.quantity)")
+        Log.inventory.debug("Processing item: product=\(item.product_id), qty=\(item.quantity)")
 
         // For QR-based transfers, skip inventory table updates
         // The QR code itself tracks location - no need to modify inventory table
         if item.qr_code_id != nil {
-            print("📦 QR-based transfer - skipping inventory table updates (QR code is source of truth)")
+            Log.inventory.debug("QR-based transfer - skipping inventory table updates (QR code is source of truth)")
 
             // Still update the transfer item's received_quantity
             struct ItemUpdate: Encodable {
@@ -291,7 +291,7 @@ final class InventoryTransferService {
                 .update(ItemUpdate(received_quantity: item.quantity, updated_at: now))
                 .eq("id", value: item.id.uuidString)
                 .execute()
-            print("📦 Updated transfer item received_quantity: \(item.quantity)")
+            Log.inventory.debug("Updated transfer item received_quantity: \(item.quantity)")
 
             return
         }
@@ -369,7 +369,7 @@ final class InventoryTransferService {
             .eq("id", value: sourceInv.id.uuidString)
             .execute()
 
-        print("📦 Source inventory updated: \(sourceInv.quantity) → \(newSourceQty)")
+        Log.inventory.debug("Source inventory updated: \(sourceInv.quantity) -> \(newSourceQty)")
 
         // Log transfer_out transaction
         try await logInventoryTransaction(
@@ -424,7 +424,7 @@ final class InventoryTransferService {
                 .eq("id", value: destInv.id.uuidString)
                 .execute()
 
-            print("📦 Destination inventory updated: \(destInv.quantity) → \(newDestQty)")
+            Log.inventory.debug("Destination inventory updated: \(destInv.quantity) -> \(newDestQty)")
 
             // Log transfer_in transaction
             try await logInventoryTransaction(
@@ -469,7 +469,7 @@ final class InventoryTransferService {
 
             let insertedInv = try JSONDecoder().decode(InsertedInv.self, from: insertResponse.data)
 
-            print("📦 Created new inventory record at destination: \(insertedInv.id)")
+            Log.inventory.debug("Created new inventory record at destination: \(insertedInv.id)")
 
             // Log transfer_in transaction for new record
             try await logInventoryTransaction(
@@ -536,7 +536,7 @@ final class InventoryTransferService {
             .insert(txn)
             .execute()
 
-        print("📦 Logged \(type) transaction")
+        Log.inventory.debug("Logged \(type) transaction")
     }
 
     private func updateQRCodeLocation(
@@ -562,7 +562,7 @@ final class InventoryTransferService {
             .eq("id", value: qrCodeId.uuidString)
             .execute()
 
-        print("📦 Updated QR code \(qrCodeId) - status=available, location=destination")
+        Log.inventory.debug("Updated QR code \(qrCodeId) - status=available, location=destination")
     }
 
     private func updateTransferItemReceived(

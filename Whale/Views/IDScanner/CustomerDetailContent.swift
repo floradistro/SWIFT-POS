@@ -587,7 +587,7 @@ extension CustomerSearchContent {
         await MainActor.run {
             switch result {
             case .success(let updated):
-                print("✅ Customer updated: \(updated.displayName)")
+                Log.network.info("Customer updated: \(updated.displayName)")
                 updatedCustomer = updated
                 Haptics.success()
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -595,7 +595,7 @@ extension CustomerSearchContent {
                     pointsAdjustmentMessage = "Customer updated successfully"
                 }
             case .failure(let error):
-                print("❌ Customer update failed: \(error)")
+                Log.network.error("Customer update failed: \(error)")
                 editErrorMessage = "Update failed: \(error.localizedDescription)"
                 Haptics.error()
             }
@@ -839,7 +839,7 @@ extension CustomerSearchContent {
 
         Task {
             do {
-                print("📊 Adjusting points for customer \(customer.id) to \(newPoints)")
+                Log.network.debug("Adjusting points for customer \(customer.id) to \(newPoints)")
                 let result = try await LoyaltyService.shared.setPoints(
                     customerId: customer.id,
                     points: newPoints,
@@ -847,7 +847,7 @@ extension CustomerSearchContent {
                 )
 
                 await MainActor.run {
-                    print("✅ Points adjustment succeeded: \(result.balanceBefore ?? 0) → \(result.balanceAfter ?? 0)")
+                    Log.network.info("Points adjustment succeeded: \(result.balanceBefore ?? 0) -> \(result.balanceAfter ?? 0)")
                     updatedLoyaltyPoints = result.balanceAfter ?? newPoints
                     isAdjustingPoints = false
                     adjustingPointsForCustomer = nil
@@ -865,7 +865,7 @@ extension CustomerSearchContent {
                     Haptics.success()
                 }
             } catch {
-                print("❌ Points adjustment failed: \(error)")
+                Log.network.error("Points adjustment failed: \(error)")
                 await MainActor.run {
                     isAdjustingPoints = false
                     adjustingPointsForCustomer = nil

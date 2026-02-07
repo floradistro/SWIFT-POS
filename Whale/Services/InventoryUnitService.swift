@@ -156,7 +156,7 @@ final class InventoryUnitService {
         notes: String? = nil
     ) async throws -> ScanResult {
         logger.info("Scanning \(qrCode) for operation: \(operation.rawValue)")
-        print("📱 Direct scan: \(operation.rawValue) for \(qrCode)")
+        Log.inventory.debug("Direct scan: \(operation.rawValue) for \(qrCode)")
 
         // First, find the inventory unit
         let unitResponse = try await supabase
@@ -169,7 +169,7 @@ final class InventoryUnitService {
 
         guard let rawJSON = String(data: unitResponse.data, encoding: .utf8),
               rawJSON != "[]" else {
-            print("❌ Unit not found: \(qrCode)")
+            Log.inventory.error("Unit not found: \(qrCode)")
             return ScanResult(success: false, scan: nil, unit: nil, found: false, error: "Unit not found")
         }
 
@@ -221,7 +221,7 @@ final class InventoryUnitService {
         if isTransfer && actualOperation == .transferIn {
             let transferNote = "Auto-transfer from \(fromLocationName ?? "Unknown") to \(toLocationName ?? "Unknown")"
             scanNotes = scanNotes.isEmpty ? transferNote : "\(transferNote) | \(scanNotes)"
-            print("🚚 Auto-transfer detected: \(fromLocationName ?? "?") → \(toLocationName ?? "?")")
+            Log.inventory.debug("Auto-transfer detected: \(fromLocationName ?? "?") -> \(toLocationName ?? "?")")
         }
 
         // Insert scan record
@@ -268,7 +268,7 @@ final class InventoryUnitService {
             .insert(scanRecord)
             .execute()
 
-        print("✅ Scan recorded: \(scanId) (\(actualOperation.rawValue))")
+        Log.inventory.info("Scan recorded: \(scanId) (\(actualOperation.rawValue))")
 
         // Update unit location and optionally status/bin
         let now = ISO8601DateFormatter().string(from: Date())
@@ -304,7 +304,7 @@ final class InventoryUnitService {
             .eq("id", value: unit.id.uuidString)
             .execute()
 
-        print("✅ Unit location updated to: \(toLocationName ?? locationId.uuidString)")
+        Log.inventory.info("Unit location updated to: \(toLocationName ?? locationId.uuidString)")
 
         // TODO: Update inventory counts (deduct from source, add to destination)
         // This would update a separate inventory_levels table if you have one
@@ -317,17 +317,17 @@ final class InventoryUnitService {
     /// Get full details for a QR code
     func lookup(qrCode: String, storeId: UUID? = nil) async throws -> LookupResult {
         logger.info("Looking up QR code: \(qrCode)")
-        print("🔍 InventoryUnitService.lookup called with qrCode: \(qrCode)")
+        Log.inventory.debug("InventoryUnitService.lookup called with qrCode: \(qrCode)")
 
         // First try direct database lookup (faster and more reliable)
         do {
             let directResult = try await lookupDirect(qrCode: qrCode, storeId: storeId)
             if directResult.found {
-                print("✅ Direct lookup found unit")
+                Log.inventory.info("Direct lookup found unit")
                 return directResult
             }
         } catch {
-            print("⚠️ Direct lookup failed, trying edge function: \(error)")
+            Log.inventory.warning("Direct lookup failed, trying edge function: \(error)")
         }
 
         // Fallback to edge function
@@ -340,21 +340,21 @@ final class InventoryUnitService {
             body["store_id"] = storeId.uuidString
         }
 
-        print("🔍 Request body: \(body)")
+        Log.inventory.debug("Request body: \(body)")
 
         do {
             let result: LookupResult = try await callFunction(body: body)
-            print("✅ Lookup response - success: \(result.success), found: \(result.found), error: \(result.error ?? "none")")
+            Log.inventory.info("Lookup response - success: \(result.success), found: \(result.found), error: \(result.error ?? "none")")
             return result
         } catch {
-            print("❌ Lookup failed with error: \(error)")
+            Log.inventory.error("Lookup failed with error: \(error)")
             throw error
         }
     }
 
     /// Direct database lookup for inventory unit
     private func lookupDirect(qrCode: String, storeId: UUID?) async throws -> LookupResult {
-        print("🔍 Direct DB lookup for: \(qrCode)")
+        Log.inventory.debug("Direct DB lookup for: \(qrCode)")
 
         // Query the inventory_units table directly
         var query = supabase
@@ -370,7 +370,7 @@ final class InventoryUnitService {
 
         // Log raw response for debugging
         if let rawJSON = String(data: response.data, encoding: .utf8) {
-            print("📦 Raw DB response: \(rawJSON.prefix(1000))")
+            Log.inventory.debug("Raw DB response: \(rawJSON.prefix(1000))")
         }
 
         let decoder = JSONDecoder()
@@ -396,10 +396,10 @@ final class InventoryUnitService {
 
         do {
             let units = try decoder.decode([InventoryUnit].self, from: response.data)
-            print("✅ Decoded \(units.count) units")
+            Log.inventory.info("Decoded \(units.count) units")
 
             if let unit = units.first {
-                print("✅ Found unit in database: \(unit.id)")
+                Log.inventory.info("Found unit in database: \(unit.id)")
 
                 // Fetch product info
                 var productInfo: ProductInfo?
@@ -437,7 +437,7 @@ final class InventoryUnitService {
                 )
             }
 
-            print("⚠️ No unit found in database for: \(qrCode)")
+            Log.inventory.warning("No unit found in database for: \(qrCode)")
             return LookupResult(
                 success: true,
                 found: false,
@@ -451,20 +451,20 @@ final class InventoryUnitService {
                 error: "Unit not found"
             )
         } catch {
-            print("❌ Decode error: \(error)")
+            Log.inventory.error("Decode error: \(error)")
             // Print detailed error info
             if let decodingError = error as? DecodingError {
                 switch decodingError {
                 case .keyNotFound(let key, let context):
-                    print("❌ Missing key: \(key.stringValue) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                    Log.inventory.error("Missing key: \(key.stringValue) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
                 case .typeMismatch(let type, let context):
-                    print("❌ Type mismatch: expected \(type) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                    Log.inventory.error("Type mismatch: expected \(type) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
                 case .valueNotFound(let type, let context):
-                    print("❌ Value not found: \(type) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                    Log.inventory.error("Value not found: \(type) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
                 case .dataCorrupted(let context):
-                    print("❌ Data corrupted: \(context.debugDescription)")
+                    Log.inventory.error("Data corrupted: \(context.debugDescription)")
                 @unknown default:
-                    print("❌ Unknown decoding error")
+                    Log.inventory.error("Unknown decoding error")
                 }
             }
             throw error
@@ -708,7 +708,7 @@ final class InventoryUnitService {
             throw InventoryUnitError.invalidURL
         }
 
-        print("📡 Calling edge function: \(url)")
+        Log.inventory.debug("Calling edge function: \(url)")
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -717,9 +717,9 @@ final class InventoryUnitService {
         // Get auth token
         if let session = try? await supabase.auth.session {
             request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
-            print("📡 Auth token attached")
+            Log.inventory.debug("Auth token attached")
         } else {
-            print("⚠️ No auth session available")
+            Log.inventory.warning("No auth session available")
         }
 
         // Add API key
@@ -735,11 +735,11 @@ final class InventoryUnitService {
             throw InventoryUnitError.invalidResponse
         }
 
-        print("📡 HTTP Status: \(httpResponse.statusCode)")
+        Log.inventory.debug("HTTP Status: \(httpResponse.statusCode)")
 
         // Log raw response for debugging
         if let rawResponse = String(data: data, encoding: .utf8) {
-            print("📡 Raw response: \(rawResponse.prefix(500))")
+            Log.inventory.debug("Raw response: \(rawResponse.prefix(500))")
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
@@ -755,7 +755,7 @@ final class InventoryUnitService {
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
-            print("❌ JSON decode error: \(error)")
+            Log.inventory.error("JSON decode error: \(error)")
             throw error
         }
     }

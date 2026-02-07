@@ -62,7 +62,7 @@ final class SessionObserver: ObservableObject {
         // Any work in init() causes SwiftUI to repeatedly rebuild the view tree
         // which triggers gesture gate timeouts and UI freezes.
         // All initialization happens in start() which is called from .task
-        print("🟪 SessionObserver.init")
+        Log.session.debug("SessionObserver.init")
 
         // Listen for GitHub repo changes from Lisa
         NotificationCenter.default.addObserver(
@@ -99,7 +99,7 @@ final class SessionObserver: ObservableObject {
         guard !hasStarted else { return }
         hasStarted = true
 
-        print("🟦 SessionObserver.start() - AFTER first frame")
+        Log.session.debug("SessionObserver.start() - AFTER first frame")
 
         #if DEBUG
         // Clear session persistence between dev builds to ensure clean state
@@ -120,19 +120,19 @@ final class SessionObserver: ObservableObject {
 
         // 1. Supabase client (keychain I/O happens in background)
         _ = await supabaseAsync()
-        print("🟦 Supabase ready")
+        Log.session.debug("Supabase ready")
 
         // 2. Warmups - run in background, don't block (skipped in dev mode for speed)
         if !skipWarmupsForSpeed {
             SubsystemWarmup.shared.warmIfNeeded()
             BiometricAuthService.warmup()
         } else {
-            print("🟦 Skipping warmups for dev speed")
+            Log.session.debug("Skipping warmups for dev speed")
         }
 
         // 3. Check session and restore state
         await checkSession()
-        print("🟦 Session checked, boot complete")
+        Log.session.info("Session checked, boot complete")
     }
 
     // MARK: - Manual Change Notification
@@ -504,7 +504,7 @@ final class SessionObserver: ObservableObject {
             ]
             keysToReset.forEach { UserDefaults.standard.removeObject(forKey: $0) }
             UserDefaults.standard.set(currentTimestamp, forKey: "lastDevBuildTimestamp")
-            print("🧹 Cleared session persistence for new build (binary date: \(currentBuildDate?.description ?? "unknown"))")
+            Log.session.debug("Cleared session persistence for new build (binary date: \(currentBuildDate?.description ?? "unknown"))")
         }
     }
     #endif

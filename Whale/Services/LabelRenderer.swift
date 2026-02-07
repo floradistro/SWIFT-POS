@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 import CoreImage
+import os.log
 
 // MARK: - Template & Config
 
@@ -461,7 +462,7 @@ final class LabelRenderer: UIPrintPageRenderer {
         let productsWithoutImages = products.count - productsWithImages.count
 
         if productsWithoutImages > 0 {
-            print("🏷️ ⚠️ \(productsWithoutImages) products missing iconUrl")
+            Log.label.warning("\(productsWithoutImages) products missing iconUrl")
         }
 
         await withTaskGroup(of: (UUID, UIImage?).self) { group in
@@ -472,7 +473,7 @@ final class LabelRenderer: UIPrintPageRenderer {
                         let (data, _) = try await URLSession.shared.data(from: url)
                         return (product.id, UIImage(data: data))
                     } catch {
-                        print("🏷️ Failed to fetch image for \(product.name): \(error.localizedDescription)")
+                        Log.label.error("Failed to fetch image for \(product.name): \(error.localizedDescription)")
                         return (product.id, nil)
                     }
                 }
