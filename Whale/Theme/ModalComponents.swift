@@ -43,12 +43,12 @@ struct ModalHeader<Trailing: View>: View {
             VStack(spacing: 2) {
                 if let subtitle = subtitle {
                     Text(subtitle.uppercased())
-                        .font(.system(size: 10, weight: .bold))
+                        .font(Design.Typography.caption2).fontWeight(.bold)
                         .foregroundStyle(.white.opacity(0.4))
                         .tracking(0.5)
                 }
                 Text(title)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(Design.Typography.title3Rounded).fontWeight(.bold)
                     .foregroundStyle(.white)
             }
             Spacer()
@@ -80,7 +80,7 @@ struct ModalCloseButton: View {
             action()
         } label: {
             Image(systemName: "xmark")
-                .font(.system(size: 14, weight: .semibold))
+                .font(Design.Typography.footnote).fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.6))
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(.white.opacity(0.1)))
@@ -102,7 +102,7 @@ struct ModalBackButton: View {
             action()
         } label: {
             Image(systemName: "chevron.left")
-                .font(.system(size: 14, weight: .semibold))
+                .font(Design.Typography.footnote).fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.6))
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(.white.opacity(0.1)))
@@ -169,10 +169,10 @@ struct ModalActionButton: View {
                 } else {
                     if let icon = icon {
                         Image(systemName: icon)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                     }
                     Text(title)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(Design.Typography.subhead).fontWeight(.bold)
                 }
             }
             .foregroundStyle(style.foregroundColor)
@@ -208,10 +208,10 @@ struct ModalSecondaryButton: View {
             HStack(spacing: 6) {
                 if let icon = icon {
                     Image(systemName: icon)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                 }
                 Text(title)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(Design.Typography.subhead).fontWeight(.medium)
             }
             .foregroundStyle(.white.opacity(0.6))
             .frame(maxWidth: .infinity)
@@ -232,11 +232,11 @@ struct ModalInfoRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(.system(size: 13))
+                .font(Design.Typography.footnote)
                 .foregroundStyle(.white.opacity(0.5))
             Spacer()
             Text(value)
-                .font(.system(size: 13, weight: .medium))
+                .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(valueColor)
         }
         .accessibilityElement(children: .combine)
@@ -251,7 +251,7 @@ struct ModalTextInput: View {
 
     var body: some View {
         TextField(placeholder, text: $text)
-            .font(.system(size: 14))
+            .font(Design.Typography.footnote)
             .foregroundStyle(.white)
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.06)))
@@ -270,7 +270,7 @@ struct ModalSectionLabel: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 12, weight: .semibold))
+            .font(Design.Typography.caption1).fontWeight(.semibold)
             .foregroundStyle(.white.opacity(0.5))
             .textCase(.uppercase)
             .tracking(0.5)

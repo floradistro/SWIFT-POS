@@ -109,12 +109,12 @@ struct LiquidGlassSearchBar: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 17, weight: .medium))
+                .font(Design.Typography.body).fontWeight(.medium)
                 .foregroundStyle(isFocused ? .white : .white.opacity(0.5))
                 .accessibilityHidden(true)
 
             TextField(placeholder, text: $text)
-                .font(.system(size: 17))
+                .font(Design.Typography.body)
                 .foregroundStyle(.white)
                 .focused($isFocused)
                 .submitLabel(.search)
@@ -126,7 +126,7 @@ struct LiquidGlassSearchBar: View {
                     onClear?()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 18))
+                        .font(Design.Typography.headline)
                         .foregroundStyle(.white.opacity(0.4))
                 }
                 .buttonStyle(.plain)
@@ -176,7 +176,7 @@ struct LiquidGlassPill: View {
             HStack(spacing: 4) {
                 if let icon = icon {
                     Image(systemName: icon)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(Design.Typography.caption2).fontWeight(.semibold)
                 }
 
                 if let color = color {
@@ -186,11 +186,11 @@ struct LiquidGlassPill: View {
                 }
 
                 Text(label)
-                    .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
+                    .font(Design.Typography.caption1).fontWeight(isSelected ? .semibold : .medium)
 
                 if let count = count, count > 0 {
                     Text("\(count)")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .font(Design.Typography.caption2Rounded).fontWeight(.bold)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(.fill.tertiary, in: .capsule)
@@ -248,7 +248,7 @@ struct LiquidGlassIconButton: View {
 
                 if let badge = badge, badge > 0 {
                     Text("\(min(badge, 99))")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .font(Design.Typography.caption2Rounded).fontWeight(.bold)
                         .foregroundStyle(.white)
                         .frame(minWidth: 18, minHeight: 18)
                         .background(badgeColor, in: Circle())
@@ -278,7 +278,7 @@ struct ModalIconButton: View {
             action()
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(Design.Typography.callout).fontWeight(.semibold)
                 .foregroundStyle(tintColor)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
@@ -334,10 +334,10 @@ struct LiquidGlassButton: View {
             HStack(spacing: 8) {
                 if let icon = icon {
                     Image(systemName: icon)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(Design.Typography.subhead).fontWeight(.semibold)
                 }
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Design.Typography.subhead).fontWeight(.semibold)
             }
             .foregroundStyle(style.tintColor)
             .frame(maxWidth: isFullWidth ? .infinity : nil)

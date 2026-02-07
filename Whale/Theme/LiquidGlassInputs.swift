@@ -33,14 +33,14 @@ struct LiquidGlassTextField: View {
         HStack(spacing: 12) {
             if let icon = icon {
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(Design.Typography.callout).fontWeight(.medium)
                     .foregroundStyle(isFocused ? .primary : .secondary)
                     .frame(width: 24)
                     .accessibilityHidden(true)
             }
 
             TextField(placeholder, text: $text)
-                .font(.system(size: 16))
+                .font(Design.Typography.callout)
                 .keyboardType(keyboardType)
                 .focused($isFocused)
         }
@@ -106,7 +106,7 @@ struct GlassChip: View {
                     .accessibilityHidden(true)
             }
             Text(text)
-                .font(.system(size: 11, weight: .semibold))
+                .font(Design.Typography.caption2).fontWeight(.semibold)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
@@ -125,7 +125,7 @@ struct GlassQuickAmount: View {
             action()
         } label: {
             Text("$\(amount)")
-                .font(.system(size: 15, weight: .semibold))
+                .font(Design.Typography.subhead).fontWeight(.semibold)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
         }
@@ -141,12 +141,12 @@ struct GlassCurrencyField: View {
     var body: some View {
         HStack(spacing: 4) {
             Text("$")
-                .font(.system(size: 36, weight: .bold))
+                .font(Design.Typography.priceHero).fontWeight(.bold)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
 
             TextField("0.00", text: $amount)
-                .font(.system(size: 36, weight: .bold))
+                .font(Design.Typography.priceHero).fontWeight(.bold)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.leading)
                 .focused($isFocused)

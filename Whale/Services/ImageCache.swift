@@ -239,7 +239,7 @@ struct CachedAsyncImage: View {
                 .overlay(
                     Image(systemName: "photo")
                         .foregroundStyle(.white.opacity(0.15))
-                        .font(.system(size: 24))
+                        .font(Design.Typography.title2)
                 )
         }
     }
@@ -300,7 +300,7 @@ struct StoreLogoPlaceholder: View {
                 // Fallback while loading logo
                 Image(systemName: "storefront")
                     .foregroundStyle(.white.opacity(0.12))
-                    .font(.system(size: 28))
+                    .font(Design.Typography.title1)
             }
         }
         .task {

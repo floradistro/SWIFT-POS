@@ -259,19 +259,19 @@ struct OrderDetailSheet: View {
                 Button("Done") {
                     SheetCoordinator.shared.dismiss()
                 }
-                .font(.system(size: 15, weight: .medium))
+                .font(Design.Typography.subhead).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.7))
 
                 Spacer()
 
                 Text("Order #\(order.shortOrderNumber)")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(Design.Typography.headline).fontWeight(.bold)
                     .foregroundStyle(.white)
 
                 Spacer()
 
                 Text("Done")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(Design.Typography.subhead).fontWeight(.medium)
                     .foregroundStyle(.clear)
             }
             .padding(.horizontal, 20)
@@ -285,7 +285,7 @@ struct OrderDetailSheet: View {
                         .scaleEffect(1.2)
                         .tint(.white.opacity(0.6))
                     Text("Loading order details...")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.4))
                         .padding(.top, 12)
                     Spacer()
@@ -593,17 +593,17 @@ struct ErrorAlertSheet: View {
                         .frame(width: 64, height: 64)
 
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 28))
+                        .font(Design.Typography.title1)
                         .foregroundStyle(Design.Colors.Semantic.error)
                 }
 
                 Text(title)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(Design.Typography.title3).fontWeight(.bold)
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
 
                 Text(message)
-                    .font(.system(size: 15))
+                    .font(Design.Typography.subhead)
                     .foregroundStyle(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -618,7 +618,7 @@ struct ErrorAlertSheet: View {
                 SheetCoordinator.shared.dismiss()
             } label: {
                 Text("Dismiss")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(Design.Typography.callout).fontWeight(.semibold)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)

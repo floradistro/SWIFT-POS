@@ -86,7 +86,7 @@ struct ContentView: View {
                             Toggle(isOn: $stayLoggedIn) {
                                 HStack(spacing: 8) {
                                     Image(systemName: biometricType.iconName)
-                                        .font(.system(size: 16))
+                                        .font(Design.Typography.callout)
                                         .foregroundStyle(Design.Colors.Text.subtle)
                                     Text("Stay logged in with \(biometricType.displayName)")
                                         .font(Design.Typography.footnote)
