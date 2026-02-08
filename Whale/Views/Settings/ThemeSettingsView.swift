@@ -94,16 +94,16 @@ struct ThemeSettingsView: View {
                 Text(label)
                     .font(Design.Typography.subhead).fontWeight(.medium)
             }
-            .foregroundStyle(theme.palette.baseMode == mode ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
+            .foregroundStyle(theme.palette.baseMode == mode ? .white : Design.Colors.Text.disabled)
             .frame(maxWidth: .infinity)
             .frame(height: 44)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(theme.palette.baseMode == mode ? Design.Colors.Glass.ultraThick : Design.Colors.Glass.thin)
+                    .fill(theme.palette.baseMode == mode ? Design.Colors.Semantic.accent : Design.Colors.Glass.thin)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(theme.palette.baseMode == mode ? Design.Colors.Border.strong : Design.Colors.Border.subtle, lineWidth: 1)
+                    .stroke(theme.palette.baseMode == mode ? Design.Colors.Semantic.accent : Design.Colors.Border.subtle, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -349,7 +349,7 @@ struct ThemeSettingsView: View {
                     }
                 ))
                 .labelsHidden()
-                .tint(Design.Colors.Semantic.success)
+                .tint(Design.Colors.Semantic.accent)
             }
         }
     }

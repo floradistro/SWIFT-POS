@@ -644,10 +644,10 @@ struct CheckoutSheet: View {
                     Text("Done")
                         .font(Design.Typography.headline)
                 }
-                .foregroundStyle(Design.Colors.Text.primary)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 54)
-                .background(isInvoice ? Design.Colors.Semantic.accent : Design.Colors.Semantic.success, in: RoundedRectangle(cornerRadius: 14))
+                .background(Design.Colors.Semantic.accent, in: RoundedRectangle(cornerRadius: 14))
             }
             .buttonStyle(ScaleButtonStyle())
             .padding(.horizontal, 20)

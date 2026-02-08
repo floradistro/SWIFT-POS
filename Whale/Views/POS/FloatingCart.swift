@@ -296,7 +296,7 @@ struct FloatingCart: View {
                     .foregroundStyle(Design.Colors.Text.primary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                    .background(Design.Colors.Semantic.success, in: Capsule())
+                    .background(Design.Colors.Semantic.accent, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Checkout, pay \(CurrencyFormatter.format(totals?.total ?? 0))")
