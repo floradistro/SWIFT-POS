@@ -119,11 +119,11 @@ struct LocationPickerSheet: View {
 
                 if selectedId == location.id {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                         .foregroundStyle(.tint)
                 } else if session.selectedLocation?.id == location.id {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                         .foregroundStyle(.secondary)
                 }
             }
