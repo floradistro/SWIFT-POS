@@ -206,6 +206,7 @@ struct RootView: View {
     // This prevents App.body from being invalidated on state changes
     @StateObject private var session = SessionObserver.shared
     @StateObject private var sheetCoordinator = SheetCoordinator.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
 
     init() {
         Log.session.debug("RootView.init")
@@ -218,6 +219,8 @@ struct RootView: View {
         BootSheet()
             .posDynamicTypeRange()
             .environmentObject(session)
+            .environmentObject(themeManager)
+            .preferredColorScheme(themeManager.preferredColorScheme)
             .task {
                 // CRITICAL: Run startup ONLY after first frame renders
                 // This prevents state mutations during view creation
@@ -228,11 +231,13 @@ struct RootView: View {
             .sheet(item: sheetCoordinator.sheetBinding) { sheetType in
                 SheetContainer(sheetType: sheetType)
                     .environmentObject(session)
+                    .environmentObject(themeManager)
                     .applyDetents(sheetType.detents)
             }
             .fullScreenCover(item: sheetCoordinator.fullScreenBinding) { sheetType in
                 SheetContainer(sheetType: sheetType)
                     .environmentObject(session)
+                    .environmentObject(themeManager)
             }
     }
 }

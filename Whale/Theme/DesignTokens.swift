@@ -45,71 +45,78 @@ extension Color {
 
 enum Design {
 
-    // MARK: - Colors
+    // MARK: - Colors (dynamic — reads from ThemeManager)
 
     enum Colors {
-        // Backgrounds (OLED-optimized)
-        static let backgroundPrimary = Color.black
-        static let backgroundSecondary = Color.black.opacity(0.4)
-        static let backgroundTertiary = Color.black.opacity(0.85)
+        private static var tm: ThemeManager { ThemeManager.shared }
 
-        // Glass/Blur Effects (iOS liquid glass)
+        // Backgrounds
+        static var backgroundPrimary: Color { tm.backgroundPrimary }
+        static var backgroundSecondary: Color { tm.backgroundSecondary }
+        static var backgroundTertiary: Color { tm.backgroundTertiary }
+
+        // Glass/Blur Effects
         enum Glass {
-            static let ultraThin = Color.white.opacity(0.02)
-            static let thin = Color.white.opacity(0.03)
-            static let regular = Color.white.opacity(0.08)
-            static let thick = Color.white.opacity(0.12)
-            static let ultraThick = Color.white.opacity(0.15)
+            private static var tm: ThemeManager { ThemeManager.shared }
+            static var ultraThin: Color { tm.glassUltraThin }
+            static var thin: Color { tm.glassThin }
+            static var regular: Color { tm.glassRegular }
+            static var thick: Color { tm.glassThick }
+            static var ultraThick: Color { tm.glassUltraThick }
         }
 
         // Borders
         enum Border {
-            static let subtle = Color.white.opacity(0.06)
-            static let regular = Color.white.opacity(0.1)
-            static let emphasis = Color.white.opacity(0.12)
-            static let strong = Color.white.opacity(0.15)
+            private static var tm: ThemeManager { ThemeManager.shared }
+            static var subtle: Color { tm.borderSubtle }
+            static var regular: Color { tm.borderRegular }
+            static var emphasis: Color { tm.borderEmphasis }
+            static var strong: Color { tm.borderStrong }
         }
 
         // Text
         enum Text {
-            static let primary = Color.white
-            static let secondary = Color.white.opacity(0.95)
-            static let tertiary = Color.white.opacity(0.8)
-            static let quaternary = Color.white.opacity(0.7)
-            static let disabled = Color.white.opacity(0.5)
-            static let subtle = Color.white.opacity(0.4)
-            static let ghost = Color.white.opacity(0.25)
-            static let placeholder = Color.white.opacity(0.3)
+            private static var tm: ThemeManager { ThemeManager.shared }
+            static var primary: Color { tm.textPrimary }
+            static var secondary: Color { tm.textSecondary }
+            static var tertiary: Color { tm.textTertiary }
+            static var quaternary: Color { tm.textQuaternary }
+            static var disabled: Color { tm.textDisabled }
+            static var subtle: Color { tm.textSubtle }
+            static var ghost: Color { tm.textGhost }
+            static var placeholder: Color { tm.textPlaceholder }
         }
 
         // Semantic Colors
         enum Semantic {
-            static let success = Color(red: 16/255, green: 185/255, blue: 129/255)
-            static let successBackground = success.opacity(0.08)
-            static let successBorder = success.opacity(0.3)
+            private static var tm: ThemeManager { ThemeManager.shared }
+            static var success: Color { tm.semanticSuccess }
+            static var successBackground: Color { tm.semanticSuccessBackground }
+            static var successBorder: Color { tm.semanticSuccessBorder }
 
-            static let error = Color(red: 255/255, green: 60/255, blue: 60/255)
-            static let errorBackground = error.opacity(0.1)
-            static let errorBorder = error.opacity(0.3)
+            static var error: Color { tm.semanticError }
+            static var errorBackground: Color { tm.semanticErrorBackground }
+            static var errorBorder: Color { tm.semanticErrorBorder }
 
-            static let warning = Color(red: 251/255, green: 191/255, blue: 36/255)
-            static let warningBackground = warning.opacity(0.1)
-            static let warningBorder = warning.opacity(0.3)
+            static var warning: Color { tm.semanticWarning }
+            static var warningBackground: Color { tm.semanticWarningBackground }
+            static var warningBorder: Color { tm.semanticWarningBorder }
 
-            static let info = Color(red: 100/255, green: 200/255, blue: 255/255)
-            static let infoBackground = info.opacity(0.15)
-            static let infoBorder = info.opacity(0.3)
+            static var info: Color { tm.semanticInfo }
+            static var infoBackground: Color { tm.semanticInfoBackground }
+            static var infoBorder: Color { tm.semanticInfoBorder }
 
-            static let accent = Color(red: 59/255, green: 130/255, blue: 246/255)
-            static let accentBackground = accent.opacity(0.3)
+            static var accent: Color { tm.semanticAccent }
+            static var accentBackground: Color { tm.semanticAccentBackground }
         }
 
         // Interactive States
         enum Interactive {
-            static let `default` = Color.white.opacity(0.08)
-            static let hover = Color.white.opacity(0.12)
-            static let active = Color.white.opacity(0.15)
-            static let disabled = Color.white.opacity(0.03)
+            private static var tm: ThemeManager { ThemeManager.shared }
+            static var `default`: Color { tm.interactiveDefault }
+            static var hover: Color { tm.interactiveHover }
+            static var active: Color { tm.interactiveActive }
+            static var disabled: Color { tm.interactiveDisabled }
         }
     }
 
