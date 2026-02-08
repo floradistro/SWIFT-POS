@@ -557,7 +557,12 @@ struct POSMainView: View {
 
         let data = csv.data(using: .utf8) ?? Data()
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("products_export.csv")
-        try? data.write(to: url)
+        do {
+            try data.write(to: url)
+        } catch {
+            Log.ui.error("Failed to write CSV export: \(error)")
+            return
+        }
 
         let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,

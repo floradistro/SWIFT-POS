@@ -7,7 +7,6 @@
 //
 
 import SwiftUI
-import Supabase
 import os.log
 
 // MARK: - Checkout
@@ -392,15 +391,7 @@ struct RegisterPickerSheet: View {
         }
 
         do {
-            let response: [Register] = try await supabase
-                .from("pos_registers")
-                .select()
-                .eq("location_id", value: locationId.uuidString.lowercased())
-                .eq("status", value: "active")
-                .order("register_name")
-                .execute()
-                .value
-            registers = response
+            registers = try await LocationService.fetchRegisters(locationId: locationId)
         } catch {
             Log.ui.error("Failed to load registers: \(error)")
         }

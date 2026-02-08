@@ -25,4 +25,16 @@ enum LocationService {
 
         return try decoder.decode([Location].self, from: response.data)
     }
+
+    /// Fetch active registers for a location
+    static func fetchRegisters(locationId: UUID) async throws -> [Register] {
+        try await supabase
+            .from("pos_registers")
+            .select()
+            .eq("location_id", value: locationId.uuidString.lowercased())
+            .eq("status", value: "active")
+            .order("register_name")
+            .execute()
+            .value
+    }
 }
