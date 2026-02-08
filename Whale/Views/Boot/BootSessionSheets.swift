@@ -171,7 +171,7 @@ struct BootEndSessionSheet: View {
                         .font(Design.Typography.caption1).fontWeight(.medium)
                 }
             }
-            .foregroundStyle(.white.opacity(0.4))
+            .foregroundStyle(Design.Colors.Text.subtle)
             .padding(.bottom, 8)
 
             // Show total dropped if any
@@ -188,17 +188,17 @@ struct BootEndSessionSheet: View {
             VStack(spacing: 12) {
                 Text("Closing Cash")
                     .font(Design.Typography.footnote)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Design.Colors.Text.disabled)
 
                 // Amount input
                 HStack {
                     Text("$")
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
 
                     TextField("0", text: $closingCash)
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.center)
                         .frame(width: 120)
@@ -207,7 +207,7 @@ struct BootEndSessionSheet: View {
                 .padding(.vertical, 14)
                 .background(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(.white.opacity(0.06))
+                        .fill(Design.Colors.Border.subtle)
                 )
 
                 // Quick amounts
@@ -219,7 +219,7 @@ struct BootEndSessionSheet: View {
                         } label: {
                             Text("$\(amount)")
                                 .font(Design.Typography.caption1).fontWeight(.semibold)
-                                .foregroundStyle(closingCash == amount ? .white : .white.opacity(0.6))
+                                .foregroundStyle(closingCash == amount ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 34)
                                 .contentShape(RoundedRectangle(cornerRadius: 10))
@@ -247,7 +247,7 @@ struct BootEndSessionSheet: View {
                         Text("Safe")
                             .font(Design.Typography.footnote).fontWeight(.semibold)
                     }
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(Design.Colors.Text.tertiary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
                     .contentShape(RoundedRectangle(cornerRadius: 14))
@@ -262,10 +262,10 @@ struct BootEndSessionSheet: View {
                 } label: {
                     Text("End Shift")
                         .font(Design.Typography.callout).fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(Color.white.opacity(0.15))
+                        .background(Design.Colors.Glass.ultraThick)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .contentShape(RoundedRectangle(cornerRadius: 14))
                 }
@@ -277,7 +277,7 @@ struct BootEndSessionSheet: View {
 
             // Divider
             Rectangle()
-                .fill(.white.opacity(0.08))
+                .fill(Design.Colors.Glass.regular)
                 .frame(height: 1)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 12)
@@ -305,7 +305,7 @@ struct BootEndSessionSheet: View {
             } label: {
                 Text("Cancel")
                     .font(Design.Typography.footnote).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.35))
+                    .foregroundStyle(Design.Colors.Text.placeholder)
             }
             .padding(.bottom, 20)
         }
@@ -331,7 +331,7 @@ struct BootEndSessionSheet: View {
                         Text("Back")
                             .font(Design.Typography.footnote).fontWeight(.medium)
                     }
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Design.Colors.Text.disabled)
                 }
                 Spacer()
             }
@@ -341,7 +341,7 @@ struct BootEndSessionSheet: View {
             // Title
             Text("Drop to Safe")
                 .font(Design.Typography.headline).fontWeight(.bold)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
                 .padding(.bottom, 20)
 
             // Amount input
@@ -349,11 +349,11 @@ struct BootEndSessionSheet: View {
                 HStack {
                     Text("$")
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
 
                     TextField("0", text: $safeDropAmount)
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.center)
                         .frame(width: 120)
@@ -362,7 +362,7 @@ struct BootEndSessionSheet: View {
                 .padding(.vertical, 14)
                 .background(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(.white.opacity(0.06))
+                        .fill(Design.Colors.Border.subtle)
                 )
 
                 // Quick amounts
@@ -374,7 +374,7 @@ struct BootEndSessionSheet: View {
                         } label: {
                             Text("$\(amount)")
                                 .font(Design.Typography.caption1).fontWeight(.semibold)
-                                .foregroundStyle(safeDropAmount == amount ? .white : .white.opacity(0.6))
+                                .foregroundStyle(safeDropAmount == amount ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 34)
                                 .contentShape(RoundedRectangle(cornerRadius: 10))
@@ -387,7 +387,7 @@ struct BootEndSessionSheet: View {
                 // Notes (optional)
                 TextField("Notes (optional)", text: $safeDropNotes)
                     .font(Design.Typography.footnote)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                     .glassEffect(.regular, in: .rect(cornerRadius: 12))
@@ -407,7 +407,7 @@ struct BootEndSessionSheet: View {
                     Text("Drop \(safeDropDecimal > 0 ? CurrencyFormatter.format(safeDropDecimal) : "$0.00")")
                         .font(Design.Typography.callout).fontWeight(.semibold)
                 }
-                .foregroundStyle(safeDropDecimal > 0 ? .black : .white.opacity(0.4))
+                .foregroundStyle(safeDropDecimal > 0 ? .black : Design.Colors.Text.subtle)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
                 .background(safeDropDecimal > 0 ? Color.white : Color.clear)
@@ -455,7 +455,7 @@ struct BootEndSessionSheet: View {
         Button(action: action) {
             Text(title)
                 .font(Design.Typography.footnote).fontWeight(.medium)
-                .foregroundStyle(isDestructive ? Design.Colors.Semantic.error.opacity(0.8) : .white.opacity(0.5))
+                .foregroundStyle(isDestructive ? Design.Colors.Semantic.error.opacity(0.8) : Design.Colors.Text.disabled)
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
         }
@@ -586,7 +586,7 @@ struct BootSafeDropSheet: View {
             // Title
             Text("Drop to Safe")
                 .font(Design.Typography.title2).fontWeight(.bold)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
                 .padding(.bottom, 8)
 
             // Session info - uses window-specific location/register when available
@@ -601,7 +601,7 @@ struct BootSafeDropSheet: View {
                         .font(Design.Typography.caption1).fontWeight(.medium)
                 }
             }
-            .foregroundStyle(.white.opacity(0.4))
+            .foregroundStyle(Design.Colors.Text.subtle)
             .padding(.bottom, 24)
 
             // Amount input
@@ -609,11 +609,11 @@ struct BootSafeDropSheet: View {
                 HStack {
                     Text("$")
                         .font(.system(size: 36, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
 
                     TextField("0", text: $amount)
                         .font(.system(size: 36, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.center)
                         .frame(width: 140)
@@ -622,7 +622,7 @@ struct BootSafeDropSheet: View {
                 .padding(.vertical, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.white.opacity(0.06))
+                        .fill(Design.Colors.Border.subtle)
                 )
 
                 // Quick amounts
@@ -634,7 +634,7 @@ struct BootSafeDropSheet: View {
                         } label: {
                             Text("$\(quickAmount)")
                                 .font(Design.Typography.subhead).fontWeight(.semibold)
-                                .foregroundStyle(amount == quickAmount ? .white : .white.opacity(0.6))
+                                .foregroundStyle(amount == quickAmount ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 44)
                                 .contentShape(RoundedRectangle(cornerRadius: 12))
@@ -647,7 +647,7 @@ struct BootSafeDropSheet: View {
                 // Notes (optional)
                 TextField("Notes (optional)", text: $notes)
                     .font(Design.Typography.footnote)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .glassEffect(.regular, in: .rect(cornerRadius: 12))
@@ -666,7 +666,7 @@ struct BootSafeDropSheet: View {
                     Text("Drop \(amountDecimal > 0 ? CurrencyFormatter.format(amountDecimal) : "$0")")
                         .font(Design.Typography.headline)
                 }
-                .foregroundStyle(amountDecimal > 0 ? .black : .white.opacity(0.4))
+                .foregroundStyle(amountDecimal > 0 ? .black : Design.Colors.Text.subtle)
                 .frame(maxWidth: .infinity)
                 .frame(height: 54)
                 .background(amountDecimal > 0 ? Color.white : Color.clear)
@@ -685,7 +685,7 @@ struct BootSafeDropSheet: View {
             } label: {
                 Text("Cancel")
                     .font(Design.Typography.footnote).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.35))
+                    .foregroundStyle(Design.Colors.Text.placeholder)
             }
             .padding(.bottom, 24)
         }
@@ -709,16 +709,16 @@ struct BootSafeDropSheet: View {
 
             Text("Dropped to Safe")
                 .font(Design.Typography.title3).fontWeight(.bold)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
 
             Text(CurrencyFormatter.format(amountDecimal))
                 .font(Design.Typography.title2Rounded).fontWeight(.bold)
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(Design.Colors.Text.tertiary)
 
             if !notes.isEmpty {
                 Text(notes)
                     .font(Design.Typography.footnote)
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(Design.Colors.Text.subtle)
             }
         }
         .padding(.vertical, 40)

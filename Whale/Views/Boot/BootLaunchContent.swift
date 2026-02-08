@@ -27,11 +27,11 @@ struct BootStartShiftContent: View {
             VStack(spacing: 8) {
                 Text("Start Shift")
                     .font(Design.Typography.title2).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
 
                 Text("Opening Cash Drawer")
                     .font(Design.Typography.footnote)
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(Design.Colors.Text.subtle)
 
                 HStack(spacing: 6) {
                     if let location = session.selectedLocation {
@@ -46,10 +46,10 @@ struct BootStartShiftContent: View {
                             .font(Design.Typography.caption2).fontWeight(.medium)
                     }
                 }
-                .foregroundStyle(.white.opacity(0.35))
+                .foregroundStyle(Design.Colors.Text.placeholder)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Capsule().fill(.white.opacity(0.06)))
+                .background(Capsule().fill(Design.Colors.Border.subtle))
             }
             .padding(.bottom, 20)
 
@@ -57,11 +57,11 @@ struct BootStartShiftContent: View {
                 HStack {
                     Text("$")
                         .font(Design.Typography.title1).fontWeight(.bold)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
 
                     TextField("0", text: $openingAmount)
                         .font(Design.Typography.title1).fontWeight(.bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.leading)
                 }
@@ -69,11 +69,11 @@ struct BootStartShiftContent: View {
                 .padding(.vertical, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(.white.opacity(0.06))
+                        .fill(Design.Colors.Border.subtle)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                        .stroke(Design.Colors.Border.regular, lineWidth: 1)
                 )
 
                 HStack(spacing: 8) {
@@ -84,7 +84,7 @@ struct BootStartShiftContent: View {
                         } label: {
                             Text("$\(amount)")
                                 .font(Design.Typography.subhead).fontWeight(.semibold)
-                                .foregroundStyle(openingAmount == amount ? .white : .white.opacity(0.6))
+                                .foregroundStyle(openingAmount == amount ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 44)
                                 .contentShape(RoundedRectangle(cornerRadius: 12))
@@ -106,10 +106,10 @@ struct BootStartShiftContent: View {
                     Text("Start Shift")
                         .font(Design.Typography.callout).fontWeight(.semibold)
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                .background(Color.white.opacity(0.15))
+                .background(Design.Colors.Glass.ultraThick)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .contentShape(RoundedRectangle(cornerRadius: 14))
             }
@@ -128,7 +128,7 @@ struct BootStartShiftContent: View {
                 } label: {
                     Text("Change")
                         .font(Design.Typography.caption1).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(Design.Colors.Text.placeholder)
                 }
 
                 Button {
@@ -137,7 +137,7 @@ struct BootStartShiftContent: View {
                 } label: {
                     Text("Sign Out")
                         .font(Design.Typography.caption1).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(Design.Colors.Text.placeholder)
                 }
             }
             .padding(.top, 16)
@@ -153,12 +153,12 @@ struct BootLaunchingContent: View {
         VStack(spacing: 16) {
             ProgressView()
                 .progressViewStyle(.circular)
-                .tint(.white.opacity(0.6))
+                .tint(Design.Colors.Text.disabled)
                 .scaleEffect(1.2)
 
             Text("Starting...")
                 .font(Design.Typography.subhead).fontWeight(.medium)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
         }
         .padding(.vertical, 50)
     }
@@ -182,33 +182,33 @@ struct BootOptionRow: View {
             HStack(spacing: 14) {
                 Image(systemName: icon)
                     .font(Design.Typography.body).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Design.Colors.Text.disabled)
                     .frame(width: 42, height: 42)
                     .background(
                         RoundedRectangle(cornerRadius: 11, style: .continuous)
-                            .fill(.white.opacity(0.08))
+                            .fill(Design.Colors.Glass.regular)
                     )
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
                         .font(Design.Typography.subhead).fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .lineLimit(1)
 
                     if let subtitle = subtitle {
                         HStack(spacing: 6) {
                             Text(subtitle)
                                 .font(Design.Typography.caption2)
-                                .foregroundStyle(.white.opacity(0.4))
+                                .foregroundStyle(Design.Colors.Text.subtle)
                                 .lineLimit(1)
 
                             ForEach(badges, id: \.self) { badge in
                                 Text(badge)
                                     .font(Design.Typography.caption2).fontWeight(.medium)
-                                    .foregroundStyle(.white.opacity(0.5))
+                                    .foregroundStyle(Design.Colors.Text.disabled)
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 2)
-                                    .background(Capsule().fill(.white.opacity(0.1)))
+                                    .background(Capsule().fill(Design.Colors.Glass.thick))
                             }
                         }
                     }
@@ -218,16 +218,16 @@ struct BootOptionRow: View {
 
                 Image(systemName: "chevron.right")
                     .font(Design.Typography.caption2).fontWeight(.semibold)
-                    .foregroundStyle(.white.opacity(0.25))
+                    .foregroundStyle(Design.Colors.Text.ghost)
             }
             .padding(11)
             .background(
                 RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .fill(.white.opacity(isPressed ? 0.1 : 0.04))
+                    .fill(isPressed ? Design.Colors.Glass.thick : Design.Colors.Glass.thin)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .stroke(.white.opacity(0.08), lineWidth: 1)
+                    .stroke(Design.Colors.Border.regular, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

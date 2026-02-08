@@ -48,7 +48,7 @@ struct BootSheet: View {
                 // Simple native loading screen
                 ProgressView()
                     .progressViewStyle(.circular)
-                    .tint(.white.opacity(0.6))
+                    .tint(Design.Colors.Text.disabled)
                     .scaleEffect(1.2)
 
             case .login:

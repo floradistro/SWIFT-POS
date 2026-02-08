@@ -43,12 +43,12 @@ struct BootLoginContent: View {
                 HStack(spacing: 12) {
                     Image(systemName: "envelope.fill")
                         .font(Design.Typography.footnote)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                         .frame(width: 20)
 
                     TextField("Email", text: $email)
                         .font(Design.Typography.subhead)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .keyboardType(.emailAddress)
                         .textContentType(.emailAddress)
                         .autocapitalization(.none)
@@ -59,11 +59,11 @@ struct BootLoginContent: View {
                 .padding(.vertical, 14)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(.white.opacity(0.06))
+                        .fill(Design.Colors.Border.subtle)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(.white.opacity(focusedField == .email ? 0.3 : 0.1), lineWidth: 1)
+                        .stroke(focusedField == .email ? Design.Colors.Border.strong : Design.Colors.Border.regular, lineWidth: 1)
                 )
                 .opacity(appearAnimation ? 1 : 0)
                 .offset(y: appearAnimation ? 0 : 10)
@@ -72,12 +72,12 @@ struct BootLoginContent: View {
                 HStack(spacing: 12) {
                     Image(systemName: "lock.fill")
                         .font(Design.Typography.footnote)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                         .frame(width: 20)
 
                     SecureField("Password", text: $password)
                         .font(Design.Typography.subhead)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .textContentType(.password)
                         .focused($focusedField, equals: .password)
                 }
@@ -85,11 +85,11 @@ struct BootLoginContent: View {
                 .padding(.vertical, 14)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(.white.opacity(0.06))
+                        .fill(Design.Colors.Border.subtle)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(.white.opacity(focusedField == .password ? 0.3 : 0.1), lineWidth: 1)
+                        .stroke(focusedField == .password ? Design.Colors.Border.strong : Design.Colors.Border.regular, lineWidth: 1)
                 )
                 .opacity(appearAnimation ? 1 : 0)
                 .offset(y: appearAnimation ? 0 : 10)
@@ -119,7 +119,7 @@ struct BootLoginContent: View {
                                     .font(Design.Typography.callout).fontWeight(.semibold)
                             }
                         }
-                        .foregroundStyle(isFormValid ? .black : .white.opacity(0.4))
+                        .foregroundStyle(isFormValid ? .black : Design.Colors.Text.subtle)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
                         .background(isFormValid ? Color.white : Color.clear)
@@ -137,7 +137,7 @@ struct BootLoginContent: View {
                         } label: {
                             Image(systemName: biometricType.iconName)
                                 .font(Design.Typography.title2).fontWeight(.light)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Design.Colors.Text.primary)
                                 .frame(width: 50, height: 50)
                                 .contentShape(RoundedRectangle(cornerRadius: 14))
                         }
@@ -175,13 +175,13 @@ struct BootLocationContent: View {
         VStack(spacing: 0) {
             Text("Select Location")
                 .font(Design.Typography.title3).fontWeight(.semibold)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
                 .padding(.bottom, 24)
 
             VStack(spacing: 0) {
                 if session.isLoading {
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white.opacity(0.5)))
+                        .progressViewStyle(CircularProgressViewStyle(tint: Design.Colors.Text.disabled))
                         .padding(.vertical, 40)
                 } else {
                     ForEach(Array(session.locations.enumerated()), id: \.element.id) { index, location in
@@ -202,7 +202,7 @@ struct BootLocationContent: View {
 
                         if index < session.locations.count - 1 {
                             Rectangle()
-                                .fill(.white.opacity(0.06))
+                                .fill(Design.Colors.Border.subtle)
                                 .frame(height: 1)
                                 .padding(.leading, 16)
                                 .opacity(appearAnimation ? 1 : 0)
@@ -214,7 +214,7 @@ struct BootLocationContent: View {
             .padding(.horizontal, 16)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(.white.opacity(0.04))
+                    .fill(Design.Colors.Glass.thin)
             )
             .padding(.horizontal, 20)
 
@@ -224,7 +224,7 @@ struct BootLocationContent: View {
             } label: {
                 Text("Sign Out")
                     .font(Design.Typography.footnote).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.25))
+                    .foregroundStyle(Design.Colors.Text.ghost)
             }
             .padding(.top, 24)
             .padding(.bottom, 28)
@@ -256,13 +256,13 @@ struct BootLocationRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(location.name)
                         .font(Design.Typography.callout).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .lineLimit(1)
 
                     if let address = location.displayAddress, !address.isEmpty {
                         Text(address)
                             .font(Design.Typography.footnote)
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(Design.Colors.Text.subtle)
                             .lineLimit(1)
                     }
                 }
@@ -272,13 +272,13 @@ struct BootLocationRow: View {
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(Design.Typography.footnote).fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .contentShape(Rectangle())
-            .background(isPressed ? Color.white.opacity(0.06) : Color.clear)
+            .background(isPressed ? Design.Colors.Border.subtle : Color.clear)
         }
         .buttonStyle(.plain)
         .opacity(isAnimated ? 1 : 0)
@@ -319,7 +319,7 @@ struct BootRegisterContent: View {
                         Text("Back")
                             .font(Design.Typography.footnote).fontWeight(.medium)
                     }
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(Design.Colors.Text.subtle)
                 }
 
                 Spacer()
@@ -330,12 +330,12 @@ struct BootRegisterContent: View {
             VStack(spacing: 6) {
                 Text("Select Register")
                     .font(Design.Typography.title3).fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
 
                 if let location = session.selectedLocation {
                     Text(location.name)
                         .font(Design.Typography.footnote)
-                        .foregroundStyle(.white.opacity(0.35))
+                        .foregroundStyle(Design.Colors.Text.placeholder)
                 }
             }
             .padding(.bottom, 24)
@@ -343,7 +343,7 @@ struct BootRegisterContent: View {
             VStack(spacing: 0) {
                 if session.isLoading {
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white.opacity(0.5)))
+                        .progressViewStyle(CircularProgressViewStyle(tint: Design.Colors.Text.disabled))
                         .padding(.vertical, 40)
                 } else {
                     ForEach(Array(session.registers.enumerated()), id: \.element.id) { index, register in
@@ -364,7 +364,7 @@ struct BootRegisterContent: View {
 
                         if index < session.registers.count - 1 {
                             Rectangle()
-                                .fill(.white.opacity(0.06))
+                                .fill(Design.Colors.Border.subtle)
                                 .frame(height: 1)
                                 .padding(.leading, 16)
                                 .opacity(appearAnimation ? 1 : 0)
@@ -376,7 +376,7 @@ struct BootRegisterContent: View {
             .padding(.horizontal, 16)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(.white.opacity(0.04))
+                    .fill(Design.Colors.Glass.thin)
             )
             .padding(.horizontal, 20)
             .padding(.bottom, 28)
@@ -407,12 +407,12 @@ struct BootRegisterRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(register.displayName)
                         .font(Design.Typography.callout).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .lineLimit(1)
 
                     Text("Register \(register.registerNumber)")
                         .font(Design.Typography.footnote)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                 }
 
                 Spacer(minLength: 12)
@@ -420,13 +420,13 @@ struct BootRegisterRow: View {
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(Design.Typography.footnote).fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .contentShape(Rectangle())
-            .background(isPressed ? Color.white.opacity(0.06) : Color.clear)
+            .background(isPressed ? Design.Colors.Border.subtle : Color.clear)
         }
         .buttonStyle(.plain)
         .opacity(isAnimated ? 1 : 0)
