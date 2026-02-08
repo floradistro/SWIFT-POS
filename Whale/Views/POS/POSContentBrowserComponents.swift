@@ -82,7 +82,7 @@ extension POSContentBrowser {
         } action: { oldValue, newValue in
             handleScrollChange(oldOffset: oldValue, newOffset: newValue)
         }
-        .topBottomFadeMask(topFadeHeight: 80, bottomFadeHeight: 80)
+        .topBottomFadeMask(topFadeHeight: showSearchAndFilters ? 140 : 80, bottomFadeHeight: 80)
         .refreshable {
             if isMultiWindowSession, let ws = windowSession {
                 await ws.refresh()
@@ -204,7 +204,7 @@ extension POSContentBrowser {
         } action: { oldValue, newValue in
             handleScrollChange(oldOffset: oldValue, newOffset: newValue)
         }
-        .topBottomFadeMask(topFadeHeight: 80, bottomFadeHeight: 80)
+        .topBottomFadeMask(topFadeHeight: showSearchAndFilters ? 140 : 80, bottomFadeHeight: 80)
         .refreshable { await orderStore.refresh() }
     }
 

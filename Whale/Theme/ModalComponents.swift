@@ -125,8 +125,8 @@ struct ModalActionButton: View {
         var backgroundColor: Color {
             switch self {
             case .primary: return Design.Colors.Glass.ultraThick
-            case .success: return Color(red: 0.2, green: 0.78, blue: 0.35).opacity(0.25)
-            case .destructive: return Color(red: 0.95, green: 0.3, blue: 0.3).opacity(0.25)
+            case .success: return Design.Colors.Semantic.successBackground
+            case .destructive: return Design.Colors.Semantic.errorBackground
             case .glass: return Design.Colors.Glass.thick
             }
         }
@@ -134,8 +134,8 @@ struct ModalActionButton: View {
         var foregroundColor: Color {
             switch self {
             case .primary: return Design.Colors.Text.primary
-            case .success: return Color(red: 0.3, green: 0.95, blue: 0.5)
-            case .destructive: return Color(red: 1.0, green: 0.4, blue: 0.4)
+            case .success: return Design.Colors.Semantic.success
+            case .destructive: return Design.Colors.Semantic.error
             case .glass: return Design.Colors.Text.tertiary
             }
         }

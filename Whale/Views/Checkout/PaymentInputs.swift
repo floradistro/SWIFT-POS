@@ -592,7 +592,7 @@ struct SlideToPayButton: View {
     @State private var shimmerPhase: CGFloat = 0
     @GestureState private var isDragging = false
 
-    private let successGreen = Color(red: 52/255, green: 199/255, blue: 89/255)
+    private var successGreen: Color { Design.Colors.Semantic.success }
 
     var body: some View {
         GeometryReader { geometry in

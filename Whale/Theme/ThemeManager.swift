@@ -262,28 +262,29 @@ final class ThemeManager: ObservableObject {
 
     private func rebuildColors() {
         let p = palette
-        let overlay = p.glassOverlay
         let text = p.textBase
         let isLight = p.baseMode == .light
+        let accent = p.accent
 
-        // Backgrounds (with accent tint)
-        let tintAmount = 0.04
-        backgroundPrimary = accentTintedBackground(p.backgroundPrimary, tint: p.accent, amount: tintAmount)
-        backgroundSecondary = accentTintedBackground(p.backgroundSecondary, tint: p.accent, amount: tintAmount)
-        backgroundTertiary = accentTintedBackground(p.backgroundTertiary, tint: p.accent, amount: tintAmount)
+        // Backgrounds — heavy accent tint so the accent color IS the background
+        let bgTint = isLight ? 0.08 : 0.12
+        backgroundPrimary = accentBlend(p.backgroundPrimary, accent: accent, amount: bgTint)
+        backgroundSecondary = accentBlend(p.backgroundSecondary, accent: accent, amount: bgTint)
+        backgroundTertiary = accentBlend(p.backgroundTertiary, accent: accent, amount: bgTint)
 
-        // Glass (using overlay base, boosted for light mode)
-        glassUltraThin = overlay.withOpacity(isLight ? 0.04 : 0.02)
-        glassThin = overlay.withOpacity(isLight ? 0.05 : 0.03)
-        glassRegular = overlay.withOpacity(isLight ? 0.14 : 0.08)
-        glassThick = overlay.withOpacity(isLight ? 0.22 : 0.12)
-        glassUltraThick = overlay.withOpacity(isLight ? 0.27 : 0.15)
+        // Glass — accent-tinted overlays so cards/pills pick up the color
+        let glassBase = isLight ? accent : accent
+        glassUltraThin = glassBase.withOpacity(isLight ? 0.04 : 0.03)
+        glassThin = glassBase.withOpacity(isLight ? 0.06 : 0.05)
+        glassRegular = glassBase.withOpacity(isLight ? 0.10 : 0.08)
+        glassThick = glassBase.withOpacity(isLight ? 0.16 : 0.12)
+        glassUltraThick = glassBase.withOpacity(isLight ? 0.22 : 0.16)
 
-        // Borders (using overlay base, boosted for light mode)
-        borderSubtle = overlay.withOpacity(isLight ? 0.10 : 0.06)
-        borderRegular = overlay.withOpacity(isLight ? 0.16 : 0.1)
-        borderEmphasis = overlay.withOpacity(isLight ? 0.19 : 0.12)
-        borderStrong = overlay.withOpacity(isLight ? 0.24 : 0.15)
+        // Borders — accent-tinted
+        borderSubtle = accent.withOpacity(isLight ? 0.10 : 0.08)
+        borderRegular = accent.withOpacity(isLight ? 0.16 : 0.12)
+        borderEmphasis = accent.withOpacity(isLight ? 0.22 : 0.16)
+        borderStrong = accent.withOpacity(isLight ? 0.28 : 0.20)
 
         // Text (using text base with high contrast boost)
         textPrimary = text.color
@@ -308,24 +309,25 @@ final class ThemeManager: ObservableObject {
         semanticInfo = p.info.color
         semanticInfoBackground = p.info.withOpacity(0.15)
         semanticInfoBorder = p.info.withOpacity(0.3)
-        semanticAccent = p.accent.color
-        semanticAccentBackground = p.accent.withOpacity(0.3)
+        semanticAccent = accent.color
+        semanticAccentBackground = accent.withOpacity(0.3)
 
-        // Interactive (using overlay base, boosted for light mode)
-        interactiveDefault = overlay.withOpacity(isLight ? 0.12 : 0.08)
-        interactiveHover = overlay.withOpacity(isLight ? 0.18 : 0.12)
-        interactiveActive = overlay.withOpacity(isLight ? 0.22 : 0.15)
-        interactiveDisabled = overlay.withOpacity(isLight ? 0.05 : 0.03)
+        // Interactive — accent-tinted
+        interactiveDefault = accent.withOpacity(isLight ? 0.10 : 0.08)
+        interactiveHover = accent.withOpacity(isLight ? 0.16 : 0.12)
+        interactiveActive = accent.withOpacity(isLight ? 0.22 : 0.16)
+        interactiveDisabled = accent.withOpacity(isLight ? 0.04 : 0.03)
 
         themeVersion += 1
     }
 
-    // MARK: - Accent Tint Blending
+    // MARK: - Accent Blending
 
-    private func accentTintedBackground(_ base: ThemeColor, tint: ThemeColor, amount: Double) -> Color {
-        let r = base.red * (1 - amount) + tint.red * amount
-        let g = base.green * (1 - amount) + tint.green * amount
-        let b = base.blue * (1 - amount) + tint.blue * amount
+    /// Blends a base palette color toward the accent color by `amount` (0–1).
+    private func accentBlend(_ base: ThemeColor, accent: ThemeColor, amount: Double) -> Color {
+        let r = base.red * (1 - amount) + accent.red * amount
+        let g = base.green * (1 - amount) + accent.green * amount
+        let b = base.blue * (1 - amount) + accent.blue * amount
         return Color(.sRGB, red: r, green: g, blue: b, opacity: base.opacity)
     }
 }

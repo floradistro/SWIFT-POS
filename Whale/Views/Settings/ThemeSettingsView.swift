@@ -150,32 +150,63 @@ struct ThemeSettingsView: View {
             }
             .padding(.top, 8)
 
-            NavigationLink {
-                ColorPickerSheet(
-                    currentColor: theme.palette.accent.color,
-                    onApply: { color in
-                        theme.setAccentColor(color)
-                        saveToRemote()
+            HStack(spacing: 10) {
+                NavigationLink {
+                    ColorPickerSheet(
+                        currentColor: theme.palette.accent.color,
+                        onApply: { color in
+                            theme.setAccentColor(color)
+                            saveToRemote()
+                        }
+                    )
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "eyedropper")
+                            .font(Design.Typography.footnote)
+                        Text("Custom Color…")
+                            .font(Design.Typography.subhead).fontWeight(.medium)
                     }
-                )
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "eyedropper")
-                        .font(Design.Typography.footnote)
-                    Text("Custom Color…")
-                        .font(Design.Typography.subhead).fontWeight(.medium)
+                    .foregroundStyle(Design.Colors.Text.tertiary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Design.Colors.Glass.regular)
+                    )
                 }
-                .foregroundStyle(Design.Colors.Text.tertiary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 40)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Design.Colors.Glass.regular)
-                )
+                .buttonStyle(.plain)
+
+                if !isAccentDefault {
+                    Button {
+                        Haptics.light()
+                        theme.setAccentColor(defaultAccent)
+                        saveToRemote()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(Design.Typography.caption1).fontWeight(.medium)
+                            Text("Reset")
+                                .font(Design.Typography.subhead).fontWeight(.medium)
+                        }
+                        .foregroundStyle(Design.Colors.Text.tertiary)
+                        .frame(height: 40)
+                        .padding(.horizontal, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Design.Colors.Glass.regular)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .buttonStyle(.plain)
             .padding(.top, 8)
         }
+    }
+
+    private let defaultAccent = Color(red: 59/255, green: 130/255, blue: 246/255)
+
+    private var isAccentDefault: Bool {
+        isAccentSelected(defaultAccent)
     }
 
     private func isAccentSelected(_ color: Color) -> Bool {

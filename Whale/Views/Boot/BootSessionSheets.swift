@@ -60,7 +60,7 @@ struct BootEndSessionSheet: View {
     var body: some View {
         ZStack {
             // Dimmed background
-            Color.black.opacity(0.85)
+            Design.Colors.backgroundPrimary.opacity(0.9)
                 .ignoresSafeArea()
                 .onTapGesture {
                     if mode == .safeDrop {
@@ -124,14 +124,14 @@ struct BootEndSessionSheet: View {
     private var modalBackground: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(Color(white: 0.08))
+                .fill(Design.Colors.backgroundSecondary)
 
             RoundedRectangle(cornerRadius: 32, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.06),
-                            Color.white.opacity(0.02),
+                            Design.Colors.Glass.regular,
+                            Design.Colors.Glass.ultraThin,
                             Color.clear
                         ],
                         startPoint: .topLeading,
@@ -143,9 +143,9 @@ struct BootEndSessionSheet: View {
                 .stroke(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.15),
-                            Color.white.opacity(0.05),
-                            Color.white.opacity(0.08)
+                            Design.Colors.Border.strong,
+                            Design.Colors.Border.subtle,
+                            Design.Colors.Border.regular
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -407,10 +407,10 @@ struct BootEndSessionSheet: View {
                     Text("Drop \(safeDropDecimal > 0 ? CurrencyFormatter.format(safeDropDecimal) : "$0.00")")
                         .font(Design.Typography.callout).fontWeight(.semibold)
                 }
-                .foregroundStyle(safeDropDecimal > 0 ? .black : Design.Colors.Text.subtle)
+                .foregroundStyle(safeDropDecimal > 0 ? Design.Colors.Text.primary : Design.Colors.Text.subtle)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
-                .background(safeDropDecimal > 0 ? Color.white : Color.clear)
+                .background(safeDropDecimal > 0 ? Design.Colors.Semantic.accent : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .contentShape(RoundedRectangle(cornerRadius: 14))
             }
@@ -494,7 +494,7 @@ struct BootSafeDropSheet: View {
     var body: some View {
         ZStack {
             // Dimmed background
-            Color.black.opacity(0.85)
+            Design.Colors.backgroundPrimary.opacity(0.9)
                 .ignoresSafeArea()
                 .onTapGesture {
                     dismiss()
@@ -548,14 +548,14 @@ struct BootSafeDropSheet: View {
     private var modalBackground: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(Color(white: 0.08))
+                .fill(Design.Colors.backgroundSecondary)
 
             RoundedRectangle(cornerRadius: 32, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.06),
-                            Color.white.opacity(0.02),
+                            Design.Colors.Glass.regular,
+                            Design.Colors.Glass.ultraThin,
                             Color.clear
                         ],
                         startPoint: .topLeading,
@@ -567,9 +567,9 @@ struct BootSafeDropSheet: View {
                 .stroke(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.15),
-                            Color.white.opacity(0.05),
-                            Color.white.opacity(0.08)
+                            Design.Colors.Border.strong,
+                            Design.Colors.Border.subtle,
+                            Design.Colors.Border.regular
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -666,10 +666,10 @@ struct BootSafeDropSheet: View {
                     Text("Drop \(amountDecimal > 0 ? CurrencyFormatter.format(amountDecimal) : "$0")")
                         .font(Design.Typography.headline)
                 }
-                .foregroundStyle(amountDecimal > 0 ? .black : Design.Colors.Text.subtle)
+                .foregroundStyle(amountDecimal > 0 ? Design.Colors.Text.primary : Design.Colors.Text.subtle)
                 .frame(maxWidth: .infinity)
                 .frame(height: 54)
-                .background(amountDecimal > 0 ? Color.white : Color.clear)
+                .background(amountDecimal > 0 ? Design.Colors.Semantic.accent : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .contentShape(RoundedRectangle(cornerRadius: 14))
             }

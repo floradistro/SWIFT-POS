@@ -119,10 +119,10 @@ struct BootLoginContent: View {
                                     .font(Design.Typography.callout).fontWeight(.semibold)
                             }
                         }
-                        .foregroundStyle(isFormValid ? .black : Design.Colors.Text.subtle)
+                        .foregroundStyle(isFormValid ? Design.Colors.Text.primary : Design.Colors.Text.subtle)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(isFormValid ? Color.white : Color.clear)
+                        .background(isFormValid ? Design.Colors.Semantic.accent : Color.clear)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .contentShape(RoundedRectangle(cornerRadius: 14))
                     }

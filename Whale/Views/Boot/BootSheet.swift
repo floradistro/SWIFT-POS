@@ -155,17 +155,17 @@ struct BootSheet: View {
 
     private var modalBackground: some View {
         ZStack {
-            // Dark base
+            // Accent-tinted base
             RoundedRectangle(cornerRadius: 36, style: .continuous)
-                .fill(Color(white: 0.08))
+                .fill(Design.Colors.backgroundSecondary)
 
-            // Subtle gradient overlay
+            // Accent glass gradient overlay
             RoundedRectangle(cornerRadius: 36, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.06),
-                            Color.white.opacity(0.02),
+                            Design.Colors.Glass.regular,
+                            Design.Colors.Glass.ultraThin,
                             Color.clear
                         ],
                         startPoint: .topLeading,
@@ -173,14 +173,14 @@ struct BootSheet: View {
                     )
                 )
 
-            // Border
+            // Accent-tinted border
             RoundedRectangle(cornerRadius: 36, style: .continuous)
                 .stroke(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.15),
-                            Color.white.opacity(0.05),
-                            Color.white.opacity(0.08)
+                            Design.Colors.Border.strong,
+                            Design.Colors.Border.subtle,
+                            Design.Colors.Border.regular
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
