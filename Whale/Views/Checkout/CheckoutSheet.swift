@@ -280,11 +280,11 @@ struct CheckoutSheet: View {
             }
 
             if totals.discountAmount > 0 {
-                totalsRow(label: "Discount", value: "-\(CurrencyFormatter.format(totals.discountAmount))", valueColor: .green)
+                totalsRow(label: "Discount", value: "-\(CurrencyFormatter.format(totals.discountAmount))", valueColor: Design.Colors.Semantic.success)
             }
 
             if hasLoyaltyDiscount {
-                totalsRow(label: "Points Redeemed", value: "-\(CurrencyFormatter.format(calculatedLoyaltyDiscount))", valueColor: .green)
+                totalsRow(label: "Points Redeemed", value: "-\(CurrencyFormatter.format(calculatedLoyaltyDiscount))", valueColor: Design.Colors.Semantic.success)
             }
 
             // Divider
@@ -354,7 +354,7 @@ struct CheckoutSheet: View {
                 if hasLoyaltyDiscount {
                     Text("-\(CurrencyFormatter.format(calculatedLoyaltyDiscount))")
                         .font(Design.Typography.calloutRounded).fontWeight(.bold)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Design.Colors.Semantic.success)
                 }
             }
 
@@ -600,13 +600,13 @@ struct CheckoutSheet: View {
 
                 Image(systemName: isInvoice ? "paperplane.circle.fill" : "checkmark.circle.fill")
                     .font(.system(size: 80))
-                    .foregroundStyle(isInvoice ? .blue : .green)
+                    .foregroundStyle(isInvoice ? Design.Colors.Semantic.accent : Design.Colors.Semantic.success)
                     .symbolEffect(.bounce, value: checkoutPhase)
                     .accessibilityLabel(isInvoice ? "Invoice sent" : "Payment complete")
 
                 Text(CurrencyFormatter.format(completedOrder?.total ?? displayTotal))
                     .font(.system(size: 44, weight: .bold, design: .rounded))
-                    .foregroundStyle(isInvoice ? .blue : .green)
+                    .foregroundStyle(isInvoice ? Design.Colors.Semantic.accent : Design.Colors.Semantic.success)
 
                 if isInvoice, let paymentUrl = completedOrder?.paymentUrl {
                     Button {
@@ -647,7 +647,7 @@ struct CheckoutSheet: View {
                 .foregroundStyle(Design.Colors.Text.primary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 54)
-                .background(isInvoice ? Color.blue : Color.green, in: RoundedRectangle(cornerRadius: 14))
+                .background(isInvoice ? Design.Colors.Semantic.accent : Design.Colors.Semantic.success, in: RoundedRectangle(cornerRadius: 14))
             }
             .buttonStyle(ScaleButtonStyle())
             .padding(.horizontal, 20)
