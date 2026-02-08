@@ -122,7 +122,7 @@ struct ContentView: View {
                             HStack {
                                 if session.isLoading {
                                     ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                 } else {
                                     Text(isSignUp ? "Sign Up" : "Sign In")
                                         .font(Design.Typography.buttonLarge)
@@ -132,9 +132,9 @@ struct ContentView: View {
                             .padding(.vertical, Design.Spacing.md)
                             .background(
                                 RoundedRectangle(cornerRadius: Design.Radius.md, style: .continuous)
-                                    .fill(isFormValid ? Color.white : Design.Colors.Glass.regular)
+                                    .fill(isFormValid ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular)
                             )
-                            .foregroundStyle(isFormValid ? .black : Design.Colors.Text.subtle)
+                            .foregroundStyle(isFormValid ? .white : Design.Colors.Text.subtle)
                         }
                         .buttonStyle(LiquidPressStyle())
                         .disabled(!isFormValid || session.isLoading)

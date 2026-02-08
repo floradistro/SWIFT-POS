@@ -347,10 +347,10 @@ struct LabelTemplateSheet: View {
                             } label: {
                                 Text("\(qty)")
                                     .font(Design.Typography.footnoteRounded).fontWeight(isActive ? .bold : .medium)
-                                    .foregroundStyle(isActive ? .black : Design.Colors.Text.quaternary)
+                                    .foregroundStyle(isActive ? .white : Design.Colors.Text.quaternary)
                                     .frame(minWidth: 40, minHeight: 36)
                                     .background(
-                                        Capsule().fill(isActive ? .white : Design.Colors.Glass.regular)
+                                        Capsule().fill(isActive ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular)
                                     )
                             }
                             .buttonStyle(.plain)
@@ -446,14 +446,14 @@ struct LabelTemplateSheet: View {
                 if let max = maxCount {
                     Text("(\(max))")
                         .font(Design.Typography.caption1).fontWeight(.medium)
-                        .foregroundStyle(isSelected ? .black.opacity(0.5) : Design.Colors.Text.subtle)
+                        .foregroundStyle(isSelected ? .white.opacity(0.5) : Design.Colors.Text.subtle)
                 }
             }
-            .foregroundStyle(isSelected ? .black : Design.Colors.Text.quaternary)
+            .foregroundStyle(isSelected ? .white : Design.Colors.Text.quaternary)
             .padding(.horizontal, 14)
             .frame(minHeight: 36)
             .contentShape(Capsule())
-            .background(Capsule().fill(isSelected ? .white : Design.Colors.Glass.regular))
+            .background(Capsule().fill(isSelected ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular))
         }
         .buttonStyle(.plain)
     }
@@ -484,11 +484,11 @@ struct LabelTemplateSheet: View {
                         .font(Design.Typography.footnote).fontWeight(isSelected ? .bold : .medium)
                 }
             }
-            .foregroundStyle(isSelected ? .black : Design.Colors.Text.quaternary)
+            .foregroundStyle(isSelected ? .white : Design.Colors.Text.quaternary)
             .padding(.horizontal, 14)
             .frame(minHeight: 36)
             .contentShape(Capsule())
-            .background(Capsule().fill(isSelected ? .white : Design.Colors.Glass.regular))
+            .background(Capsule().fill(isSelected ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular))
         }
         .buttonStyle(.plain)
     }
@@ -563,12 +563,12 @@ struct LabelTemplateSheet: View {
                     } label: {
                         Text(formatPresetLabel(preset, isWeightBased: isWeightBased))
                             .font(Design.Typography.footnote).fontWeight(.semibold)
-                            .foregroundStyle(item.wrappedValue.customQuantityValue == Double(preset) ? .black : Design.Colors.Text.quaternary)
+                            .foregroundStyle(item.wrappedValue.customQuantityValue == Double(preset) ? .white : Design.Colors.Text.quaternary)
                             .frame(minWidth: 44, minHeight: 36)
                             .contentShape(Capsule())
                             .background(
                                 Capsule()
-                                    .fill(item.wrappedValue.customQuantityValue == Double(preset) ? .white : Design.Colors.Glass.regular)
+                                    .fill(item.wrappedValue.customQuantityValue == Double(preset) ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular)
                             )
                     }
                     .buttonStyle(.plain)
