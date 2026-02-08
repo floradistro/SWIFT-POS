@@ -14,7 +14,6 @@ struct ThemeSettingsView: View {
     @EnvironmentObject private var session: SessionObserver
     @Environment(\.dismiss) private var dismiss
 
-    @State private var showColorPicker = false
     @State private var selectedPhoto: PhotosPickerItem?
 
     private let presetAccents: [(String, Color)] = [
@@ -55,15 +54,6 @@ struct ThemeSettingsView: View {
         }
         .onChange(of: selectedPhoto) { _, newItem in
             loadWallpaperPhoto(newItem)
-        }
-        .sheet(isPresented: $showColorPicker) {
-            ColorPickerSheet(
-                currentColor: theme.palette.accent.color,
-                onApply: { color in
-                    theme.setAccentColor(color)
-                    saveToRemote()
-                }
-            )
         }
     }
 
@@ -160,9 +150,14 @@ struct ThemeSettingsView: View {
             }
             .padding(.top, 8)
 
-            Button {
-                Haptics.light()
-                showColorPicker = true
+            NavigationLink {
+                ColorPickerSheet(
+                    currentColor: theme.palette.accent.color,
+                    onApply: { color in
+                        theme.setAccentColor(color)
+                        saveToRemote()
+                    }
+                )
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "eyedropper")
