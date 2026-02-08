@@ -401,10 +401,10 @@ extension CustomerSearchContent {
                 Text("Select Customer")
                     .font(Design.Typography.callout).fontWeight(.semibold)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(Design.Colors.Text.primary)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(Design.Colors.Semantic.accent, in: RoundedRectangle(cornerRadius: 14))
+            .background(Design.Colors.Glass.ultraThick, in: RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(ScaleButtonStyle())
         .onAppear {
@@ -606,12 +606,12 @@ extension CustomerSearchContent {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(Design.Colors.Glass.thick)
+                    .fill(Design.Colors.Semantic.accent.opacity(0.3))
                     .frame(width: 72, height: 72)
 
                 Text(customer.initials)
                     .font(Design.Typography.title2).fontWeight(.bold)
-                    .foregroundStyle(Design.Colors.Text.secondary)
+                    .foregroundStyle(Design.Colors.Text.primary)
             }
             .accessibilityHidden(true)
 
@@ -624,14 +624,16 @@ extension CustomerSearchContent {
                     HStack(spacing: 5) {
                         Image(systemName: "crown.fill")
                             .font(Design.Typography.caption2).fontWeight(.bold)
+                            .foregroundStyle(Design.Colors.Semantic.warning)
                             .accessibilityHidden(true)
                         Text(customer.loyaltyTierDisplay)
                             .font(Design.Typography.caption1).fontWeight(.bold)
+                            .foregroundStyle(Design.Colors.Text.primary)
                     }
-                    .foregroundStyle(Design.Colors.Text.quaternary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(Design.Colors.Glass.thick, in: .capsule)
+                    .background(Design.Colors.Semantic.warning.opacity(0.1), in: .capsule)
+                    .glassEffect(.regular, in: .capsule)
 
                     Text("Since \(formatMemberSince(customer.createdAt))")
                         .font(Design.Typography.caption1).fontWeight(.medium)
@@ -661,13 +663,15 @@ extension CustomerSearchContent {
                 CRMStatBox(
                     title: "Lifetime Value",
                     value: formatCurrency(customer.totalSpent ?? 0),
-                    icon: "dollarsign.circle.fill"
+                    icon: "dollarsign.circle.fill",
+                    iconColor: Design.Colors.Semantic.success
                 )
 
                 CRMStatBox(
                     title: "Total Orders",
                     value: "\(customer.totalOrders ?? 0)",
-                    icon: "bag.fill"
+                    icon: "bag.fill",
+                    iconColor: Design.Colors.Semantic.accent
                 )
 
                 EditableLoyaltyStatBox(
@@ -684,7 +688,8 @@ extension CustomerSearchContent {
                 CRMStatBox(
                     title: "Avg. Order",
                     value: formatAverageOrder(totalSpent: customer.totalSpent, orderCount: customer.totalOrders),
-                    icon: "chart.bar.fill"
+                    icon: "chart.bar.fill",
+                    iconColor: Design.Colors.Semantic.info
                 )
             }
         }

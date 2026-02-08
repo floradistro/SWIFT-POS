@@ -259,7 +259,7 @@ struct TierSelectorSheet: View {
                         } label: {
                             Text(reason.displayName)
                                 .font(Design.Typography.footnote).fontWeight(auditReason == reason ? .semibold : .medium)
-                                .foregroundStyle(auditReason == reason ? .white : Design.Colors.Text.disabled)
+                                .foregroundStyle(auditReason == reason ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.disabled)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
                                 .frame(minHeight: 44)

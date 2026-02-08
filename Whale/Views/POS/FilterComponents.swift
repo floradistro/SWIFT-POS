@@ -39,7 +39,7 @@ struct FilterChip: View {
                         .background(Design.Colors.Glass.regular, in: .capsule)
                 }
             }
-            .foregroundStyle(isSelected ? .white : Design.Colors.Text.disabled)
+            .foregroundStyle(isSelected ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.disabled)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(
@@ -178,7 +178,7 @@ struct DateRangePickerSheet: View {
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
                                         .background(selectedPreset == preset ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular)
-                                        .foregroundStyle(selectedPreset == preset ? .white : .primary)
+                                        .foregroundStyle(selectedPreset == preset ? Design.Colors.Semantic.accentForeground : .primary)
                                         .clipShape(Capsule())
                                 }
                             }

@@ -112,21 +112,22 @@ struct OrderDetailContentView: View {
 
     var statusColor: Color {
         switch order.status {
-        case .pending, .preparing: return .orange
-        case .ready, .readyToShip: return .green
-        case .completed, .delivered, .shipped: return Design.Colors.Text.disabled
-        case .cancelled: return .red
+        case .pending, .preparing: return Design.Colors.Semantic.warning
+        case .ready, .readyToShip: return Design.Colors.Semantic.success
+        case .completed, .delivered: return Design.Colors.Semantic.success
+        case .shipped: return Design.Colors.Semantic.info
+        case .cancelled: return Design.Colors.Semantic.error
         default: return Design.Colors.Text.disabled
         }
     }
 
     func fulfillmentStatusColor(_ status: FulfillmentStatus) -> Color {
         switch status {
-        case .pending, .allocated: return .orange
-        case .picked, .packed: return .blue
-        case .shipped: return .cyan
-        case .delivered: return .green
-        case .cancelled: return .red
+        case .pending, .allocated: return Design.Colors.Semantic.warning
+        case .picked, .packed: return Design.Colors.Semantic.info
+        case .shipped: return Design.Colors.Semantic.info
+        case .delivered: return Design.Colors.Semantic.success
+        case .cancelled: return Design.Colors.Semantic.error
         }
     }
 

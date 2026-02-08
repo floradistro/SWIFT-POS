@@ -260,11 +260,11 @@ extension OrderDetailContentView {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(Design.Colors.Glass.thick)
+                        .fill(Design.Colors.Semantic.accent.opacity(0.25))
                         .frame(width: 40, height: 40)
                     Text(employee.initials)
                         .font(Design.Typography.footnote).fontWeight(.semibold)
-                        .foregroundStyle(Design.Colors.Text.disabled)
+                        .foregroundStyle(Design.Colors.Text.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {

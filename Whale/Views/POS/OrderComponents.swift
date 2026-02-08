@@ -224,7 +224,11 @@ struct OrderListStatusPill: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(needsAction || isComplete ? Design.Colors.Glass.thick : .clear, in: Capsule())
+        .background(
+            (needsAction ? Design.Colors.Semantic.warning : (isComplete ? Design.Colors.Semantic.success : .clear)).opacity(0.08),
+            in: Capsule()
+        )
+        .glassEffect(.regular, in: .capsule)
     }
 
     private var statusText: String {
@@ -246,7 +250,8 @@ struct OrderStatusBadge: View {
             .foregroundStyle(statusColor)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(statusColor.opacity(0.2), in: Capsule())
+            .background(statusColor.opacity(0.1), in: Capsule())
+            .glassEffect(.regular, in: .capsule)
     }
 
     private var statusColor: Color {

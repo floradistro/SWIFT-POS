@@ -108,6 +108,7 @@ enum Design {
 
             static var accent: Color { tm.semanticAccent }
             static var accentBackground: Color { tm.semanticAccentBackground }
+            static var accentForeground: Color { tm.semanticAccentForeground }
         }
 
         // Interactive States

@@ -347,7 +347,7 @@ struct LabelTemplateSheet: View {
                             } label: {
                                 Text("\(qty)")
                                     .font(Design.Typography.footnoteRounded).fontWeight(isActive ? .bold : .medium)
-                                    .foregroundStyle(isActive ? .white : Design.Colors.Text.quaternary)
+                                    .foregroundStyle(isActive ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.quaternary)
                                     .frame(minWidth: 40, minHeight: 36)
                                     .background(
                                         Capsule().fill(isActive ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular)
@@ -446,10 +446,10 @@ struct LabelTemplateSheet: View {
                 if let max = maxCount {
                     Text("(\(max))")
                         .font(Design.Typography.caption1).fontWeight(.medium)
-                        .foregroundStyle(isSelected ? .white.opacity(0.5) : Design.Colors.Text.subtle)
+                        .foregroundStyle(isSelected ? Design.Colors.Semantic.accentForeground.opacity(0.5) : Design.Colors.Text.subtle)
                 }
             }
-            .foregroundStyle(isSelected ? .white : Design.Colors.Text.quaternary)
+            .foregroundStyle(isSelected ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.quaternary)
             .padding(.horizontal, 14)
             .frame(minHeight: 36)
             .contentShape(Capsule())
@@ -484,7 +484,7 @@ struct LabelTemplateSheet: View {
                         .font(Design.Typography.footnote).fontWeight(isSelected ? .bold : .medium)
                 }
             }
-            .foregroundStyle(isSelected ? .white : Design.Colors.Text.quaternary)
+            .foregroundStyle(isSelected ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.quaternary)
             .padding(.horizontal, 14)
             .frame(minHeight: 36)
             .contentShape(Capsule())
@@ -563,7 +563,7 @@ struct LabelTemplateSheet: View {
                     } label: {
                         Text(formatPresetLabel(preset, isWeightBased: isWeightBased))
                             .font(Design.Typography.footnote).fontWeight(.semibold)
-                            .foregroundStyle(item.wrappedValue.customQuantityValue == Double(preset) ? .white : Design.Colors.Text.quaternary)
+                            .foregroundStyle(item.wrappedValue.customQuantityValue == Double(preset) ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.quaternary)
                             .frame(minWidth: 44, minHeight: 36)
                             .contentShape(Capsule())
                             .background(

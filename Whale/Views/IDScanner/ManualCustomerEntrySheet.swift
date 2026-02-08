@@ -575,10 +575,10 @@ struct CustomerSearchContent: View {
                     Text("Create Customer")
                         .font(Design.Typography.callout).fontWeight(.semibold)
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(Design.Colors.Semantic.accent, in: RoundedRectangle(cornerRadius: 12))
+                .background(Design.Colors.Glass.ultraThick, in: RoundedRectangle(cornerRadius: 12))
             }
             .buttonStyle(ScaleButtonStyle())
         }

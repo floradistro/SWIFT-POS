@@ -14,12 +14,13 @@ struct CRMStatBox: View {
     let title: String
     let value: String
     let icon: String
+    var iconColor: Color = Design.Colors.Text.subtle
 
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(Design.Typography.callout).fontWeight(.semibold)
-                .foregroundStyle(Design.Colors.Text.subtle)
+                .foregroundStyle(iconColor)
                 .frame(width: 20)
 
             VStack(alignment: .leading, spacing: 3) {

@@ -94,7 +94,7 @@ struct ThemeSettingsView: View {
                 Text(label)
                     .font(Design.Typography.subhead).fontWeight(.medium)
             }
-            .foregroundStyle(theme.palette.baseMode == mode ? .white : Design.Colors.Text.disabled)
+            .foregroundStyle(theme.palette.baseMode == mode ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.disabled)
             .frame(maxWidth: .infinity)
             .frame(height: 44)
             .background(
@@ -349,7 +349,7 @@ struct ThemeSettingsView: View {
                     }
                 ))
                 .labelsHidden()
-                .tint(Design.Colors.Semantic.accent)
+                .tint(Design.Colors.Semantic.success)
             }
         }
     }

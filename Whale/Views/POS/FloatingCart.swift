@@ -184,42 +184,46 @@ struct FloatingCart: View {
         let isActive = entry.cartId == selectedCartId
 
         return Button {
-            Haptics.selection()  // Subtle selection feedback for tab switch
+            Haptics.selection()
             queueStore?.selectCart(entry.cartId)
             Task { await loadAndSelectCart(cartId: entry.cartId) }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 // Customer initials
                 Text(entry.customerInitials)
-                    .font(Design.Typography.caption1).fontWeight(.bold)
+                    .font(Design.Typography.caption2).fontWeight(.bold)
                     .foregroundStyle(Design.Colors.Text.primary)
-                    .frame(width: 28, height: 28)
-                    .background(Circle().fill(isActive ? Design.Colors.Semantic.accent : Design.Colors.Glass.ultraThick))
+                    .frame(width: 24, height: 24)
+                    .background(
+                        Circle().fill(Design.Colors.Semantic.accent.opacity(isActive ? 1.0 : 0.5))
+                            .background(Circle().fill(Design.Colors.Glass.thick))
+                    )
 
                 // Item count if any
                 if entry.cartItemCount > 0 {
                     Text("\(entry.cartItemCount)")
                         .font(Design.Typography.caption2Rounded).fontWeight(.semibold)
-                        .foregroundStyle(Design.Colors.Text.tertiary)
+                        .foregroundStyle(Design.Colors.Text.secondary)
                 }
 
-                // Remove button - no haptic, just visual
+                // Remove button
                 Button {
                     Task { await removeFromQueue(cartId: entry.cartId) }
                 } label: {
                     Image(systemName: "xmark")
-                        .font(Design.Typography.caption2).fontWeight(.bold)
-                        .foregroundStyle(Design.Colors.Text.disabled)
-                        .frame(width: 18, height: 18)
-                        .background(Circle().fill(Design.Colors.Glass.ultraThick))
-                        .padding(13)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Design.Colors.Text.tertiary)
+                        .frame(width: 22, height: 22)
+                        .background(Circle().fill(Design.Colors.Glass.thin))
+                        .padding(8)
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Remove \(entry.customerName) from queue")
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.leading, 7)
+            .padding(.trailing, 2)
+            .padding(.vertical, 4)
             .glassEffect(.regular, in: .capsule)
         }
         .buttonStyle(.plain)
@@ -252,7 +256,10 @@ struct FloatingCart: View {
                         .font(Design.Typography.footnote).fontWeight(.bold)
                         .foregroundStyle(Design.Colors.Text.primary)
                         .frame(width: 36, height: 36)
-                        .background(Circle().fill(Design.Colors.Semantic.accent))
+                        .background(
+                            Circle().fill(Design.Colors.Semantic.accent)
+                                .background(Circle().fill(Design.Colors.Glass.thick))
+                        )
                 }
             } else {
                 Image(systemName: "cart.fill")
@@ -296,7 +303,7 @@ struct FloatingCart: View {
                     .foregroundStyle(Design.Colors.Text.primary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                    .background(Design.Colors.Semantic.accent, in: Capsule())
+                    .background(Design.Colors.Semantic.success, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Checkout, pay \(CurrencyFormatter.format(totals?.total ?? 0))")

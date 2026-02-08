@@ -68,6 +68,7 @@ final class ThemeManager: ObservableObject {
     private(set) var semanticInfoBorder: Color = .clear
     private(set) var semanticAccent: Color = .clear
     private(set) var semanticAccentBackground: Color = .clear
+    private(set) var semanticAccentForeground: Color = .white
 
     // Interactive
     private(set) var interactiveDefault: Color = .white.opacity(0.08)
@@ -326,8 +327,17 @@ final class ThemeManager: ObservableObject {
         semanticInfo = p.info.color
         semanticInfoBackground = p.info.withOpacity(0.15)
         semanticInfoBorder = p.info.withOpacity(0.3)
-        semanticAccent = accent.color
-        semanticAccentBackground = accent.withOpacity(0.3)
+        if neutral {
+            // When no accent color: use a visible glass-like overlay so selected states
+            // still read clearly (matching the original monochrome glass design).
+            semanticAccent = overlay.withOpacity(isLight ? 0.28 : 0.22)
+            semanticAccentBackground = overlay.withOpacity(isLight ? 0.10 : 0.08)
+            semanticAccentForeground = text.color  // Text.primary — adapts to light/dark
+        } else {
+            semanticAccent = accent.color
+            semanticAccentBackground = accent.withOpacity(0.3)
+            semanticAccentForeground = .white      // Always white on colored accent
+        }
 
         // Interactive — neutral uses overlay, accent uses tint
         let interactiveBase = neutral ? overlay : accent

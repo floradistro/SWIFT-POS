@@ -152,7 +152,7 @@ struct LabelPrinterSetupView: View {
                                             } label: {
                                                 Text("\(position + 1)")
                                                     .font(Design.Typography.caption2).fontWeight(isSelected ? .bold : .medium)
-                                                    .foregroundStyle(isSelected ? .white : Design.Colors.Text.disabled)
+                                                    .foregroundStyle(isSelected ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.disabled)
                                                     .frame(width: 32, height: 20)
                                                     .background(
                                                         RoundedRectangle(cornerRadius: 4)

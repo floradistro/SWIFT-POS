@@ -433,19 +433,19 @@ struct CheckoutSheet: View {
                 Text(method.label)
                     .font(Design.Typography.caption2).fontWeight(.semibold)
             }
-            .foregroundStyle(isSelected ? .white : Design.Colors.Text.disabled)
+            .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
             .frame(width: 72, height: 56)
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(Design.Colors.Semantic.accent)
+                        .fill(Design.Colors.Glass.ultraThick)
                 }
             }
             .glassEffect(.regular, in: .rect(cornerRadius: 14))
             .overlay {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(Design.Colors.Semantic.accent, lineWidth: 1)
+                        .strokeBorder(Design.Colors.Border.strong, lineWidth: 1)
                 }
             }
         }
@@ -644,10 +644,10 @@ struct CheckoutSheet: View {
                     Text("Done")
                         .font(Design.Typography.headline)
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 54)
-                .background(Design.Colors.Semantic.accent, in: RoundedRectangle(cornerRadius: 14))
+                .background(isInvoice ? Design.Colors.Semantic.accent : Design.Colors.Semantic.success, in: RoundedRectangle(cornerRadius: 14))
             }
             .buttonStyle(ScaleButtonStyle())
             .padding(.horizontal, 20)
