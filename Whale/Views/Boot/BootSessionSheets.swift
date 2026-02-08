@@ -163,12 +163,12 @@ struct BootEndSessionSheet: View {
             HStack(spacing: 6) {
                 if let location = displayLocation {
                     Text(location.name)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Design.Typography.caption1).fontWeight(.medium)
                 }
                 Text("•")
                 if let register = displayRegister {
                     Text(register.displayName)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Design.Typography.caption1).fontWeight(.medium)
                 }
             }
             .foregroundStyle(.white.opacity(0.4))
@@ -177,7 +177,7 @@ struct BootEndSessionSheet: View {
             // Show total dropped if any
             if totalDropped > 0 {
                 Text("\(CurrencyFormatter.format(totalDropped)) dropped to safe")
-                    .font(.system(size: 11))
+                    .font(Design.Typography.caption2)
                     .foregroundStyle(Design.Colors.Semantic.success.opacity(0.8))
                     .padding(.bottom, 16)
             } else {
@@ -187,7 +187,7 @@ struct BootEndSessionSheet: View {
             // Closing cash section
             VStack(spacing: 12) {
                 Text("Closing Cash")
-                    .font(.system(size: 13))
+                    .font(Design.Typography.footnote)
                     .foregroundStyle(.white.opacity(0.5))
 
                 // Amount input
@@ -218,7 +218,7 @@ struct BootEndSessionSheet: View {
                             closingCash = amount
                         } label: {
                             Text("$\(amount)")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(Design.Typography.caption1).fontWeight(.semibold)
                                 .foregroundStyle(closingCash == amount ? .white : .white.opacity(0.6))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 34)
@@ -243,9 +243,9 @@ struct BootEndSessionSheet: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.down.to.line.compact")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                         Text("Safe")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                     }
                     .foregroundStyle(.white.opacity(0.8))
                     .frame(maxWidth: .infinity)
@@ -261,7 +261,7 @@ struct BootEndSessionSheet: View {
                     onEndShift(closingAmount)
                 } label: {
                     Text("End Shift")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(Design.Typography.callout).fontWeight(.semibold)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
@@ -304,7 +304,7 @@ struct BootEndSessionSheet: View {
                 onDismiss()
             } label: {
                 Text("Cancel")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.35))
             }
             .padding(.bottom, 20)
@@ -327,9 +327,9 @@ struct BootEndSessionSheet: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(Design.Typography.caption1).fontWeight(.semibold)
                         Text("Back")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                     }
                     .foregroundStyle(.white.opacity(0.5))
                 }
@@ -340,7 +340,7 @@ struct BootEndSessionSheet: View {
 
             // Title
             Text("Drop to Safe")
-                .font(.system(size: 18, weight: .bold))
+                .font(Design.Typography.headline).fontWeight(.bold)
                 .foregroundStyle(.white)
                 .padding(.bottom, 20)
 
@@ -373,7 +373,7 @@ struct BootEndSessionSheet: View {
                             safeDropAmount = amount
                         } label: {
                             Text("$\(amount)")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(Design.Typography.caption1).fontWeight(.semibold)
                                 .foregroundStyle(safeDropAmount == amount ? .white : .white.opacity(0.6))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 34)
@@ -386,7 +386,7 @@ struct BootEndSessionSheet: View {
 
                 // Notes (optional)
                 TextField("Notes (optional)", text: $safeDropNotes)
-                    .font(.system(size: 14))
+                    .font(Design.Typography.footnote)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
@@ -403,9 +403,9 @@ struct BootEndSessionSheet: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.down.to.line.compact")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                     Text("Drop \(safeDropDecimal > 0 ? CurrencyFormatter.format(safeDropDecimal) : "$0.00")")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(Design.Typography.callout).fontWeight(.semibold)
                 }
                 .foregroundStyle(safeDropDecimal > 0 ? .black : .white.opacity(0.4))
                 .frame(maxWidth: .infinity)
@@ -454,7 +454,7 @@ struct BootEndSessionSheet: View {
     ) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 14, weight: .medium))
+                .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(isDestructive ? Design.Colors.Semantic.error.opacity(0.8) : .white.opacity(0.5))
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
@@ -585,7 +585,7 @@ struct BootSafeDropSheet: View {
         VStack(spacing: 0) {
             // Title
             Text("Drop to Safe")
-                .font(.system(size: 22, weight: .bold))
+                .font(Design.Typography.title2).fontWeight(.bold)
                 .foregroundStyle(.white)
                 .padding(.bottom, 8)
 
@@ -593,12 +593,12 @@ struct BootSafeDropSheet: View {
             HStack(spacing: 6) {
                 if let location = displayLocation {
                     Text(location.name)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Design.Typography.caption1).fontWeight(.medium)
                 }
                 Text("•")
                 if let register = displayRegister {
                     Text(register.displayName)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Design.Typography.caption1).fontWeight(.medium)
                 }
             }
             .foregroundStyle(.white.opacity(0.4))
@@ -633,7 +633,7 @@ struct BootSafeDropSheet: View {
                             amount = quickAmount
                         } label: {
                             Text("$\(quickAmount)")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(Design.Typography.subhead).fontWeight(.semibold)
                                 .foregroundStyle(amount == quickAmount ? .white : .white.opacity(0.6))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 44)
@@ -646,7 +646,7 @@ struct BootSafeDropSheet: View {
 
                 // Notes (optional)
                 TextField("Notes (optional)", text: $notes)
-                    .font(.system(size: 14))
+                    .font(Design.Typography.footnote)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
@@ -662,9 +662,9 @@ struct BootSafeDropSheet: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.down.to.line.compact")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(Design.Typography.callout).fontWeight(.medium)
                     Text("Drop \(amountDecimal > 0 ? CurrencyFormatter.format(amountDecimal) : "$0")")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(Design.Typography.headline)
                 }
                 .foregroundStyle(amountDecimal > 0 ? .black : .white.opacity(0.4))
                 .frame(maxWidth: .infinity)
@@ -684,7 +684,7 @@ struct BootSafeDropSheet: View {
                 dismiss()
             } label: {
                 Text("Cancel")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.35))
             }
             .padding(.bottom, 24)
@@ -708,16 +708,16 @@ struct BootSafeDropSheet: View {
             }
 
             Text("Dropped to Safe")
-                .font(.system(size: 20, weight: .bold))
+                .font(Design.Typography.title3).fontWeight(.bold)
                 .foregroundStyle(.white)
 
             Text(CurrencyFormatter.format(amountDecimal))
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .font(Design.Typography.title2Rounded).fontWeight(.bold)
                 .foregroundStyle(.white.opacity(0.8))
 
             if !notes.isEmpty {
                 Text(notes)
-                    .font(.system(size: 13))
+                    .font(Design.Typography.footnote)
                     .foregroundStyle(.white.opacity(0.4))
             }
         }

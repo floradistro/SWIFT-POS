@@ -81,12 +81,12 @@ struct POSSettingsSheet: View {
 
             VStack(spacing: 4) {
                 Text(session.store?.businessName ?? "Store")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(Design.Typography.headline).fontWeight(.bold)
                     .foregroundStyle(.white)
 
                 if let location = currentLocation {
                     Text(location.name)
-                        .font(.system(size: 14))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.5))
                 }
             }
@@ -157,10 +157,10 @@ struct POSSettingsSheet: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Label Printer")
-                            .font(.system(size: 15, weight: .medium))
+                            .font(Design.Typography.subhead).fontWeight(.medium)
                             .foregroundStyle(.white)
                         Text(printerSettings.printerName ?? "Tap to select")
-                            .font(.system(size: 12))
+                            .font(Design.Typography.caption1)
                             .foregroundStyle(.white.opacity(0.4))
                     }
 
@@ -168,7 +168,7 @@ struct POSSettingsSheet: View {
 
                     if printerSettings.printerName != nil {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 16))
+                            .font(Design.Typography.callout)
                             .foregroundStyle(Design.Colors.Semantic.success)
                     } else {
                         chevron
@@ -187,10 +187,10 @@ struct POSSettingsSheet: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Auto-Print Labels")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
                     Text("Print after each sale")
-                        .font(.system(size: 12))
+                        .font(Design.Typography.caption1)
                         .foregroundStyle(.white.opacity(0.4))
                 }
 
@@ -214,10 +214,10 @@ struct POSSettingsSheet: View {
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Label Start Position")
-                                .font(.system(size: 15, weight: .medium))
+                                .font(Design.Typography.subhead).fontWeight(.medium)
                                 .foregroundStyle(.white)
                             Text("Avery 5163 • Position \(printerSettings.startPosition + 1) of 10")
-                                .font(.system(size: 12))
+                                .font(Design.Typography.caption1)
                                 .foregroundStyle(.white.opacity(0.4))
                         }
                     }
@@ -231,7 +231,7 @@ struct POSSettingsSheet: View {
                                 printerSettings.startPosition = position
                             } label: {
                                 Text("\(position + 1)")
-                                    .font(.system(size: 14, weight: isSelected ? .bold : .medium, design: .rounded))
+                                    .font(Design.Typography.footnoteRounded).fontWeight(isSelected ? .bold : .medium)
                                     .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 36)
@@ -277,13 +277,13 @@ struct POSSettingsSheet: View {
                 settingsIcon("dollarsign.circle.fill", color: .mint)
 
                 Text("Drawer Balance")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(Design.Typography.subhead).fontWeight(.medium)
                     .foregroundStyle(.white)
 
                 Spacer()
 
                 Text(CurrencyFormatter.format(windowSession?.drawerBalance ?? 0))
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .font(Design.Typography.headlineRounded).fontWeight(.bold)
                     .foregroundStyle(.white)
                     .monospacedDigit()
             }
@@ -341,9 +341,9 @@ struct POSSettingsSheet: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Design.Typography.subhead).fontWeight(.semibold)
                 Text("Sign Out")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(Design.Typography.callout).fontWeight(.semibold)
             }
             .foregroundStyle(Design.Colors.Semantic.error)
             .frame(maxWidth: .infinity)
@@ -379,7 +379,7 @@ struct POSSettingsSheet: View {
 
     private func settingsIcon(_ name: String, color: Color = .white) -> some View {
         Image(systemName: name)
-            .font(.system(size: 14, weight: .medium))
+            .font(Design.Typography.footnote).fontWeight(.medium)
             .foregroundStyle(.white.opacity(0.6))
             .frame(width: 32, height: 32)
             .background(
@@ -404,11 +404,11 @@ struct POSSettingsSheet: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
                     if let subtitle {
                         Text(subtitle)
-                            .font(.system(size: 12))
+                            .font(Design.Typography.caption1)
                             .foregroundStyle(.white.opacity(0.4))
                     }
                 }
@@ -431,7 +431,7 @@ struct POSSettingsSheet: View {
 
     private var chevron: some View {
         Image(systemName: "chevron.right")
-            .font(.system(size: 12, weight: .semibold))
+            .font(Design.Typography.caption1).fontWeight(.semibold)
             .foregroundStyle(.white.opacity(0.2))
     }
 }

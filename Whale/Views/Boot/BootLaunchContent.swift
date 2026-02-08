@@ -26,24 +26,24 @@ struct BootStartShiftContent: View {
         VStack(spacing: 0) {
             VStack(spacing: 8) {
                 Text("Start Shift")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(Design.Typography.title2).fontWeight(.bold)
                     .foregroundStyle(.white)
 
                 Text("Opening Cash Drawer")
-                    .font(.system(size: 13))
+                    .font(Design.Typography.footnote)
                     .foregroundStyle(.white.opacity(0.4))
 
                 HStack(spacing: 6) {
                     if let location = session.selectedLocation {
                         Text(location.name)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Design.Typography.caption2).fontWeight(.medium)
                     }
 
                     Text("•")
 
                     if let register = session.selectedRegister {
                         Text(register.displayName)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Design.Typography.caption2).fontWeight(.medium)
                     }
                 }
                 .foregroundStyle(.white.opacity(0.35))
@@ -56,11 +56,11 @@ struct BootStartShiftContent: View {
             VStack(spacing: 14) {
                 HStack {
                     Text("$")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(Design.Typography.title1).fontWeight(.bold)
                         .foregroundStyle(.white.opacity(0.4))
 
                     TextField("0", text: $openingAmount)
-                        .font(.system(size: 28, weight: .bold))
+                        .font(Design.Typography.title1).fontWeight(.bold)
                         .foregroundStyle(.white)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.leading)
@@ -83,7 +83,7 @@ struct BootStartShiftContent: View {
                             openingAmount = amount
                         } label: {
                             Text("$\(amount)")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(Design.Typography.subhead).fontWeight(.semibold)
                                 .foregroundStyle(openingAmount == amount ? .white : .white.opacity(0.6))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 44)
@@ -102,9 +102,9 @@ struct BootStartShiftContent: View {
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "play.fill")
-                        .font(.system(size: 14))
+                        .font(Design.Typography.footnote)
                     Text("Start Shift")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(Design.Typography.callout).fontWeight(.semibold)
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
@@ -127,7 +127,7 @@ struct BootStartShiftContent: View {
                     }
                 } label: {
                     Text("Change")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Design.Typography.caption1).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.3))
                 }
 
@@ -136,7 +136,7 @@ struct BootStartShiftContent: View {
                     Task { await session.signOut() }
                 } label: {
                     Text("Sign Out")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Design.Typography.caption1).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.3))
                 }
             }
@@ -157,7 +157,7 @@ struct BootLaunchingContent: View {
                 .scaleEffect(1.2)
 
             Text("Starting...")
-                .font(.system(size: 15, weight: .medium))
+                .font(Design.Typography.subhead).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.5))
         }
         .padding(.vertical, 50)
@@ -181,7 +181,7 @@ struct BootOptionRow: View {
         Button(action: action) {
             HStack(spacing: 14) {
                 Image(systemName: icon)
-                    .font(.system(size: 17, weight: .medium))
+                    .font(Design.Typography.body).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.6))
                     .frame(width: 42, height: 42)
                     .background(
@@ -191,20 +191,20 @@ struct BootOptionRow: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(Design.Typography.subhead).fontWeight(.semibold)
                         .foregroundStyle(.white)
                         .lineLimit(1)
 
                     if let subtitle = subtitle {
                         HStack(spacing: 6) {
                             Text(subtitle)
-                                .font(.system(size: 11))
+                                .font(Design.Typography.caption2)
                                 .foregroundStyle(.white.opacity(0.4))
                                 .lineLimit(1)
 
                             ForEach(badges, id: \.self) { badge in
                                 Text(badge)
-                                    .font(.system(size: 9, weight: .medium))
+                                    .font(Design.Typography.caption2).fontWeight(.medium)
                                     .foregroundStyle(.white.opacity(0.5))
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 2)
@@ -217,7 +217,7 @@ struct BootOptionRow: View {
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Design.Typography.caption2).fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.25))
             }
             .padding(11)

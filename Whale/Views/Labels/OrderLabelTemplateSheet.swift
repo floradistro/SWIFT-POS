@@ -48,15 +48,15 @@ struct OrderLabelTemplateSheet: View {
                 ModalSection {
                     HStack {
                         Image(systemName: "shippingbox")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(Design.Typography.callout).fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.6))
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(totalItems) item\(totalItems == 1 ? "" : "s")")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(Design.Typography.footnote).fontWeight(.semibold)
                                 .foregroundStyle(.white)
                             Text("One label per item")
-                                .font(.system(size: 12))
+                                .font(Design.Typography.caption1)
                                 .foregroundStyle(.white.opacity(0.5))
                         }
                         Spacer()

@@ -145,15 +145,15 @@ struct LabelTemplateSheet: View {
                         ModalSection {
                             HStack {
                                 Image(systemName: "rectangle.grid.2x2")
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(Design.Typography.callout).fontWeight(.medium)
                                     .foregroundStyle(.white.opacity(0.6))
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Avery 5163")
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .font(Design.Typography.footnote).fontWeight(.semibold)
                                         .foregroundStyle(.white)
                                     Text("2×4\" • 10 per sheet • Starting at position \(settings.startPosition + 1)")
-                                        .font(.system(size: 12))
+                                        .font(Design.Typography.caption1)
                                         .foregroundStyle(.white.opacity(0.5))
                                 }
                                 Spacer()
@@ -173,23 +173,23 @@ struct LabelTemplateSheet: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "printer")
-                                        .font(.system(size: 14, weight: .medium))
+                                        .font(Design.Typography.footnote).fontWeight(.medium)
                                         .foregroundStyle(.white.opacity(0.6))
 
                                     if let name = settings.printerName {
                                         Text(name)
-                                            .font(.system(size: 14, weight: .medium))
+                                            .font(Design.Typography.footnote).fontWeight(.medium)
                                             .foregroundStyle(.white)
                                     } else {
                                         Text("Select Printer")
-                                            .font(.system(size: 14, weight: .medium))
+                                            .font(Design.Typography.footnote).fontWeight(.medium)
                                             .foregroundStyle(.white.opacity(0.5))
                                     }
 
                                     Spacer()
 
                                     Image(systemName: "chevron.right")
-                                        .font(.system(size: 12, weight: .medium))
+                                        .font(Design.Typography.caption1).fontWeight(.medium)
                                         .foregroundStyle(.white.opacity(0.3))
                                 }
                             }
@@ -200,11 +200,11 @@ struct LabelTemplateSheet: View {
                         ModalSection {
                             HStack {
                                 Image(systemName: settings.isAutoPrintEnabled ? "printer.fill" : "printer")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(Design.Typography.footnote).fontWeight(.medium)
                                     .foregroundStyle(settings.isAutoPrintEnabled ? Design.Colors.Semantic.accent : .white.opacity(0.5))
 
                                 Text("Auto-print on sale")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(Design.Typography.footnote).fontWeight(.medium)
                                     .foregroundStyle(.white)
 
                                 Spacer()
@@ -228,9 +228,9 @@ struct LabelTemplateSheet: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "eye")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(Design.Typography.footnote).fontWeight(.medium)
                             Text("Preview")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(Design.Typography.subhead).fontWeight(.semibold)
                         }
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -293,7 +293,7 @@ struct LabelTemplateSheet: View {
                             .frame(width: 40, height: 40)
                             .overlay {
                                 Text(String(item.wrappedValue.product.name.prefix(1)))
-                                    .font(.system(size: 16, weight: .bold))
+                                    .font(Design.Typography.callout).fontWeight(.bold)
                                     .foregroundStyle(.white.opacity(0.4))
                             }
                     }
@@ -301,26 +301,26 @@ struct LabelTemplateSheet: View {
                     // Product name + stock info
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.wrappedValue.product.name)
-                            .font(.system(size: 14, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                             .foregroundStyle(.white)
                             .lineLimit(1)
 
                         HStack(spacing: 4) {
                             if let tier = item.wrappedValue.displayTierLabel {
                                 Text(tier)
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(Design.Typography.caption2).fontWeight(.medium)
                                     .foregroundStyle(item.wrappedValue.isCustomQuantity ? .purple.opacity(0.9) : .white.opacity(0.5))
                                 Text("•")
-                                    .font(.system(size: 11))
+                                    .font(Design.Typography.caption2)
                                     .foregroundStyle(.white.opacity(0.3))
                             }
                             if isWarehouseItem {
                                 Text("Adding stock")
-                                    .font(.system(size: 11))
+                                    .font(Design.Typography.caption2)
                                     .foregroundStyle(.green.opacity(0.8))
                             } else {
                                 Text("\(stockAmount)g in stock")
-                                    .font(.system(size: 11))
+                                    .font(Design.Typography.caption2)
                                     .foregroundStyle(stockAmount > 0 ? .white.opacity(0.5) : .red.opacity(0.8))
                             }
                         }
@@ -330,7 +330,7 @@ struct LabelTemplateSheet: View {
 
                     // Label count badge
                     Text("\(item.wrappedValue.quantity)")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(Design.Typography.calloutRounded).fontWeight(.bold)
                         .foregroundStyle(.white)
                         .monospacedDigit()
                         .frame(minWidth: 28)
@@ -346,7 +346,7 @@ struct LabelTemplateSheet: View {
                                 item.wrappedValue.quantity = qty
                             } label: {
                                 Text("\(qty)")
-                                    .font(.system(size: 13, weight: isActive ? .bold : .medium, design: .rounded))
+                                    .font(Design.Typography.footnoteRounded).fontWeight(isActive ? .bold : .medium)
                                     .foregroundStyle(isActive ? .black : .white.opacity(0.7))
                                     .frame(minWidth: 40, minHeight: 36)
                                     .background(
@@ -364,7 +364,7 @@ struct LabelTemplateSheet: View {
                     tierChips(item: item, availableTiers: availableTiers)
                 } else if !item.wrappedValue.product.allTiers.isEmpty && !isWarehouseItem {
                     Text("Not enough stock for any size")
-                        .font(.system(size: 11))
+                        .font(Design.Typography.caption2)
                         .foregroundStyle(.orange.opacity(0.8))
                 }
             }
@@ -442,10 +442,10 @@ struct LabelTemplateSheet: View {
         } label: {
             HStack(spacing: 4) {
                 Text(label)
-                    .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                    .font(Design.Typography.footnote).fontWeight(isSelected ? .bold : .medium)
                 if let max = maxCount {
                     Text("(\(max))")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Design.Typography.caption1).fontWeight(.medium)
                         .foregroundStyle(isSelected ? .black.opacity(0.5) : .white.opacity(0.4))
                 }
             }
@@ -475,13 +475,13 @@ struct LabelTemplateSheet: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: "pencil.line")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Design.Typography.caption2).fontWeight(.semibold)
                 if isSelected && item.wrappedValue.customQuantityValue > 0 {
                     Text(item.wrappedValue.displayTierLabel ?? "Custom")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(Design.Typography.footnote).fontWeight(.bold)
                 } else {
                     Text("Custom")
-                        .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                        .font(Design.Typography.footnote).fontWeight(isSelected ? .bold : .medium)
                 }
             }
             .foregroundStyle(isSelected ? .black : .white.opacity(0.7))
@@ -502,7 +502,7 @@ struct LabelTemplateSheet: View {
             // Input field
             HStack(spacing: 8) {
                 TextField("Enter amount", text: $customQuantityInput)
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .font(Design.Typography.subheadRounded).fontWeight(.semibold)
                     .foregroundStyle(.white)
                     .keyboardType(.decimalPad)
                     .focused($isCustomInputFocused)
@@ -517,7 +517,7 @@ struct LabelTemplateSheet: View {
                     }
 
                 Text(item.wrappedValue.unitDisplayString)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.5))
 
                 Spacer()
@@ -529,7 +529,7 @@ struct LabelTemplateSheet: View {
                         editingCustomItemId = nil
                     } label: {
                         Text("Done")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                             .foregroundStyle(.white)
                             .padding(.horizontal, 14)
                             .frame(minHeight: 36)
@@ -562,7 +562,7 @@ struct LabelTemplateSheet: View {
                         }
                     } label: {
                         Text(formatPresetLabel(preset, isWeightBased: isWeightBased))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                             .foregroundStyle(item.wrappedValue.customQuantityValue == Double(preset) ? .black : .white.opacity(0.7))
                             .frame(minWidth: 44, minHeight: 36)
                             .contentShape(Capsule())

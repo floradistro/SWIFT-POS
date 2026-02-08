@@ -27,10 +27,10 @@ struct LabelPrinterSetupView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Printer Setup")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(Design.Typography.headline).fontWeight(.bold)
                             .foregroundStyle(.white)
                         Text("Configure label printing")
-                            .font(.system(size: 13))
+                            .font(Design.Typography.footnote)
                             .foregroundStyle(.white.opacity(0.5))
                     }
 
@@ -40,7 +40,7 @@ struct LabelPrinterSetupView: View {
                         isPresented = false
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                             .foregroundStyle(.white.opacity(0.7))
                             .frame(width: 44, height: 44)
                             .background(Circle().fill(.white.opacity(0.1)))
@@ -56,21 +56,21 @@ struct LabelPrinterSetupView: View {
                     } label: {
                         HStack(spacing: 12) {
                             Image(systemName: "printer.fill")
-                                .font(.system(size: 16, weight: .medium))
+                                .font(Design.Typography.callout).fontWeight(.medium)
                                 .foregroundStyle(settings.printerName != nil ? Design.Colors.Semantic.accent : .white.opacity(0.5))
                                 .frame(width: 24)
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Printer")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(Design.Typography.footnote).fontWeight(.medium)
                                     .foregroundStyle(.white)
                                 if let name = settings.printerName {
                                     Text(name)
-                                        .font(.system(size: 12))
+                                        .font(Design.Typography.caption1)
                                         .foregroundStyle(.white.opacity(0.5))
                                 } else {
                                     Text("Not selected")
-                                        .font(.system(size: 12))
+                                        .font(Design.Typography.caption1)
                                         .foregroundStyle(.white.opacity(0.4))
                                 }
                             }
@@ -78,7 +78,7 @@ struct LabelPrinterSetupView: View {
                             Spacer()
 
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(Design.Typography.caption1).fontWeight(.medium)
                                 .foregroundStyle(.white.opacity(0.3))
                         }
                         .padding(14)
@@ -91,16 +91,16 @@ struct LabelPrinterSetupView: View {
                     // Auto-print toggle
                     HStack(spacing: 12) {
                         Image(systemName: settings.isAutoPrintEnabled ? "bolt.fill" : "bolt")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(Design.Typography.callout).fontWeight(.medium)
                             .foregroundStyle(settings.isAutoPrintEnabled ? .yellow : .white.opacity(0.5))
                             .frame(width: 24)
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Auto-Print Labels")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(Design.Typography.footnote).fontWeight(.medium)
                                 .foregroundStyle(.white)
                             Text("Print after each sale")
-                                .font(.system(size: 12))
+                                .font(Design.Typography.caption1)
                                 .foregroundStyle(.white.opacity(0.5))
                         }
 
@@ -120,16 +120,16 @@ struct LabelPrinterSetupView: View {
                     VStack(spacing: 12) {
                         HStack(spacing: 12) {
                             Image(systemName: "rectangle.grid.2x2")
-                                .font(.system(size: 16, weight: .medium))
+                                .font(Design.Typography.callout).fontWeight(.medium)
                                 .foregroundStyle(.white.opacity(0.5))
                                 .frame(width: 24)
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Label Start Position")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(Design.Typography.footnote).fontWeight(.medium)
                                     .foregroundStyle(.white)
                                 Text("Avery 5163 • 2×4\" • 10 per sheet")
-                                    .font(.system(size: 12))
+                                    .font(Design.Typography.caption1)
                                     .foregroundStyle(.white.opacity(0.5))
                             }
 
@@ -151,7 +151,7 @@ struct LabelPrinterSetupView: View {
                                                 settings.startPosition = position
                                             } label: {
                                                 Text("\(position + 1)")
-                                                    .font(.system(size: 10, weight: isSelected ? .bold : .medium))
+                                                    .font(Design.Typography.caption2).fontWeight(isSelected ? .bold : .medium)
                                                     .foregroundStyle(isSelected ? .black : .white.opacity(0.5))
                                                     .frame(width: 32, height: 20)
                                                     .background(
@@ -173,10 +173,10 @@ struct LabelPrinterSetupView: View {
                             // Description
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Position \(settings.startPosition + 1)")
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(Design.Typography.footnote).fontWeight(.semibold)
                                     .foregroundStyle(.white)
                                 Text("Labels will print starting from this position on the sheet")
-                                    .font(.system(size: 11))
+                                    .font(Design.Typography.caption2)
                                     .foregroundStyle(.white.opacity(0.5))
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -193,18 +193,18 @@ struct LabelPrinterSetupView: View {
                     if settings.printerName != nil {
                         HStack(spacing: 12) {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 16, weight: .medium))
+                                .font(Design.Typography.callout).fontWeight(.medium)
                                 .foregroundStyle(Design.Colors.Semantic.success)
                                 .frame(width: 24)
 
                             Text("Printer Ready")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(Design.Typography.footnote).fontWeight(.medium)
                                 .foregroundStyle(.white)
 
                             Spacer()
 
                             Text("Connected")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(Design.Typography.caption1).fontWeight(.medium)
                                 .foregroundStyle(Design.Colors.Semantic.success)
                         }
                         .padding(14)

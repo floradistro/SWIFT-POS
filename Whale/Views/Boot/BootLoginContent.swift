@@ -42,12 +42,12 @@ struct BootLoginContent: View {
                 // Email
                 HStack(spacing: 12) {
                     Image(systemName: "envelope.fill")
-                        .font(.system(size: 14))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 20)
 
                     TextField("Email", text: $email)
-                        .font(.system(size: 15))
+                        .font(Design.Typography.subhead)
                         .foregroundStyle(.white)
                         .keyboardType(.emailAddress)
                         .textContentType(.emailAddress)
@@ -71,12 +71,12 @@ struct BootLoginContent: View {
                 // Password
                 HStack(spacing: 12) {
                     Image(systemName: "lock.fill")
-                        .font(.system(size: 14))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 20)
 
                     SecureField("Password", text: $password)
-                        .font(.system(size: 15))
+                        .font(Design.Typography.subhead)
                         .foregroundStyle(.white)
                         .textContentType(.password)
                         .focused($focusedField, equals: .password)
@@ -98,7 +98,7 @@ struct BootLoginContent: View {
                 // Error
                 if let error = session.errorMessage {
                     Text(error)
-                        .font(.system(size: 12))
+                        .font(Design.Typography.caption1)
                         .foregroundStyle(Design.Colors.Semantic.error)
                         .padding(.top, 4)
                 }
@@ -116,7 +116,7 @@ struct BootLoginContent: View {
                                     .scaleEffect(0.9)
                             } else {
                                 Text("Sign In")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(Design.Typography.callout).fontWeight(.semibold)
                             }
                         }
                         .foregroundStyle(isFormValid ? .black : .white.opacity(0.4))
@@ -136,7 +136,7 @@ struct BootLoginContent: View {
                             onFaceID()
                         } label: {
                             Image(systemName: biometricType.iconName)
-                                .font(.system(size: 22, weight: .light))
+                                .font(Design.Typography.title2).fontWeight(.light)
                                 .foregroundStyle(.white)
                                 .frame(width: 50, height: 50)
                                 .contentShape(RoundedRectangle(cornerRadius: 14))
@@ -174,7 +174,7 @@ struct BootLocationContent: View {
     var body: some View {
         VStack(spacing: 0) {
             Text("Select Location")
-                .font(.system(size: 20, weight: .semibold))
+                .font(Design.Typography.title3).fontWeight(.semibold)
                 .foregroundStyle(.white)
                 .padding(.bottom, 24)
 
@@ -223,7 +223,7 @@ struct BootLocationContent: View {
                 Task { await session.signOut() }
             } label: {
                 Text("Sign Out")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.25))
             }
             .padding(.top, 24)
@@ -255,13 +255,13 @@ struct BootLocationRow: View {
             HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(location.name)
-                        .font(.system(size: 16, weight: .medium))
+                        .font(Design.Typography.callout).fontWeight(.medium)
                         .foregroundStyle(.white)
                         .lineLimit(1)
 
                     if let address = location.displayAddress, !address.isEmpty {
                         Text(address)
-                            .font(.system(size: 13))
+                            .font(Design.Typography.footnote)
                             .foregroundStyle(.white.opacity(0.4))
                             .lineLimit(1)
                     }
@@ -271,7 +271,7 @@ struct BootLocationRow: View {
 
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                         .foregroundStyle(.white)
                 }
             }
@@ -315,9 +315,9 @@ struct BootRegisterContent: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                         Text("Back")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                     }
                     .foregroundStyle(.white.opacity(0.4))
                 }
@@ -329,12 +329,12 @@ struct BootRegisterContent: View {
 
             VStack(spacing: 6) {
                 Text("Select Register")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(Design.Typography.title3).fontWeight(.semibold)
                     .foregroundStyle(.white)
 
                 if let location = session.selectedLocation {
                     Text(location.name)
-                        .font(.system(size: 13))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.35))
                 }
             }
@@ -406,12 +406,12 @@ struct BootRegisterRow: View {
             HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(register.displayName)
-                        .font(.system(size: 16, weight: .medium))
+                        .font(Design.Typography.callout).fontWeight(.medium)
                         .foregroundStyle(.white)
                         .lineLimit(1)
 
                     Text("Register \(register.registerNumber)")
-                        .font(.system(size: 13))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.4))
                 }
 
@@ -419,7 +419,7 @@ struct BootRegisterRow: View {
 
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                         .foregroundStyle(.white)
                 }
             }

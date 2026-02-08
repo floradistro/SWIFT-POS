@@ -91,7 +91,7 @@ struct CreateTransferSheet: View {
         case .printing:
             VStack(spacing: 24) {
                 ProgressView().scaleEffect(1.5).tint(.white)
-                Text("Creating transfer...").font(.system(size: 15, weight: .medium)).foregroundStyle(.white.opacity(0.7))
+                Text("Creating transfer...").font(Design.Typography.subhead).fontWeight(.medium).foregroundStyle(.white.opacity(0.7))
             }.padding(.vertical, 40)
         case .success:
             successContent
@@ -137,11 +137,11 @@ struct CreateTransferSheet: View {
                 TransferLocationRow(label: "FROM", location: sourceLocation, isCurrent: true)
             }
 
-            Image(systemName: "arrow.down").font(.system(size: 16, weight: .semibold)).foregroundStyle(.white.opacity(0.3))
+            Image(systemName: "arrow.down").font(Design.Typography.callout).fontWeight(.semibold).foregroundStyle(.white.opacity(0.3))
 
             ModalSection {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("TO").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                    Text("TO").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
                     ForEach(availableDestinations, id: \.id) { location in
                         TransferDestinationRow(location: location, isSelected: selectedDestination?.id == location.id) {
                             Haptics.light()
@@ -149,7 +149,7 @@ struct CreateTransferSheet: View {
                         }
                     }
                     if availableDestinations.isEmpty {
-                        Text("No other locations available").font(.system(size: 13)).foregroundStyle(.white.opacity(0.5)).padding(.vertical, 8)
+                        Text("No other locations available").font(Design.Typography.footnote).foregroundStyle(.white.opacity(0.5)).padding(.vertical, 8)
                     }
                 }
             }
@@ -169,15 +169,15 @@ struct CreateTransferSheet: View {
             ModalSection {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(sourceLocation.name).font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
-                        Text("Source").font(.system(size: 10)).foregroundStyle(.white.opacity(0.4))
+                        Text(sourceLocation.name).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(.white)
+                        Text("Source").font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.4))
                     }
                     Spacer()
-                    Image(systemName: "arrow.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white.opacity(0.3))
+                    Image(systemName: "arrow.right").font(Design.Typography.caption1).fontWeight(.semibold).foregroundStyle(.white.opacity(0.3))
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(selectedDestination?.name ?? "").font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
-                        Text("Destination").font(.system(size: 10)).foregroundStyle(.white.opacity(0.4))
+                        Text(selectedDestination?.name ?? "").font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(.white)
+                        Text("Destination").font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.4))
                     }
                 }
             }
@@ -188,10 +188,10 @@ struct CreateTransferSheet: View {
                 ModalSection {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("SELECTED (\(transferItems.count))").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                            Text("SELECTED (\(transferItems.count))").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
                             Spacer()
                             Button { Haptics.light(); transferItems.removeAll() } label: {
-                                Text("Clear All").font(.system(size: 11, weight: .medium)).foregroundStyle(Design.Colors.Semantic.error)
+                                Text("Clear All").font(Design.Typography.caption2).fontWeight(.medium).foregroundStyle(Design.Colors.Semantic.error)
                             }.buttonStyle(.plain)
                         }
                         ForEach($transferItems) { $item in
@@ -203,9 +203,9 @@ struct CreateTransferSheet: View {
 
             ModalSection {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("PRODUCTS").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                    Text("PRODUCTS").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
                     if isLoadingProducts {
-                        HStack { ProgressView().scaleEffect(0.8).tint(.white); Text("Loading...").font(.system(size: 13)).foregroundStyle(.white.opacity(0.5)) }.padding(.vertical, 8)
+                        HStack { ProgressView().scaleEffect(0.8).tint(.white); Text("Loading...").font(Design.Typography.footnote).foregroundStyle(.white.opacity(0.5)) }.padding(.vertical, 8)
                     } else {
                         ForEach(filteredProducts, id: \.id) { product in
                             TransferProductRow(product: product, isSelected: transferItems.contains { $0.productId == product.id }, storeLogoUrl: session.store?.fullLogoUrl) {
@@ -218,7 +218,7 @@ struct CreateTransferSheet: View {
                             }
                         }
                         if filteredProducts.isEmpty {
-                            Text(searchText.isEmpty ? "No products found" : "No matching products").font(.system(size: 13)).foregroundStyle(.white.opacity(0.5)).padding(.vertical, 8)
+                            Text(searchText.isEmpty ? "No products found" : "No matching products").font(Design.Typography.footnote).foregroundStyle(.white.opacity(0.5)).padding(.vertical, 8)
                         }
                     }
                 }
@@ -239,11 +239,11 @@ struct CreateTransferSheet: View {
             ModalSection {
                 VStack(spacing: 12) {
                     HStack {
-                        VStack(alignment: .leading, spacing: 2) { Text("From").font(.system(size: 10)).foregroundStyle(.white.opacity(0.4)); Text(sourceLocation.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white) }
+                        VStack(alignment: .leading, spacing: 2) { Text("From").font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.4)); Text(sourceLocation.name).font(Design.Typography.footnote).fontWeight(.semibold).foregroundStyle(.white) }
                         Spacer()
-                        Image(systemName: "arrow.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Design.Colors.Semantic.accent)
+                        Image(systemName: "arrow.right").font(Design.Typography.footnote).fontWeight(.semibold).foregroundStyle(Design.Colors.Semantic.accent)
                         Spacer()
-                        VStack(alignment: .trailing, spacing: 2) { Text("To").font(.system(size: 10)).foregroundStyle(.white.opacity(0.4)); Text(selectedDestination?.name ?? "").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white) }
+                        VStack(alignment: .trailing, spacing: 2) { Text("To").font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.4)); Text(selectedDestination?.name ?? "").font(Design.Typography.footnote).fontWeight(.semibold).foregroundStyle(.white) }
                     }
                     Divider().background(.white.opacity(0.1))
                     ModalInfoRow(label: "Total Items", value: "\(transferItems.count) products")
@@ -253,12 +253,12 @@ struct CreateTransferSheet: View {
 
             ModalSection {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("ITEMS").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                    Text("ITEMS").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
                     ForEach(transferItems) { item in
                         HStack {
-                            Text(item.productName).font(.system(size: 13)).foregroundStyle(.white).lineLimit(1)
+                            Text(item.productName).font(Design.Typography.footnote).foregroundStyle(.white).lineLimit(1)
                             Spacer()
-                            Text("x\(Int(item.quantity))").font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundStyle(.white.opacity(0.6))
+                            Text("x\(Int(item.quantity))").font(Design.Typography.footnoteRounded).fontWeight(.semibold).foregroundStyle(.white.opacity(0.6))
                         }.padding(.vertical, 4)
                     }
                 }
@@ -266,8 +266,8 @@ struct CreateTransferSheet: View {
 
             ModalSection {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("NOTES (OPTIONAL)").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
-                    TextField("Add notes...", text: $notes, axis: .vertical).font(.system(size: 14)).foregroundStyle(.white).lineLimit(3...5)
+                    Text("NOTES (OPTIONAL)").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                    TextField("Add notes...", text: $notes, axis: .vertical).font(Design.Typography.footnote).foregroundStyle(.white).lineLimit(3...5)
                 }
             }
 
@@ -283,9 +283,9 @@ struct CreateTransferSheet: View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.circle.fill").font(.system(size: 56)).foregroundStyle(Design.Colors.Semantic.success)
             VStack(spacing: 4) {
-                Text("Transfer Created").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
+                Text("Transfer Created").font(Design.Typography.title3).fontWeight(.bold).foregroundStyle(.white)
                 if let transfer = createdTransfer {
-                    Text(transfer.displayNumber).font(.system(size: 15, weight: .semibold, design: .rounded)).foregroundStyle(.white.opacity(0.6))
+                    Text(transfer.displayNumber).font(Design.Typography.subheadRounded).fontWeight(.semibold).foregroundStyle(.white.opacity(0.6))
                 }
             }
 
@@ -309,7 +309,7 @@ struct CreateTransferSheet: View {
                     onDismiss()
                 } label: {
                     Text("Done")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.6))
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
@@ -359,9 +359,9 @@ private struct TransferErrorBanner: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
-            Text(error).font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+            Text(error).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(.white)
             Spacer()
-            Button { onDismiss() } label: { Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundStyle(.white.opacity(0.5)) }.buttonStyle(.plain)
+            Button { onDismiss() } label: { Image(systemName: "xmark").font(Design.Typography.caption1).fontWeight(.bold).foregroundStyle(.white.opacity(0.5)) }.buttonStyle(.plain)
         }
         .padding(12)
         .background(Color.red.opacity(0.3))
@@ -377,13 +377,13 @@ private struct TransferLocationRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(label).font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+            Text(label).font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
             HStack(spacing: 12) {
-                Image(systemName: "building.2").font(.system(size: 16)).foregroundStyle(Design.Colors.Semantic.accent).frame(width: 24)
-                Text(location.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
+                Image(systemName: "building.2").font(Design.Typography.callout).foregroundStyle(Design.Colors.Semantic.accent).frame(width: 24)
+                Text(location.name).font(Design.Typography.subhead).fontWeight(.semibold).foregroundStyle(.white)
                 Spacer()
                 if isCurrent {
-                    Text("Current").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.5)).padding(.horizontal, 8).padding(.vertical, 4).background(Capsule().fill(.white.opacity(0.1)))
+                    Text("Current").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.5)).padding(.horizontal, 8).padding(.vertical, 4).background(Capsule().fill(.white.opacity(0.1)))
                 }
             }
         }
@@ -402,10 +402,10 @@ private struct TransferDestinationRow: View {
                     Circle().stroke(isSelected ? Design.Colors.Semantic.accent : .white.opacity(0.2), lineWidth: 2).frame(width: 22, height: 22)
                     if isSelected { Circle().fill(Design.Colors.Semantic.accent).frame(width: 12, height: 12) }
                 }
-                Image(systemName: "building.2").font(.system(size: 14)).foregroundStyle(.white.opacity(0.5)).frame(width: 20)
+                Image(systemName: "building.2").font(Design.Typography.footnote).foregroundStyle(.white.opacity(0.5)).frame(width: 20)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(location.name).font(.system(size: 14, weight: .medium)).foregroundStyle(.white)
-                    if let address = location.displayAddress { Text(address).font(.system(size: 11)).foregroundStyle(.white.opacity(0.4)).lineLimit(1) }
+                    Text(location.name).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(.white)
+                    if let address = location.displayAddress { Text(address).font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.4)).lineLimit(1) }
                 }
                 Spacer()
             }
@@ -427,12 +427,12 @@ private struct TransferProductRow: View {
             HStack(spacing: 12) {
                 CachedAsyncImage(url: product.iconUrl, placeholderLogoUrl: storeLogoUrl, dimAmount: 0.1).frame(width: 40, height: 40).clipShape(RoundedRectangle(cornerRadius: 8))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(product.name).font(.system(size: 14, weight: .medium)).foregroundStyle(.white).lineLimit(1)
-                    if let sku = product.sku { Text(sku).font(.system(size: 11)).foregroundStyle(.white.opacity(0.4)) }
+                    Text(product.name).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(.white).lineLimit(1)
+                    if let sku = product.sku { Text(sku).font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.4)) }
                 }
                 Spacer()
-                if product.availableStock > 0 { Text("\(product.availableStock)").font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.6)).padding(.horizontal, 8).padding(.vertical, 4).background(Capsule().fill(.white.opacity(0.1))) }
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle").font(.system(size: 20)).foregroundStyle(isSelected ? Design.Colors.Semantic.accent : .white.opacity(0.2))
+                if product.availableStock > 0 { Text("\(product.availableStock)").font(Design.Typography.caption2).fontWeight(.semibold).foregroundStyle(.white.opacity(0.6)).padding(.horizontal, 8).padding(.vertical, 4).background(Capsule().fill(.white.opacity(0.1))) }
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle").font(Design.Typography.title3).foregroundStyle(isSelected ? Design.Colors.Semantic.accent : .white.opacity(0.2))
             }.padding(.vertical, 8)
         }.buttonStyle(.plain)
     }
@@ -444,18 +444,18 @@ private struct TransferSelectedItemRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 6).fill(.white.opacity(0.1)).frame(width: 32, height: 32).overlay(Image(systemName: "cube.box").font(.system(size: 12)).foregroundStyle(.white.opacity(0.4)))
+            RoundedRectangle(cornerRadius: 6).fill(.white.opacity(0.1)).frame(width: 32, height: 32).overlay(Image(systemName: "cube.box").font(Design.Typography.caption1).foregroundStyle(.white.opacity(0.4)))
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.productName).font(.system(size: 13, weight: .medium)).foregroundStyle(.white).lineLimit(1)
-                if let sku = item.productSKU { Text(sku).font(.system(size: 10)).foregroundStyle(.white.opacity(0.4)) }
+                Text(item.productName).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(.white).lineLimit(1)
+                if let sku = item.productSKU { Text(sku).font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.4)) }
             }
             Spacer()
             HStack(spacing: 0) {
-                Button { Haptics.light(); if item.quantity > 1 { item.quantity -= 1 } } label: { Image(systemName: "minus").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white).frame(width: 28, height: 28) }.buttonStyle(.plain)
-                Text("\(Int(item.quantity))").font(.system(size: 14, weight: .semibold, design: .rounded)).foregroundStyle(.white).frame(width: 36)
-                Button { Haptics.light(); item.quantity += 1 } label: { Image(systemName: "plus").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white).frame(width: 28, height: 28) }.buttonStyle(.plain)
+                Button { Haptics.light(); if item.quantity > 1 { item.quantity -= 1 } } label: { Image(systemName: "minus").font(Design.Typography.caption1).fontWeight(.semibold).foregroundStyle(.white).frame(width: 28, height: 28) }.buttonStyle(.plain)
+                Text("\(Int(item.quantity))").font(Design.Typography.footnoteRounded).fontWeight(.semibold).foregroundStyle(.white).frame(width: 36)
+                Button { Haptics.light(); item.quantity += 1 } label: { Image(systemName: "plus").font(Design.Typography.caption1).fontWeight(.semibold).foregroundStyle(.white).frame(width: 28, height: 28) }.buttonStyle(.plain)
             }.background(RoundedRectangle(cornerRadius: 8).fill(.white.opacity(0.1)))
-            Button { Haptics.light(); onRemove() } label: { Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).frame(width: 24, height: 24) }.buttonStyle(.plain)
+            Button { Haptics.light(); onRemove() } label: { Image(systemName: "xmark").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).frame(width: 24, height: 24) }.buttonStyle(.plain)
         }.padding(.vertical, 4)
     }
 }
