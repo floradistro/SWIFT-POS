@@ -110,12 +110,12 @@ struct LiquidGlassSearchBar: View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
                 .font(Design.Typography.body).fontWeight(.medium)
-                .foregroundStyle(isFocused ? .white : .white.opacity(0.5))
+                .foregroundStyle(isFocused ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
                 .accessibilityHidden(true)
 
             TextField(placeholder, text: $text)
                 .font(Design.Typography.body)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
                 .focused($isFocused)
                 .submitLabel(.search)
 
@@ -127,7 +127,7 @@ struct LiquidGlassSearchBar: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(Design.Typography.headline)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                 }
                 .buttonStyle(.plain)
                 .frame(width: 44, height: 44)
@@ -196,15 +196,15 @@ struct LiquidGlassPill: View {
                         .background(.fill.tertiary, in: .capsule)
                 }
             }
-            .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
+            .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(
-                isSelected ? .white.opacity(0.15) : Color.clear,
+                isSelected ? Design.Colors.Glass.ultraThick : Color.clear,
                 in: .capsule
             )
         }
-        .tint(.white)
+        .tint(Design.Colors.Text.primary)
         .glassEffect(.regular.interactive(), in: .capsule)
         .accessibilityLabel(count.map { "\(label), \($0)" } ?? label)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -227,7 +227,7 @@ struct LiquidGlassIconButton: View {
     var badge: Int?
     var badgeColor: Color = Design.Colors.Semantic.accent
     var isSelected: Bool = false
-    var tintColor: Color = .white
+    var tintColor: Color = Design.Colors.Text.primary
     let action: () -> Void
 
     // Computed icon size: ~40% of button size looks balanced
@@ -249,7 +249,7 @@ struct LiquidGlassIconButton: View {
                 if let badge = badge, badge > 0 {
                     Text("\(min(badge, 99))")
                         .font(Design.Typography.caption2Rounded).fontWeight(.bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .frame(minWidth: 18, minHeight: 18)
                         .background(badgeColor, in: Circle())
                         .offset(x: 6, y: -6)
@@ -269,7 +269,7 @@ struct LiquidGlassIconButton: View {
 
 struct ModalIconButton: View {
     let icon: String
-    var tintColor: Color = .white.opacity(0.7)
+    var tintColor: Color = Design.Colors.Text.quaternary
     let action: () -> Void
 
     var body: some View {

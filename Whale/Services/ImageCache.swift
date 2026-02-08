@@ -217,7 +217,7 @@ struct CachedAsyncImage: View {
                     .overlay(Color.black.opacity(dimAmount))  // Subtle dim for consistency
             } else if loadState == .loading {
                 // Subtle placeholder - no spinner to reduce overhead
-                Color.black.opacity(0.3)
+                Design.Colors.backgroundSecondary
             } else {
                 // Failed or no URL - show store logo or icon placeholder
                 placeholderView
@@ -235,10 +235,10 @@ struct CachedAsyncImage: View {
             StoreLogoPlaceholder(logoUrl: logoUrl)
         } else {
             // Fallback icon placeholder
-            Color.black.opacity(0.3)
+            Design.Colors.backgroundSecondary
                 .overlay(
                     Image(systemName: "photo")
-                        .foregroundStyle(.white.opacity(0.15))
+                        .foregroundStyle(Design.Colors.Text.ghost)
                         .font(Design.Typography.title2)
                 )
         }
@@ -287,7 +287,7 @@ struct StoreLogoPlaceholder: View {
     var body: some View {
         ZStack {
             // Dark background
-            Color.black.opacity(0.4)
+            Design.Colors.backgroundSecondary
 
             // Store logo - subtle and centered
             if let logoImage {
@@ -299,7 +299,7 @@ struct StoreLogoPlaceholder: View {
             } else {
                 // Fallback while loading logo
                 Image(systemName: "storefront")
-                    .foregroundStyle(.white.opacity(0.12))
+                    .foregroundStyle(Design.Colors.Text.ghost)
                     .font(Design.Typography.title1)
             }
         }

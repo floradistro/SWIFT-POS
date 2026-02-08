@@ -78,7 +78,7 @@ struct GlassDockContainer<Content: View>: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(.white.opacity(0.15), lineWidth: 0.5)
+                        .stroke(Design.Colors.Border.strong, lineWidth: 0.5)
                 )
         }
         .compositingGroup()  // Flatten layers for GPU efficiency

@@ -17,7 +17,7 @@ struct ModalSection<Content: View>: View {
         content
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.white.opacity(0.06)))
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Design.Colors.Border.subtle))
     }
 }
 
@@ -44,12 +44,12 @@ struct ModalHeader<Trailing: View>: View {
                 if let subtitle = subtitle {
                     Text(subtitle.uppercased())
                         .font(Design.Typography.caption2).fontWeight(.bold)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                         .tracking(0.5)
                 }
                 Text(title)
                     .font(Design.Typography.title3Rounded).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
             }
             Spacer()
             trailing
@@ -81,9 +81,9 @@ struct ModalCloseButton: View {
         } label: {
             Image(systemName: "xmark")
                 .font(Design.Typography.footnote).fontWeight(.semibold)
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(Design.Colors.Text.quaternary)
                 .frame(width: 44, height: 44)
-                .background(Circle().fill(.white.opacity(0.1)))
+                .background(Circle().fill(Design.Colors.Glass.thick))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -103,9 +103,9 @@ struct ModalBackButton: View {
         } label: {
             Image(systemName: "chevron.left")
                 .font(Design.Typography.footnote).fontWeight(.semibold)
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(Design.Colors.Text.quaternary)
                 .frame(width: 44, height: 44)
-                .background(Circle().fill(.white.opacity(0.1)))
+                .background(Circle().fill(Design.Colors.Glass.thick))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -124,19 +124,19 @@ struct ModalActionButton: View {
 
         var backgroundColor: Color {
             switch self {
-            case .primary: return .white.opacity(0.15)
+            case .primary: return Design.Colors.Glass.ultraThick
             case .success: return Color(red: 0.2, green: 0.78, blue: 0.35).opacity(0.25)
             case .destructive: return Color(red: 0.95, green: 0.3, blue: 0.3).opacity(0.25)
-            case .glass: return .white.opacity(0.1)
+            case .glass: return Design.Colors.Glass.thick
             }
         }
 
         var foregroundColor: Color {
             switch self {
-            case .primary: return .white
+            case .primary: return Design.Colors.Text.primary
             case .success: return Color(red: 0.3, green: 0.95, blue: 0.5)
             case .destructive: return Color(red: 1.0, green: 0.4, blue: 0.4)
-            case .glass: return .white.opacity(0.8)
+            case .glass: return Design.Colors.Text.tertiary
             }
         }
     }
@@ -213,10 +213,10 @@ struct ModalSecondaryButton: View {
                 Text(title)
                     .font(Design.Typography.subhead).fontWeight(.medium)
             }
-            .foregroundStyle(.white.opacity(0.6))
+            .foregroundStyle(Design.Colors.Text.quaternary)
             .frame(maxWidth: .infinity)
             .frame(height: 44)
-            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+            .background(Design.Colors.Glass.regular, in: RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
     }
@@ -227,13 +227,13 @@ struct ModalSecondaryButton: View {
 struct ModalInfoRow: View {
     let label: String
     let value: String
-    var valueColor: Color = .white
+    var valueColor: Color = Design.Colors.Text.primary
 
     var body: some View {
         HStack {
             Text(label)
                 .font(Design.Typography.footnote)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
             Spacer()
             Text(value)
                 .font(Design.Typography.footnote).fontWeight(.medium)
@@ -252,10 +252,10 @@ struct ModalTextInput: View {
     var body: some View {
         TextField(placeholder, text: $text)
             .font(Design.Typography.footnote)
-            .foregroundStyle(.white)
+            .foregroundStyle(Design.Colors.Text.primary)
             .padding(12)
-            .background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.06)))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.08), lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.Border.subtle))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Design.Colors.Border.regular, lineWidth: 1))
     }
 }
 
@@ -271,7 +271,7 @@ struct ModalSectionLabel: View {
     var body: some View {
         Text(text)
             .font(Design.Typography.caption1).fontWeight(.semibold)
-            .foregroundStyle(.white.opacity(0.5))
+            .foregroundStyle(Design.Colors.Text.disabled)
             .textCase(.uppercase)
             .tracking(0.5)
     }

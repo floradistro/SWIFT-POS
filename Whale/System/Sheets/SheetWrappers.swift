@@ -260,13 +260,13 @@ struct OrderDetailSheet: View {
                     SheetCoordinator.shared.dismiss()
                 }
                 .font(Design.Typography.subhead).fontWeight(.medium)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(Design.Colors.Text.quaternary)
 
                 Spacer()
 
                 Text("Order #\(order.shortOrderNumber)")
                     .font(Design.Typography.headline).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
 
                 Spacer()
 
@@ -283,10 +283,10 @@ struct OrderDetailSheet: View {
                     Spacer()
                     ProgressView()
                         .scaleEffect(1.2)
-                        .tint(.white.opacity(0.6))
+                        .tint(Design.Colors.Text.disabled)
                     Text("Loading order details...")
                         .font(Design.Typography.footnote).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                         .padding(.top, 12)
                     Spacer()
                 }
@@ -581,7 +581,7 @@ struct ErrorAlertSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color.white.opacity(0.3))
+                .fill(Design.Colors.Text.placeholder)
                 .frame(width: 36, height: 5)
                 .padding(.top, 10)
                 .padding(.bottom, 20)
@@ -599,12 +599,12 @@ struct ErrorAlertSheet: View {
 
                 Text(title)
                     .font(Design.Typography.title3).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .multilineTextAlignment(.center)
 
                 Text(message)
                     .font(Design.Typography.subhead)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(Design.Colors.Text.quaternary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 8)
@@ -619,12 +619,12 @@ struct ErrorAlertSheet: View {
             } label: {
                 Text("Dismiss")
                     .font(Design.Typography.callout).fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(.white.opacity(0.15))
+                            .fill(Design.Colors.Glass.ultraThick)
                     )
             }
             .buttonStyle(ScaleButtonStyle())
