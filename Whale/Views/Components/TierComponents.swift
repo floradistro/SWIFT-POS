@@ -24,7 +24,7 @@ struct StatPill: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
+        .background(Design.Colors.Glass.regular, in: RoundedRectangle(cornerRadius: 10))
     }
 }
 

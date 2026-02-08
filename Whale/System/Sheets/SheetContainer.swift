@@ -13,11 +13,13 @@ import os.log
 struct SheetContainer: View {
     let sheetType: SheetType
     @EnvironmentObject private var session: SessionObserver
+    @ObservedObject private var theme = ThemeManager.shared
 
     var body: some View {
         sheetContent
             .presentationDetents(detentsForType)
             .presentationDragIndicator(.visible)
+            .id(theme.themeVersion)
     }
 
     // MARK: - Sheet Content

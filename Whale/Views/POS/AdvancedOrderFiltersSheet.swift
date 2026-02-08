@@ -147,7 +147,7 @@ struct AdvancedOrderFiltersSheet: View {
                             }
                     }
                     .padding(10)
-                    .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 8))
+                    .background(Design.Colors.Glass.regular, in: RoundedRectangle(cornerRadius: 8))
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -168,7 +168,7 @@ struct AdvancedOrderFiltersSheet: View {
                             }
                     }
                     .padding(10)
-                    .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 8))
+                    .background(Design.Colors.Glass.regular, in: RoundedRectangle(cornerRadius: 8))
                 }
             }
 
@@ -264,7 +264,7 @@ struct AdvancedOrderFiltersSheet: View {
                 .background(
                     selectedDatePreset == preset
                         ? AnyShapeStyle(Design.Colors.Semantic.accent)
-                        : AnyShapeStyle(Color(.systemGray5)),
+                        : AnyShapeStyle(Design.Colors.Glass.thin),
                     in: RoundedRectangle(cornerRadius: 8)
                 )
         }
@@ -286,7 +286,7 @@ struct AdvancedOrderFiltersSheet: View {
                 .background(
                     isSelected
                         ? AnyShapeStyle(Design.Colors.Semantic.accent)
-                        : AnyShapeStyle(Color(.systemGray5)),
+                        : AnyShapeStyle(Design.Colors.Glass.thin),
                     in: Capsule()
                 )
         }
@@ -312,7 +312,7 @@ struct AdvancedOrderFiltersSheet: View {
             .background(
                 isSelected
                     ? AnyShapeStyle(Design.Colors.Semantic.accent)
-                    : AnyShapeStyle(Color(.systemGray5)),
+                    : AnyShapeStyle(Design.Colors.Glass.thin),
                 in: RoundedRectangle(cornerRadius: 8)
             )
         }
@@ -336,7 +336,7 @@ struct AdvancedOrderFiltersSheet: View {
             .background(
                 isSelected
                     ? AnyShapeStyle(Design.Colors.Semantic.accent)
-                    : AnyShapeStyle(Color(.systemGray5)),
+                    : AnyShapeStyle(Design.Colors.Glass.thin),
                 in: RoundedRectangle(cornerRadius: 8)
             )
         }
@@ -345,10 +345,10 @@ struct AdvancedOrderFiltersSheet: View {
     private func paymentStatusColor(_ status: PaymentStatus) -> Color {
         switch status {
         case .paid: return Design.Colors.Semantic.success
-        case .pending: return .orange
+        case .pending: return Design.Colors.Semantic.warning
         case .failed: return Design.Colors.Semantic.error
-        case .partial: return .yellow
-        case .refunded, .partiallyRefunded: return .gray
+        case .partial: return Design.Colors.Semantic.warning
+        case .refunded, .partiallyRefunded: return Design.Colors.Text.disabled
         }
     }
 }
@@ -374,6 +374,6 @@ private struct FilterSection<Content: View>: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 12))
+        .background(Design.Colors.Glass.regular, in: RoundedRectangle(cornerRadius: 12))
     }
 }

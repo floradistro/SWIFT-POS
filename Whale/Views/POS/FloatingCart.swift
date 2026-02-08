@@ -194,7 +194,7 @@ struct FloatingCart: View {
                     .font(Design.Typography.caption1).fontWeight(.bold)
                     .foregroundStyle(Design.Colors.Text.primary)
                     .frame(width: 28, height: 28)
-                    .background(Circle().fill(isActive ? Color.accentColor : Design.Colors.Glass.ultraThick))
+                    .background(Circle().fill(isActive ? Design.Colors.Semantic.accent : Design.Colors.Glass.ultraThick))
 
                 // Item count if any
                 if entry.cartItemCount > 0 {
@@ -252,7 +252,7 @@ struct FloatingCart: View {
                         .font(Design.Typography.footnote).fontWeight(.bold)
                         .foregroundStyle(Design.Colors.Text.primary)
                         .frame(width: 36, height: 36)
-                        .background(Circle().fill(Color.accentColor))
+                        .background(Circle().fill(Design.Colors.Semantic.accent))
                 }
             } else {
                 Image(systemName: "cart.fill")

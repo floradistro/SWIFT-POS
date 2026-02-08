@@ -189,7 +189,7 @@ struct CheckoutSheet: View {
                                 .font(Design.Typography.caption1).fontWeight(.bold)
                                 .foregroundStyle(Design.Colors.Text.primary)
                                 .frame(width: 28, height: 28)
-                                .background(Circle().fill(Color.accentColor))
+                                .background(Circle().fill(Design.Colors.Semantic.accent))
 
                             Text(customer.firstName ?? "Customer")
                                 .font(Design.Typography.footnote).fontWeight(.medium)
@@ -335,7 +335,7 @@ struct CheckoutSheet: View {
                 // Star icon
                 Image(systemName: "star.fill")
                     .font(Design.Typography.callout)
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(Design.Colors.Semantic.warning)
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -372,7 +372,7 @@ struct CheckoutSheet: View {
                     in: 0...Double(max(maxRedeemablePoints, 1)),
                     step: 10
                 )
-                .tint(.yellow)
+                .tint(Design.Colors.Semantic.warning)
 
                 // Labels under slider
                 HStack {
@@ -386,7 +386,7 @@ struct CheckoutSheet: View {
                     if pointsToRedeem > 0 {
                         Text("\(pointsToRedeem) pts")
                             .font(Design.Typography.footnoteRounded).fontWeight(.bold)
-                            .foregroundStyle(.yellow)
+                            .foregroundStyle(Design.Colors.Semantic.warning)
                     } else {
                         Text("Slide to redeem")
                             .font(Design.Typography.caption2).fontWeight(.medium)
@@ -523,7 +523,7 @@ struct CheckoutSheet: View {
 
                     ProgressView()
                         .scaleEffect(1.8)
-                        .tint(.accentColor)
+                        .tint(Design.Colors.Semantic.accent)
                 }
 
                 VStack(spacing: 6) {
@@ -586,7 +586,7 @@ struct CheckoutSheet: View {
                 if autoPrintFailed {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Design.Colors.Semantic.warning)
                             .accessibilityHidden(true)
                         Text("Labels failed to print")
                             .font(Design.Typography.footnote).fontWeight(.medium)
@@ -594,7 +594,7 @@ struct CheckoutSheet: View {
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
-                    .background(.orange.opacity(0.15), in: Capsule())
+                    .background(Design.Colors.Semantic.warningBackground, in: Capsule())
                     .accessibilityElement(children: .combine)
                 }
 

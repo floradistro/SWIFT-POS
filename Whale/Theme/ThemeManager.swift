@@ -266,8 +266,8 @@ final class ThemeManager: ObservableObject {
         let isLight = p.baseMode == .light
         let accent = p.accent
 
-        // Backgrounds — heavy accent tint so the accent color IS the background
-        let bgTint = isLight ? 0.08 : 0.12
+        // Backgrounds — subtle accent wash (visible but not overpowering)
+        let bgTint = isLight ? 0.05 : 0.06
         backgroundPrimary = accentBlend(p.backgroundPrimary, accent: accent, amount: bgTint)
         backgroundSecondary = accentBlend(p.backgroundSecondary, accent: accent, amount: bgTint)
         backgroundTertiary = accentBlend(p.backgroundTertiary, accent: accent, amount: bgTint)

@@ -361,7 +361,7 @@ struct RegisterPickerSheet: View {
                                 Spacer()
                                 if session.selectedRegister?.id == register.id {
                                     Image(systemName: "checkmark")
-                                        .foregroundStyle(.blue)
+                                        .foregroundStyle(Design.Colors.Semantic.accent)
                                 }
                             }
                         }
@@ -624,6 +624,6 @@ struct ErrorAlertSheet: View {
             Spacer().frame(height: 24)
         }
         .frame(maxWidth: .infinity)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Design.Colors.backgroundSecondary)
     }
 }

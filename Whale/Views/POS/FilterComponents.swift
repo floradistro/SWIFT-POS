@@ -177,7 +177,7 @@ struct DateRangePickerSheet: View {
                                         .font(Design.Typography.footnote).fontWeight(selectedPreset == preset ? .semibold : .medium)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
-                                        .background(selectedPreset == preset ? Color.accentColor : Color(.tertiarySystemFill))
+                                        .background(selectedPreset == preset ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular)
                                         .foregroundStyle(selectedPreset == preset ? Design.Colors.Text.primary : .primary)
                                         .clipShape(Capsule())
                                 }
@@ -198,14 +198,14 @@ struct DateRangePickerSheet: View {
                                     .foregroundStyle(.secondary)
                                 Text(selectedStart, format: .dateTime.month(.abbreviated).day().year())
                                     .font(Design.Typography.subhead).fontWeight(.semibold)
-                                    .foregroundStyle(isSelectingStart ? Color.accentColor : .primary)
+                                    .foregroundStyle(isSelectingStart ? Design.Colors.Semantic.accent : .primary)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
+                            .background(Design.Colors.Glass.regular, in: RoundedRectangle(cornerRadius: 12))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(isSelectingStart ? Color.accentColor : .clear, lineWidth: 2)
+                                    .stroke(isSelectingStart ? Design.Colors.Semantic.accent : .clear, lineWidth: 2)
                             )
                         }
                         .buttonStyle(.plain)
@@ -220,14 +220,14 @@ struct DateRangePickerSheet: View {
                                     .foregroundStyle(.secondary)
                                 Text(selectedEnd, format: .dateTime.month(.abbreviated).day().year())
                                     .font(Design.Typography.subhead).fontWeight(.semibold)
-                                    .foregroundStyle(!isSelectingStart ? Color.accentColor : .primary)
+                                    .foregroundStyle(!isSelectingStart ? Design.Colors.Semantic.accent : .primary)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
+                            .background(Design.Colors.Glass.regular, in: RoundedRectangle(cornerRadius: 12))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(!isSelectingStart ? Color.accentColor : .clear, lineWidth: 2)
+                                    .stroke(!isSelectingStart ? Design.Colors.Semantic.accent : .clear, lineWidth: 2)
                             )
                         }
                         .buttonStyle(.plain)
