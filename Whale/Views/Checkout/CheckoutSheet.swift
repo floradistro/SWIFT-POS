@@ -187,13 +187,13 @@ struct CheckoutSheet: View {
                     if let customer = selectedCustomer {
                         HStack(spacing: 6) {
                             Text(customer.initials)
-                                .font(.system(size: 12, weight: .bold))
+                                .font(Design.Typography.caption1).fontWeight(.bold)
                                 .foregroundStyle(.white)
                                 .frame(width: 28, height: 28)
                                 .background(Circle().fill(Color.accentColor))
 
                             Text(customer.firstName ?? "Customer")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(Design.Typography.footnote).fontWeight(.medium)
                                 .foregroundStyle(.white.opacity(0.6))
                         }
                         .padding(.horizontal, 12)
@@ -211,7 +211,7 @@ struct CheckoutSheet: View {
 
                     // Item count
                     Text("\(cartItems.count) item\(cartItems.count == 1 ? "" : "s")")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.4))
                 }
 
@@ -249,7 +249,7 @@ struct CheckoutSheet: View {
 
             if cartItems.count > 5 {
                 Text("+\(cartItems.count - 5) more items")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Design.Typography.caption1).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.3))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14)
@@ -298,7 +298,7 @@ struct CheckoutSheet: View {
             // Total row
             HStack {
                 Text("Total")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(Design.Typography.callout).fontWeight(.semibold)
                     .foregroundStyle(.white)
                 Spacer()
                 Text(CurrencyFormatter.format(displayTotal))
@@ -315,11 +315,11 @@ struct CheckoutSheet: View {
     private func totalsRow(label: String, value: String, valueColor: Color = .white.opacity(0.6)) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 14))
+                .font(Design.Typography.footnote)
                 .foregroundStyle(.white.opacity(0.5))
             Spacer()
             Text(value)
-                .font(.system(size: 14, weight: .medium))
+                .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(valueColor)
         }
         .padding(.horizontal, 14)
@@ -335,17 +335,17 @@ struct CheckoutSheet: View {
             HStack(alignment: .center) {
                 // Star icon
                 Image(systemName: "star.fill")
-                    .font(.system(size: 16))
+                    .font(Design.Typography.callout)
                     .foregroundStyle(.yellow)
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Loyalty Points")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                         .foregroundStyle(.white)
 
                     Text("\(selectedCustomer?.loyaltyPoints ?? 0) available • \(CurrencyFormatter.format(pointValue)) each")
-                        .font(.system(size: 11))
+                        .font(Design.Typography.caption2)
                         .foregroundStyle(.white.opacity(0.5))
                 }
 
@@ -354,7 +354,7 @@ struct CheckoutSheet: View {
                 // Discount badge - only shown when redeeming
                 if hasLoyaltyDiscount {
                     Text("-\(CurrencyFormatter.format(calculatedLoyaltyDiscount))")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(Design.Typography.calloutRounded).fontWeight(.bold)
                         .foregroundStyle(.green)
                 }
             }
@@ -378,7 +378,7 @@ struct CheckoutSheet: View {
                 // Labels under slider
                 HStack {
                     Text("0")
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .font(Design.Typography.caption2Rounded).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.3))
 
                     Spacer()
@@ -386,18 +386,18 @@ struct CheckoutSheet: View {
                     // Current value - centered and prominent
                     if pointsToRedeem > 0 {
                         Text("\(pointsToRedeem) pts")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .font(Design.Typography.footnoteRounded).fontWeight(.bold)
                             .foregroundStyle(.yellow)
                     } else {
                         Text("Slide to redeem")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Design.Typography.caption2).fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.35))
                     }
 
                     Spacer()
 
                     Text("\(maxRedeemablePoints)")
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .font(Design.Typography.caption2Rounded).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.3))
                 }
             }
@@ -430,9 +430,9 @@ struct CheckoutSheet: View {
         } label: {
             VStack(spacing: 6) {
                 Image(systemName: method.icon)
-                    .font(.system(size: 18, weight: .medium))
+                    .font(Design.Typography.headline).fontWeight(.medium)
                 Text(method.label)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Design.Typography.caption2).fontWeight(.semibold)
             }
             .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
             .frame(width: 72, height: 56)
@@ -529,10 +529,10 @@ struct CheckoutSheet: View {
 
                 VStack(spacing: 6) {
                     Text("Processing...")
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(Design.Typography.title3).fontWeight(.semibold)
                         .foregroundStyle(.white)
                     Text(selectedPaymentMethod.label)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.5))
                 }
 
@@ -567,7 +567,7 @@ struct CheckoutSheet: View {
 
                     if let orderNumber = completedOrder?.orderNumber {
                         Text(orderNumber)
-                            .font(.system(size: 13, weight: .medium, design: .monospaced))
+                            .font(Design.Typography.footnoteMono).fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.4))
                     }
                 }
@@ -590,7 +590,7 @@ struct CheckoutSheet: View {
                             .foregroundStyle(.orange)
                             .accessibilityHidden(true)
                         Text("Labels failed to print")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                             .foregroundStyle(.white)
                     }
                     .padding(.horizontal, 14)
@@ -618,9 +618,9 @@ struct CheckoutSheet: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: copiedLink ? "checkmark" : "doc.on.doc")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(Design.Typography.footnote).fontWeight(.medium)
                             Text(copiedLink ? "Copied!" : "Copy Payment Link")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(Design.Typography.subhead).fontWeight(.semibold)
                         }
                         .foregroundStyle(.white.opacity(0.7))
                         .frame(maxWidth: .infinity)
@@ -641,9 +641,9 @@ struct CheckoutSheet: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(Design.Typography.subhead).fontWeight(.semibold)
                     Text("Done")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(Design.Typography.headline)
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)

@@ -62,29 +62,29 @@ struct OrderListRow: View {
                     HStack(spacing: 14) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(order.displayCustomerName)
-                                .font(.system(size: 17, weight: .medium))
+                                .font(Design.Typography.body).fontWeight(.medium)
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
 
                             HStack(spacing: 6) {
                                 Text("#\(order.shortOrderNumber)")
-                                    .font(.system(size: 13, design: .monospaced))
+                                    .font(Design.Typography.footnoteMono)
                                     .foregroundStyle(.white.opacity(0.4))
 
                                 Text("•")
-                                    .font(.system(size: 8))
+                                    .font(Design.Typography.caption2)
                                     .foregroundStyle(.white.opacity(0.2))
 
                                 Text(order.orderType.displayName)
-                                    .font(.system(size: 13))
+                                    .font(Design.Typography.footnote)
                                     .foregroundStyle(.white.opacity(0.4))
 
                                 Text("•")
-                                    .font(.system(size: 8))
+                                    .font(Design.Typography.caption2)
                                     .foregroundStyle(.white.opacity(0.2))
 
                                 Text(order.timeAgo)
-                                    .font(.system(size: 13))
+                                    .font(Design.Typography.footnote)
                                     .foregroundStyle(.white.opacity(0.4))
                             }
                         }
@@ -93,7 +93,7 @@ struct OrderListRow: View {
 
                         VStack(alignment: .trailing, spacing: 4) {
                             Text(order.formattedTotal)
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                .font(Design.Typography.headlineRounded)
                                 .foregroundStyle(.white)
 
                             OrderListStatusPill(order: order)
@@ -101,7 +101,7 @@ struct OrderListRow: View {
 
                         if isMultiSelectMode {
                             Image(systemName: isMultiSelected ? "checkmark.circle.fill" : "circle")
-                                .font(.system(size: 22))
+                                .font(Design.Typography.title2)
                                 .foregroundStyle(isMultiSelected ? Design.Colors.Semantic.accent : .white.opacity(0.3))
                                 .scaleEffect(isMultiSelected ? 1.0 : 0.9)
                                 .accessibilityHidden(true)
@@ -219,7 +219,7 @@ struct OrderListStatusPill: View {
             }
 
             Text(statusText)
-                .font(.system(size: 11, weight: .medium))
+                .font(Design.Typography.caption2).fontWeight(.medium)
                 .foregroundStyle(needsAction ? .orange : (isComplete ? Design.Colors.Semantic.success : .white.opacity(0.7)))
         }
         .padding(.horizontal, 10)
@@ -242,7 +242,7 @@ struct OrderStatusBadge: View {
 
     var body: some View {
         Text(status.displayName)
-            .font(.system(size: 10, weight: .semibold))
+            .font(Design.Typography.caption2).fontWeight(.semibold)
             .foregroundStyle(statusColor)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -274,7 +274,7 @@ struct PaymentStatusBadge: View {
                 .accessibilityHidden(true)
 
             Text(status.displayName)
-                .font(.system(size: 10, weight: .medium))
+                .font(Design.Typography.caption2).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.7))
         }
         .accessibilityElement(children: .combine)

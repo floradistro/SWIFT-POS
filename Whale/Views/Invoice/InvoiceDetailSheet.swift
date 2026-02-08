@@ -91,7 +91,7 @@ struct InvoiceDetailSheet: View {
                         .foregroundStyle(.white)
 
                     Text("Created \(invoice.createdAt.formatted(date: .abbreviated, time: .shortened))")
-                        .font(.system(size: 13))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.5))
                 }
 
@@ -105,9 +105,9 @@ struct InvoiceDetailSheet: View {
                 let isOverdue = dueDate < Date() && invoice.paidAt == nil
                 HStack(spacing: 8) {
                     Image(systemName: isOverdue ? "exclamationmark.triangle.fill" : "calendar")
-                        .font(.system(size: 14))
+                        .font(Design.Typography.footnote)
                     Text(isOverdue ? "Overdue" : "Due \(dueDate.formatted(date: .abbreviated, time: .omitted))")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                 }
                 .foregroundStyle(isOverdue ? Design.Colors.Semantic.error : .white.opacity(0.6))
                 .padding(.horizontal, 12)
@@ -129,7 +129,7 @@ struct InvoiceDetailSheet: View {
     private var statusBadge: some View {
         let color = statusColor
         return Text(invoice.status.displayName.uppercased())
-            .font(.system(size: 11, weight: .bold))
+            .font(Design.Typography.caption2).fontWeight(.bold)
             .foregroundStyle(color)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
@@ -156,7 +156,7 @@ struct InvoiceDetailSheet: View {
     private var trackingSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Activity")
-                .font(.system(size: 15, weight: .semibold))
+                .font(Design.Typography.subhead).fontWeight(.semibold)
                 .foregroundStyle(.white)
 
             VStack(spacing: 0) {
@@ -212,7 +212,7 @@ struct InvoiceDetailSheet: View {
                         .frame(width: 32, height: 32)
 
                     Image(systemName: icon)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                         .foregroundStyle(isComplete ? .white : .white.opacity(0.3))
                 }
 
@@ -226,16 +226,16 @@ struct InvoiceDetailSheet: View {
             // Content
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(isComplete ? .white : .white.opacity(0.4))
 
                 if let timestamp = timestamp {
                     Text(timestamp.formatted(date: .abbreviated, time: .shortened))
-                        .font(.system(size: 12))
+                        .font(Design.Typography.caption1)
                         .foregroundStyle(.white.opacity(0.5))
                 } else {
                     Text("Pending")
-                        .font(.system(size: 12))
+                        .font(Design.Typography.caption1)
                         .foregroundStyle(.white.opacity(0.3))
                 }
             }
@@ -250,7 +250,7 @@ struct InvoiceDetailSheet: View {
     private var customerSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Customer")
-                .font(.system(size: 15, weight: .semibold))
+                .font(Design.Typography.subhead).fontWeight(.semibold)
                 .foregroundStyle(.white)
 
             VStack(spacing: 10) {
@@ -267,10 +267,10 @@ struct InvoiceDetailSheet: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Notes")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Design.Typography.caption1).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.5))
                     Text(notes)
-                        .font(.system(size: 14))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.8))
                 }
             }
@@ -285,12 +285,12 @@ struct InvoiceDetailSheet: View {
     private func infoRow(icon: String, value: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(Design.Typography.footnote)
                 .foregroundStyle(.white.opacity(0.5))
                 .frame(width: 20)
 
             Text(value)
-                .font(.system(size: 14))
+                .font(Design.Typography.footnote)
                 .foregroundStyle(.white.opacity(0.8))
 
             Spacer()
@@ -302,7 +302,7 @@ struct InvoiceDetailSheet: View {
     private func lineItemsSection(_ items: [InvoiceLineItem]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Items")
-                .font(.system(size: 15, weight: .semibold))
+                .font(Design.Typography.subhead).fontWeight(.semibold)
                 .foregroundStyle(.white)
 
             VStack(spacing: 8) {
@@ -310,13 +310,13 @@ struct InvoiceDetailSheet: View {
                     HStack(alignment: .top, spacing: 12) {
                         // Quantity badge
                         Text("\(item.quantity)×")
-                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .font(Design.Typography.footnoteRounded).fontWeight(.semibold)
                             .foregroundStyle(.white.opacity(0.6))
                             .frame(width: 30, alignment: .leading)
 
                         // Product name
                         Text(item.productName)
-                            .font(.system(size: 14))
+                            .font(Design.Typography.footnote)
                             .foregroundStyle(.white.opacity(0.9))
                             .lineLimit(2)
 
@@ -324,7 +324,7 @@ struct InvoiceDetailSheet: View {
 
                         // Line total
                         Text(CurrencyFormatter.format(item.total))
-                            .font(.system(size: 14, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.8))
                     }
                     .padding(.vertical, 8)
@@ -349,33 +349,33 @@ struct InvoiceDetailSheet: View {
         VStack(spacing: 12) {
             HStack {
                 Text("Subtotal")
-                    .font(.system(size: 14))
+                    .font(Design.Typography.footnote)
                     .foregroundStyle(.white.opacity(0.6))
                 Spacer()
                 Text(CurrencyFormatter.format(invoice.subtotal))
-                    .font(.system(size: 14))
+                    .font(Design.Typography.footnote)
                     .foregroundStyle(.white.opacity(0.8))
             }
 
             if invoice.discountAmount > 0 {
                 HStack {
                     Text("Discount")
-                        .font(.system(size: 14))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.6))
                     Spacer()
                     Text("-\(CurrencyFormatter.format(invoice.discountAmount))")
-                        .font(.system(size: 14))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(Design.Colors.Semantic.success)
                 }
             }
 
             HStack {
                 Text("Tax")
-                    .font(.system(size: 14))
+                    .font(Design.Typography.footnote)
                     .foregroundStyle(.white.opacity(0.6))
                 Spacer()
                 Text(CurrencyFormatter.format(invoice.taxAmount))
-                    .font(.system(size: 14))
+                    .font(Design.Typography.footnote)
                     .foregroundStyle(.white.opacity(0.8))
             }
 
@@ -384,7 +384,7 @@ struct InvoiceDetailSheet: View {
 
             HStack {
                 Text("Total")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(Design.Typography.callout).fontWeight(.semibold)
                     .foregroundStyle(.white)
                 Spacer()
                 Text(CurrencyFormatter.format(invoice.totalAmount))
@@ -405,10 +405,10 @@ struct InvoiceDetailSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 16))
+                    .font(Design.Typography.callout)
                     .foregroundStyle(Design.Colors.Semantic.success)
                 Text("Payment Received")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Design.Typography.subhead).fontWeight(.semibold)
                     .foregroundStyle(.white)
             }
 
@@ -465,18 +465,18 @@ struct InvoiceDetailSheet: View {
     private func paymentInfoRow(icon: String, label: String, value: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(Design.Typography.footnote)
                 .foregroundStyle(.white.opacity(0.5))
                 .frame(width: 20)
 
             Text(label)
-                .font(.system(size: 13))
+                .font(Design.Typography.footnote)
                 .foregroundStyle(.white.opacity(0.6))
 
             Spacer()
 
             Text(value)
-                .font(.system(size: 13, weight: .medium))
+                .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.9))
         }
     }
@@ -519,9 +519,9 @@ struct InvoiceDetailSheet: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: copiedLink ? "checkmark" : "doc.on.doc")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                         Text(copiedLink ? "Link Copied!" : "Copy Payment Link")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                     }
                     .foregroundStyle(copiedLink ? Design.Colors.Semantic.success : .white)
                     .frame(maxWidth: .infinity)
@@ -547,10 +547,10 @@ struct InvoiceDetailSheet: View {
                                     .scaleEffect(0.8)
                             } else {
                                 Image(systemName: "bell.badge")
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(Design.Typography.footnote).fontWeight(.semibold)
                             }
                             Text(reminderButtonText)
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(Design.Typography.footnote).fontWeight(.semibold)
                         }
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -574,10 +574,10 @@ struct InvoiceDetailSheet: View {
                                 .scaleEffect(0.8)
                         } else {
                             Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(Design.Typography.footnote).fontWeight(.semibold)
                         }
                         Text(isResending ? "Sending..." : "Resend Invoice Email")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                     }
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -676,11 +676,11 @@ struct InvoiceTrackingBadges: View {
     private func trackingBadge(icon: String, label: String, isComplete: Bool) -> some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(Design.Typography.footnote)
                 .foregroundStyle(isComplete ? Design.Colors.Semantic.success : .white.opacity(0.3))
 
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(Design.Typography.caption2).fontWeight(.medium)
                 .foregroundStyle(isComplete ? .white.opacity(0.8) : .white.opacity(0.3))
         }
         .frame(maxWidth: .infinity)

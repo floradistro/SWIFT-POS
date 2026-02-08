@@ -43,12 +43,12 @@ struct LineItemDiscountOverlay: View {
             // Header with item info
             VStack(spacing: 4) {
                 Text(item.productName)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Design.Typography.subhead).fontWeight(.semibold)
                     .foregroundStyle(.white)
                     .lineLimit(1)
 
                 Text(CurrencyFormatter.format(item.originalLineTotal))
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .font(Design.Typography.footnoteRounded).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.5))
             }
             .padding(.horizontal, 20)
@@ -99,16 +99,16 @@ struct LineItemDiscountOverlay: View {
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "arrow.uturn.backward")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                             .frame(width: 20)
 
                         Text("Remove Discount")
-                            .font(.system(size: 15, weight: .medium))
+                            .font(Design.Typography.subhead).fontWeight(.medium)
 
                         Spacer()
 
                         Text("+\(CurrencyFormatter.format(item.discountAmount))")
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .font(Design.Typography.footnoteRounded).fontWeight(.medium)
                     }
                     .foregroundStyle(.orange)
                     .padding(.horizontal, 16)
@@ -131,11 +131,11 @@ struct LineItemDiscountOverlay: View {
             } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "trash")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                         .frame(width: 20)
 
                     Text("Remove from Cart")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
 
                     Spacer()
                 }
@@ -155,24 +155,24 @@ struct LineItemDiscountOverlay: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.7))
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
 
                     Text(subtitle)
-                        .font(.system(size: 11, weight: .regular))
+                        .font(Design.Typography.caption2)
                         .foregroundStyle(.white.opacity(0.4))
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(Design.Typography.caption1).fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.3))
                     .accessibilityHidden(true)
             }
@@ -286,20 +286,20 @@ struct CheckoutCartItemRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Text("\(item.quantity)×")
-                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .font(Design.Typography.caption1Rounded).fontWeight(.bold)
                 .foregroundStyle(.white.opacity(0.4))
                 .frame(width: 24, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.productName)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(.white)
                     .lineLimit(1)
 
                 // Show discount badge if item has discount
                 if item.discountAmount > 0 {
                     Text("-\(CurrencyFormatter.format(item.discountAmount))")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(Design.Typography.caption2).fontWeight(.semibold)
                         .foregroundStyle(.green)
                 }
             }
@@ -308,13 +308,13 @@ struct CheckoutCartItemRow: View {
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text(CurrencyFormatter.format(item.lineTotal))
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(Design.Typography.footnoteRounded).fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.6))
 
                 // Show original price if discounted
                 if item.discountAmount > 0 {
                     Text(CurrencyFormatter.format(item.originalLineTotal))
-                        .font(.system(size: 10, weight: .medium))
+                        .font(Design.Typography.caption2).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.3))
                         .strikethrough()
                 }

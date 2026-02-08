@@ -56,10 +56,10 @@ extension OrderDetailContentView {
                         .scaleEffect(0.8)
                 } else {
                     Image(systemName: icon)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                 }
                 Text(label)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(Design.Typography.footnote).fontWeight(.semibold)
             }
             .foregroundStyle(disabled ? .white.opacity(0.4) : .white)
             .frame(maxWidth: .infinity)
@@ -74,7 +74,7 @@ extension OrderDetailContentView {
 
     func actionMessageBanner(_ message: String) -> some View {
         Text(message)
-            .font(.system(size: 14, weight: .medium))
+            .font(Design.Typography.footnote).fontWeight(.medium)
             .foregroundStyle(.white)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -150,7 +150,7 @@ extension OrderDetailContentView {
                         .fill(statusColor)
                         .frame(width: 10, height: 10)
                     Text(order.status.displayName)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(Design.Typography.callout).fontWeight(.semibold)
                         .foregroundStyle(.white)
                 }
 
@@ -158,9 +158,9 @@ extension OrderDetailContentView {
 
                 HStack(spacing: 6) {
                     Image(systemName: order.channel.icon)
-                        .font(.system(size: 12))
+                        .font(Design.Typography.caption1)
                     Text(order.channel.displayName)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                 }
                 .foregroundStyle(.white.opacity(0.5))
             }
@@ -193,10 +193,10 @@ extension OrderDetailContentView {
                 if let name = customer.fullName {
                     HStack {
                         Image(systemName: "person.fill")
-                            .font(.system(size: 12))
+                            .font(Design.Typography.caption1)
                             .foregroundStyle(.white.opacity(0.4))
                         Text(name)
-                            .font(.system(size: 14, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                             .foregroundStyle(.white)
                         Spacer()
                     }
@@ -204,10 +204,10 @@ extension OrderDetailContentView {
                 if let email = customer.email {
                     HStack {
                         Image(systemName: "envelope.fill")
-                            .font(.system(size: 12))
+                            .font(Design.Typography.caption1)
                             .foregroundStyle(.white.opacity(0.4))
                         Text(email)
-                            .font(.system(size: 14))
+                            .font(Design.Typography.footnote)
                             .foregroundStyle(.white.opacity(0.7))
                         Spacer()
                     }
@@ -215,10 +215,10 @@ extension OrderDetailContentView {
                 if let phone = customer.phone {
                     HStack {
                         Image(systemName: "phone.fill")
-                            .font(.system(size: 12))
+                            .font(Design.Typography.caption1)
                             .foregroundStyle(.white.opacity(0.4))
                         Text(phone)
-                            .font(.system(size: 14))
+                            .font(Design.Typography.footnote)
                             .foregroundStyle(.white.opacity(0.7))
                         Spacer()
                     }
@@ -238,10 +238,10 @@ extension OrderDetailContentView {
 
             HStack(spacing: 10) {
                 Image(systemName: "mappin.circle.fill")
-                    .font(.system(size: 18))
+                    .font(Design.Typography.headline)
                     .foregroundStyle(.white.opacity(0.5))
                 Text(locationName)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(.white)
                 Spacer()
             }
@@ -263,19 +263,19 @@ extension OrderDetailContentView {
                         .fill(Color.white.opacity(0.1))
                         .frame(width: 40, height: 40)
                     Text(employee.initials)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                         .foregroundStyle(.white.opacity(0.6))
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
                     if let name = employee.fullName {
                         Text(name)
-                            .font(.system(size: 14, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                             .foregroundStyle(.white)
                     }
                     if let email = employee.email {
                         Text(email)
-                            .font(.system(size: 12))
+                            .font(Design.Typography.caption1)
                             .foregroundStyle(.white.opacity(0.4))
                     }
                 }
@@ -283,7 +283,7 @@ extension OrderDetailContentView {
                 Spacer()
 
                 Image(systemName: "person.badge.clock")
-                    .font(.system(size: 16))
+                    .font(Design.Typography.callout)
                     .foregroundStyle(.white.opacity(0.3))
             }
             .padding(.horizontal, 14)
@@ -301,13 +301,13 @@ extension OrderDetailContentView {
             ForEach(items) { item in
                 HStack(spacing: 10) {
                     Text("\(item.quantity)×")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .font(Design.Typography.caption1Rounded).fontWeight(.bold)
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 24, alignment: .leading)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.productName)
-                            .font(.system(size: 14, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                             .foregroundStyle(.white)
                             .lineLimit(1)
 
@@ -335,7 +335,7 @@ extension OrderDetailContentView {
                                         .foregroundStyle(.green)
                                 }
                             }
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Design.Typography.caption2).fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.4))
                         }
                     }
@@ -344,12 +344,12 @@ extension OrderDetailContentView {
 
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(formatCurrency(item.lineTotal))
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .font(Design.Typography.footnoteRounded).fontWeight(.semibold)
                             .foregroundStyle(.white.opacity(0.6))
 
                         if let discount = item.discountAmount, discount > 0 {
                             Text(formatCurrency(item.originalLineTotal))
-                                .font(.system(size: 10, weight: .medium))
+                                .font(Design.Typography.caption2).fontWeight(.medium)
                                 .foregroundStyle(.white.opacity(0.3))
                                 .strikethrough()
                         }
@@ -381,14 +381,14 @@ extension OrderDetailContentView {
                     HStack {
                         HStack(spacing: 6) {
                             Image(systemName: "tag.fill")
-                                .font(.system(size: 10))
+                                .font(Design.Typography.caption2)
                             Text("Discount")
                         }
-                        .font(.system(size: 14))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.green)
                         Spacer()
                         Text("-\(formatCurrency(order.discountAmount))")
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .font(Design.Typography.footnoteRounded).fontWeight(.medium)
                             .foregroundStyle(.green)
                     }
                 }
@@ -397,14 +397,14 @@ extension OrderDetailContentView {
                     HStack {
                         HStack(spacing: 6) {
                             Image(systemName: "star.fill")
-                                .font(.system(size: 10))
+                                .font(Design.Typography.caption2)
                             Text("Points Redeemed")
                         }
-                        .font(.system(size: 14))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.orange)
                         Spacer()
                         Text("-\(pointsRedeemed) pts")
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .font(Design.Typography.footnoteRounded).fontWeight(.medium)
                             .foregroundStyle(.orange)
                     }
                 }
@@ -417,11 +417,11 @@ extension OrderDetailContentView {
 
                 HStack {
                     Text("Total")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(Design.Typography.callout).fontWeight(.bold)
                         .foregroundStyle(.white)
                     Spacer()
                     Text(order.formattedTotal)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(Design.Typography.calloutRounded).fontWeight(.bold)
                         .foregroundStyle(.white)
                 }
 
@@ -429,14 +429,14 @@ extension OrderDetailContentView {
                     HStack {
                         HStack(spacing: 6) {
                             Image(systemName: "star.fill")
-                                .font(.system(size: 10))
+                                .font(Design.Typography.caption2)
                             Text("Points Earned")
                         }
-                        .font(.system(size: 13))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.yellow.opacity(0.8))
                         Spacer()
                         Text("+\(pointsEarned) pts")
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .font(Design.Typography.footnoteRounded).fontWeight(.medium)
                             .foregroundStyle(.yellow.opacity(0.8))
                     }
                 }
@@ -458,26 +458,26 @@ extension OrderDetailContentView {
                     HStack {
                         HStack(spacing: 6) {
                             Image(systemName: f.type.icon)
-                                .font(.system(size: 13))
+                                .font(Design.Typography.footnote)
                             Text(f.type.displayName)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(Design.Typography.footnote).fontWeight(.medium)
                         }
                         .foregroundStyle(.white)
 
                         Spacer()
 
                         Text(f.status.displayName)
-                            .font(.system(size: 13))
+                            .font(Design.Typography.footnote)
                             .foregroundStyle(fulfillmentStatusColor(f.status))
                     }
 
                     if let loc = f.locationName {
                         HStack {
                             Image(systemName: "building.2")
-                                .font(.system(size: 11))
+                                .font(Design.Typography.caption2)
                                 .foregroundStyle(.white.opacity(0.3))
                             Text(loc)
-                                .font(.system(size: 13))
+                                .font(Design.Typography.footnote)
                                 .foregroundStyle(.white.opacity(0.5))
                             Spacer()
                         }
@@ -486,10 +486,10 @@ extension OrderDetailContentView {
                     if let carrier = f.carrier {
                         HStack {
                             Image(systemName: "shippingbox")
-                                .font(.system(size: 11))
+                                .font(Design.Typography.caption2)
                                 .foregroundStyle(.white.opacity(0.3))
                             Text(carrier)
-                                .font(.system(size: 13))
+                                .font(Design.Typography.footnote)
                                 .foregroundStyle(.white.opacity(0.5))
                             Spacer()
                         }
@@ -498,16 +498,16 @@ extension OrderDetailContentView {
                     if let tracking = f.trackingNumber {
                         HStack {
                             Image(systemName: "barcode")
-                                .font(.system(size: 11))
+                                .font(Design.Typography.caption2)
                                 .foregroundStyle(.white.opacity(0.3))
                             Text(tracking)
-                                .font(.system(size: 12, design: .monospaced))
+                                .font(Design.Typography.caption1Mono)
                                 .foregroundStyle(.white.opacity(0.5))
                             Spacer()
                             if let url = f.trackingUrl, let trackingURL = URL(string: url) {
                                 Link(destination: trackingURL) {
                                     Image(systemName: "arrow.up.right.square")
-                                        .font(.system(size: 12))
+                                        .font(Design.Typography.caption1)
                                         .foregroundStyle(.blue)
                                 }
                             }
@@ -517,11 +517,11 @@ extension OrderDetailContentView {
                     if let shippedAt = f.shippedAt {
                         HStack {
                             Text("Shipped")
-                                .font(.system(size: 12))
+                                .font(Design.Typography.caption1)
                                 .foregroundStyle(.white.opacity(0.3))
                             Spacer()
                             Text(formatDate(shippedAt))
-                                .font(.system(size: 12))
+                                .font(Design.Typography.caption1)
                                 .foregroundStyle(.white.opacity(0.5))
                         }
                     }
@@ -529,11 +529,11 @@ extension OrderDetailContentView {
                     if let deliveredAt = f.deliveredAt {
                         HStack {
                             Text("Delivered")
-                                .font(.system(size: 12))
+                                .font(Design.Typography.caption1)
                                 .foregroundStyle(.white.opacity(0.3))
                             Spacer()
                             Text(formatDate(deliveredAt))
-                                .font(.system(size: 12))
+                                .font(Design.Typography.caption1)
                                 .foregroundStyle(.white.opacity(0.5))
                         }
                     }
@@ -558,7 +558,7 @@ extension OrderDetailContentView {
             sectionLabel("STAFF NOTES")
 
             Text(notes)
-                .font(.system(size: 14))
+                .font(Design.Typography.footnote)
                 .foregroundStyle(.white.opacity(0.7))
                 .padding(.horizontal, 14)
                 .padding(.bottom, 14)

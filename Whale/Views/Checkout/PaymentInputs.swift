@@ -20,17 +20,17 @@ struct CardPaymentInput: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Terminal Ready")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Design.Typography.subhead).fontWeight(.semibold)
                     .foregroundStyle(.white)
                 Text("Tap, insert, or swipe card")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Design.Typography.caption1).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.5))
             }
 
             Spacer()
 
             Image(systemName: "wave.3.right")
-                .font(.system(size: 18, weight: .medium))
+                .font(Design.Typography.headline).fontWeight(.medium)
                 .foregroundStyle(Design.Colors.Semantic.success.opacity(0.7))
                 .symbolEffect(.pulse, options: .repeating)
         }
@@ -93,11 +93,11 @@ struct CashPaymentInput: View {
                         HStack(spacing: 6) {
                             if isExact {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(Design.Typography.footnote).fontWeight(.semibold)
                                     .foregroundStyle(isSelected ? Design.Colors.Semantic.success : .white.opacity(0.6))
                             }
                             Text(isExact ? "Exact" : CurrencyFormatter.format(amount))
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(Design.Typography.subhead).fontWeight(.semibold)
                         }
                         .foregroundStyle(isSelected ? .white : .white.opacity(0.7))
                         .frame(maxWidth: .infinity)
@@ -113,15 +113,15 @@ struct CashPaymentInput: View {
                 HStack {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.turn.down.left")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(Design.Typography.caption1).fontWeight(.semibold)
                             .foregroundStyle(Design.Colors.Semantic.success.opacity(0.7))
                         Text("Change Due")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.5))
                     }
                     Spacer()
                     Text(CurrencyFormatter.format(change))
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(Design.Typography.headlineRounded).fontWeight(.bold)
                         .foregroundStyle(Design.Colors.Semantic.success)
                 }
                 .padding(.horizontal, 4)
@@ -171,9 +171,9 @@ struct SplitPaymentInput: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 5) {
                         Image(systemName: "banknote")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Design.Typography.caption2).fontWeight(.medium)
                         Text("CASH")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(Design.Typography.caption2).fontWeight(.semibold)
                             .tracking(0.5)
                     }
                     .foregroundStyle(.white.opacity(0.5))
@@ -199,9 +199,9 @@ struct SplitPaymentInput: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 5) {
                         Image(systemName: "creditcard")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Design.Typography.caption2).fontWeight(.medium)
                         Text("CARD")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(Design.Typography.caption2).fontWeight(.semibold)
                             .tracking(0.5)
                     }
                     .foregroundStyle(.white.opacity(0.5))
@@ -235,7 +235,7 @@ struct SplitPaymentInput: View {
             Task { await applyPreset(preset) }
         } label: {
             Text(label)
-                .font(.system(size: 13, weight: .semibold))
+                .font(Design.Typography.footnote).fontWeight(.semibold)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
@@ -302,9 +302,9 @@ struct MultiCardPaymentInput: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 5) {
                         Image(systemName: "1.circle.fill")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(Design.Typography.caption1).fontWeight(.semibold)
                         Text("CARD 1")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(Design.Typography.caption2).fontWeight(.semibold)
                             .tracking(0.5)
                     }
                     .foregroundStyle(Design.Colors.Semantic.accent.opacity(0.8))
@@ -322,9 +322,9 @@ struct MultiCardPaymentInput: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 5) {
                         Image(systemName: "2.circle.fill")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(Design.Typography.caption1).fontWeight(.semibold)
                         Text("CARD 2")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(Design.Typography.caption2).fontWeight(.semibold)
                             .tracking(0.5)
                     }
                     .foregroundStyle(.white.opacity(0.5))
@@ -358,7 +358,7 @@ struct MultiCardPaymentInput: View {
             Task { await applyPreset(preset) }
         } label: {
             Text(label)
-                .font(.system(size: 13, weight: .semibold))
+                .font(Design.Typography.footnote).fontWeight(.semibold)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
@@ -431,17 +431,17 @@ struct InvoicePaymentInput: View {
                             .fill(Design.Colors.Semantic.success.opacity(0.2))
                             .frame(width: 40, height: 40)
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 18))
+                            .font(Design.Typography.headline)
                             .foregroundStyle(Design.Colors.Semantic.success)
                     }
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text("SENDING TO")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(Design.Typography.caption2).fontWeight(.semibold)
                             .tracking(0.5)
                             .foregroundStyle(.white.opacity(0.4))
                         Text(email)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                             .foregroundStyle(.white)
                     }
 
@@ -453,15 +453,15 @@ struct InvoicePaymentInput: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 6) {
                         Image(systemName: "envelope")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(Design.Typography.caption1).fontWeight(.medium)
                         Text("EMAIL ADDRESS")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(Design.Typography.caption2).fontWeight(.semibold)
                             .tracking(0.5)
                     }
                     .foregroundStyle(.white.opacity(0.5))
 
                     TextField("Enter customer email...", text: $invoiceEmail)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
                         .textContentType(.emailAddress)
                         .keyboardType(.emailAddress)
@@ -477,12 +477,12 @@ struct InvoicePaymentInput: View {
                         .fill(Design.Colors.Semantic.warning.opacity(0.2))
                         .frame(width: 40, height: 40)
                     Image(systemName: "person.crop.circle.badge.exclamationmark")
-                        .font(.system(size: 18))
+                        .font(Design.Typography.headline)
                         .foregroundStyle(Design.Colors.Semantic.warning)
                 }
 
                 Text("Add a customer to send invoice")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.7))
 
                 Spacer()
@@ -492,7 +492,7 @@ struct InvoicePaymentInput: View {
                     onAddCustomer()
                 } label: {
                     Text("Add")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
@@ -509,9 +509,9 @@ struct InvoicePaymentInput: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: "calendar")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Design.Typography.caption1).fontWeight(.medium)
                 Text("DUE DATE")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Design.Typography.caption2).fontWeight(.semibold)
                     .tracking(0.5)
             }
             .foregroundStyle(.white.opacity(0.5))
@@ -522,18 +522,18 @@ struct InvoicePaymentInput: View {
             } label: {
                 HStack {
                     Text(invoiceDueDate.formatted(date: .abbreviated, time: .omitted))
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(Design.Typography.subhead).fontWeight(.semibold)
 
                     Spacer()
 
                     Text(dueDateLabel)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
                         .glassEffect(.regular, in: .capsule)
 
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                         .foregroundStyle(.white.opacity(0.5))
                         .rotationEffect(.degrees(showDueDatePicker ? 180 : 0))
                 }
@@ -558,15 +558,15 @@ struct InvoicePaymentInput: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: "note.text")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Design.Typography.caption1).fontWeight(.medium)
                 Text("NOTES (OPTIONAL)")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Design.Typography.caption2).fontWeight(.semibold)
                     .tracking(0.5)
             }
             .foregroundStyle(.white.opacity(0.5))
 
             TextField("Add notes for the customer...", text: $invoiceNotes)
-                .font(.system(size: 15, weight: .medium))
+                .font(Design.Typography.subhead).fontWeight(.medium)
                 .foregroundStyle(.white)
                 .padding(14)
                 .glassEffect(.regular, in: .rect(cornerRadius: 12))
@@ -674,11 +674,11 @@ private struct IOSShimmerText: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 18, weight: .regular))
+            .font(Design.Typography.headline).fontWeight(.regular)
             .foregroundStyle(.white.opacity(0.4))
             .overlay(
                 Text(text)
-                    .font(.system(size: 18, weight: .regular))
+                    .font(Design.Typography.headline).fontWeight(.regular)
                     .foregroundStyle(.white)
                     .mask(
                         GeometryReader { geo in

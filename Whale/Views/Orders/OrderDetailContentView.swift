@@ -90,7 +90,7 @@ struct OrderDetailContentView: View {
 
     func sectionLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 12, weight: .bold))
+            .font(Design.Typography.caption1).fontWeight(.bold)
             .foregroundStyle(.white.opacity(0.4))
             .tracking(1)
             .padding(.horizontal, 14)
@@ -101,11 +101,11 @@ struct OrderDetailContentView: View {
     func detailRow(_ label: String, value: String) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 14))
+                .font(Design.Typography.footnote)
                 .foregroundStyle(.white.opacity(0.5))
             Spacer()
             Text(value)
-                .font(.system(size: 14, weight: .medium))
+                .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(.white)
         }
     }
