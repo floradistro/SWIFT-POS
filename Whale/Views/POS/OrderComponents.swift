@@ -63,29 +63,29 @@ struct OrderListRow: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(order.displayCustomerName)
                                 .font(Design.Typography.body).fontWeight(.medium)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Design.Colors.Text.primary)
                                 .lineLimit(1)
 
                             HStack(spacing: 6) {
                                 Text("#\(order.shortOrderNumber)")
                                     .font(Design.Typography.footnoteMono)
-                                    .foregroundStyle(.white.opacity(0.4))
+                                    .foregroundStyle(Design.Colors.Text.subtle)
 
                                 Text("•")
                                     .font(Design.Typography.caption2)
-                                    .foregroundStyle(.white.opacity(0.2))
+                                    .foregroundStyle(Design.Colors.Text.ghost)
 
                                 Text(order.orderType.displayName)
                                     .font(Design.Typography.footnote)
-                                    .foregroundStyle(.white.opacity(0.4))
+                                    .foregroundStyle(Design.Colors.Text.subtle)
 
                                 Text("•")
                                     .font(Design.Typography.caption2)
-                                    .foregroundStyle(.white.opacity(0.2))
+                                    .foregroundStyle(Design.Colors.Text.ghost)
 
                                 Text(order.timeAgo)
                                     .font(Design.Typography.footnote)
-                                    .foregroundStyle(.white.opacity(0.4))
+                                    .foregroundStyle(Design.Colors.Text.subtle)
                             }
                         }
 
@@ -94,7 +94,7 @@ struct OrderListRow: View {
                         VStack(alignment: .trailing, spacing: 4) {
                             Text(order.formattedTotal)
                                 .font(Design.Typography.headlineRounded)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Design.Colors.Text.primary)
 
                             OrderListStatusPill(order: order)
                         }
@@ -102,7 +102,7 @@ struct OrderListRow: View {
                         if isMultiSelectMode {
                             Image(systemName: isMultiSelected ? "checkmark.circle.fill" : "circle")
                                 .font(Design.Typography.title2)
-                                .foregroundStyle(isMultiSelected ? Design.Colors.Semantic.accent : .white.opacity(0.3))
+                                .foregroundStyle(isMultiSelected ? Design.Colors.Semantic.accent : Design.Colors.Text.placeholder)
                                 .scaleEffect(isMultiSelected ? 1.0 : 0.9)
                                 .accessibilityHidden(true)
                         }
@@ -110,7 +110,7 @@ struct OrderListRow: View {
                     .padding(.horizontal, horizontalPadding)
                     .padding(.vertical, 14)
                 }
-                .background(isMultiSelected ? Color.white.opacity(0.06) : Color.clear)
+                .background(isMultiSelected ? Design.Colors.Border.subtle : Color.clear)
             }
             .buttonStyle(OrderListRowButtonStyle(isPressed: $isPressed))
             .accessibilityElement(children: .ignore)
@@ -140,7 +140,7 @@ struct OrderListRow: View {
 
             if !isLast {
                 Rectangle()
-                    .fill(Color.white.opacity(0.08))
+                    .fill(Design.Colors.Glass.regular)
                     .frame(height: 0.5)
                     .padding(.horizontal, horizontalPadding)
             }
@@ -220,11 +220,11 @@ struct OrderListStatusPill: View {
 
             Text(statusText)
                 .font(Design.Typography.caption2).fontWeight(.medium)
-                .foregroundStyle(needsAction ? .orange : (isComplete ? Design.Colors.Semantic.success : .white.opacity(0.7)))
+                .foregroundStyle(needsAction ? .orange : (isComplete ? Design.Colors.Semantic.success : Design.Colors.Text.quaternary))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(needsAction || isComplete ? .white.opacity(0.1) : .clear, in: Capsule())
+        .background(needsAction || isComplete ? Design.Colors.Glass.thick : .clear, in: Capsule())
     }
 
     private var statusText: String {
@@ -275,7 +275,7 @@ struct PaymentStatusBadge: View {
 
             Text(status.displayName)
                 .font(Design.Typography.caption2).fontWeight(.medium)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(Design.Colors.Text.quaternary)
         }
         .accessibilityElement(children: .combine)
     }

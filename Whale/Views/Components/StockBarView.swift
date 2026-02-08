@@ -93,7 +93,7 @@ struct StockBarRow: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.white.opacity(0.1))
+                            .fill(Design.Colors.Glass.thick)
                         RoundedRectangle(cornerRadius: 4)
                             .fill(displayColor.opacity(0.6))
                             .frame(width: geo.size.width * percentage)
@@ -103,7 +103,7 @@ struct StockBarRow: View {
 
                 Text("\(formatValue(value)) \(label)")
                     .font(Design.Typography.caption1).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(Design.Colors.Text.quaternary)
                     .frame(minWidth: 80, alignment: .trailing)
             }
         }
@@ -118,15 +118,15 @@ struct StockBarRow: View {
                 TextField("Qty", text: $editValue)
                     .keyboardType(.decimalPad)
                     .font(Design.Typography.callout).fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.1)))
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.Glass.thick))
                     .focused($isFocused)
                     .onAppear { isFocused = true }
 
                 if isSubmitting {
-                    ProgressView().tint(.white)
+                    ProgressView().tint(Design.Colors.Text.primary)
                 } else if isSuccess {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
@@ -136,17 +136,17 @@ struct StockBarRow: View {
                     Button(action: onCancel) {
                         Image(systemName: "xmark")
                             .font(Design.Typography.footnote).fontWeight(.semibold)
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(Design.Colors.Text.disabled)
                             .frame(width: 44, height: 44)
-                            .background(Circle().fill(Color.white.opacity(0.1)))
+                            .background(Circle().fill(Design.Colors.Glass.thick))
                     }
                     .accessibilityLabel("Cancel")
                     Button(action: onSave) {
                         Image(systemName: "checkmark")
                             .font(Design.Typography.footnote).fontWeight(.semibold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Design.Colors.Text.primary)
                             .frame(width: 44, height: 44)
-                            .background(Circle().fill(Color.white.opacity(0.15)))
+                            .background(Circle().fill(Design.Colors.Glass.ultraThick))
                     }
                     .accessibilityLabel("Save quantity")
                 }
@@ -165,11 +165,11 @@ struct StockBarRow: View {
                                 Text(reason.displayName)
                                     .font(Design.Typography.caption2).fontWeight(.medium)
                             }
-                            .foregroundStyle(auditReason == reason ? .white : .white.opacity(0.5))
+                            .foregroundStyle(auditReason == reason ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(
-                                Capsule().fill(auditReason == reason ? Design.Colors.Semantic.accent.opacity(0.3) : Color.white.opacity(0.05))
+                                Capsule().fill(auditReason == reason ? Design.Colors.Semantic.accent.opacity(0.3) : Design.Colors.Glass.thin)
                             )
                         }
                         .buttonStyle(.plain)

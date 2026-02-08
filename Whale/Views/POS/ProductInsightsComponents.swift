@@ -48,7 +48,7 @@ struct ProductAnalyticsInline: View {
             switch self {
             case .up: return Color(hex: "22C55E")
             case .down: return Color(hex: "EF4444")
-            case .flat: return .white.opacity(0.4)
+            case .flat: return Design.Colors.Text.subtle
             }
         }
     }
@@ -91,7 +91,7 @@ struct ProductAnalyticsInline: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("\(Int(velocity?.totalUnits ?? 0))")
                         .font(isCompact ? Design.Typography.footnoteRounded : Design.Typography.calloutRounded).fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
 
                     HStack(spacing: 2) {
                         Image(systemName: trendDirection.icon)
@@ -193,7 +193,7 @@ struct StockPill: View {
         HStack(spacing: 4) {
             Text("\(quantity)")
                 .font(Design.Typography.footnoteRounded).fontWeight(.semibold)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
 
             Circle()
                 .fill(status.color)
@@ -202,14 +202,14 @@ struct StockPill: View {
             if daysSupply > 0 && !isCompact {
                 Text("\(daysSupply)d")
                     .font(Design.Typography.caption2).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Design.Colors.Text.disabled)
             }
         }
         .padding(.horizontal, isCompact ? 8 : 10)
         .padding(.vertical, 6)
         .background(
             Capsule()
-                .fill(.white.opacity(0.06))
+                .fill(Design.Colors.Border.subtle)
         )
         .overlay(
             Capsule()
@@ -259,7 +259,7 @@ struct StockLevelBar: View {
         GeometryReader { geo in
             ZStack(alignment: .bottom) {
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(.white.opacity(0.1))
+                    .fill(Design.Colors.Glass.thick)
 
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
                     .fill(color)
@@ -282,7 +282,7 @@ struct ProductInsightsPanel: View {
     }
 
     private var velocityColor: Color {
-        guard let health = velocity?.health else { return .white.opacity(0.3) }
+        guard let health = velocity?.health else { return Design.Colors.Text.placeholder }
         switch health {
         case .hot: return Design.Colors.Semantic.success
         case .good: return Design.Colors.Semantic.info
@@ -317,21 +317,21 @@ struct ProductInsightsPanel: View {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(Int(velocity?.totalUnits ?? 0))")
                             .font(Design.Typography.title3Rounded).fontWeight(.bold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Design.Colors.Text.primary)
 
                         Text("sold")
                             .font(Design.Typography.caption2).fontWeight(.medium)
-                            .foregroundStyle(.white.opacity(0.5))
+                            .foregroundStyle(Design.Colors.Text.disabled)
                     }
 
                     HStack(spacing: 4) {
                         Text("7 days")
                             .font(Design.Typography.caption2)
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(Design.Colors.Text.subtle)
 
                         if let vel = velocity {
                             Text("·")
-                                .foregroundStyle(.white.opacity(0.3))
+                                .foregroundStyle(Design.Colors.Text.placeholder)
                             Text(vel.health.label)
                                 .font(Design.Typography.caption2).fontWeight(.semibold)
                                 .foregroundStyle(velocityColor)
@@ -344,7 +344,7 @@ struct ProductInsightsPanel: View {
             .frame(maxWidth: .infinity)
 
             Rectangle()
-                .fill(.white.opacity(0.08))
+                .fill(Design.Colors.Glass.regular)
                 .frame(width: 1, height: 32)
                 .padding(.horizontal, 14)
 
@@ -355,11 +355,11 @@ struct ProductInsightsPanel: View {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(product.availableStock)")
                             .font(Design.Typography.title3Rounded).fontWeight(.bold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Design.Colors.Text.primary)
 
                         Text("units")
                             .font(Design.Typography.caption2).fontWeight(.medium)
-                            .foregroundStyle(.white.opacity(0.5))
+                            .foregroundStyle(Design.Colors.Text.disabled)
                     }
 
                     if daysOfStock > 0 {
@@ -369,7 +369,7 @@ struct ProductInsightsPanel: View {
                     } else {
                         Text("in stock")
                             .font(Design.Typography.caption2)
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(Design.Colors.Text.subtle)
                     }
                 }
 
@@ -386,7 +386,7 @@ struct ProductInsightsPanel: View {
         .padding(.horizontal, 12)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.white.opacity(0.04))
+                .fill(Design.Colors.Glass.thin)
         )
     }
 }

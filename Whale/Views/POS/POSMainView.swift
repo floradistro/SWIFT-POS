@@ -108,7 +108,7 @@ struct POSMainView: View {
 
     private var locationRequiredView: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Design.Colors.backgroundPrimary.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Top nav bar
@@ -155,7 +155,7 @@ struct POSMainView: View {
                 } else {
                     Image(systemName: "building.2")
                         .font(Design.Typography.headline)
-                        .foregroundStyle(.white.opacity(0.9))
+                        .foregroundStyle(Design.Colors.Text.secondary)
                         .frame(width: 44, height: 44)
                 }
             }
@@ -174,12 +174,12 @@ struct POSMainView: View {
             VStack(spacing: 6) {
                 Text("Select Location")
                     .font(Design.Typography.title2).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
 
                 if let storeName = session.store?.businessName {
                     Text(storeName)
                         .font(Design.Typography.subhead)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                 }
             }
 
@@ -187,10 +187,10 @@ struct POSMainView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "mappin.slash")
                         .font(Design.Typography.largeTitle)
-                        .foregroundStyle(.white.opacity(0.2))
+                        .foregroundStyle(Design.Colors.Text.ghost)
                     Text("No locations available")
                         .font(Design.Typography.subhead)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                 }
                 .padding(.top, 40)
             } else {
@@ -225,12 +225,12 @@ struct POSMainView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(location.name)
                         .font(Design.Typography.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
 
                     if let address = location.displayAddress {
                         Text(address)
                             .font(Design.Typography.footnote)
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(Design.Colors.Text.subtle)
                             .lineLimit(1)
                     }
                 }
@@ -240,26 +240,26 @@ struct POSMainView: View {
                 // Type pill
                 Text(location.type.capitalized)
                     .font(Design.Typography.caption2).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(Design.Colors.Text.subtle)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color.white.opacity(0.06), in: Capsule())
+                    .background(Design.Colors.Border.subtle, in: Capsule())
 
                 // Checkmark
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(Design.Typography.title3)
-                    .foregroundStyle(isSelected ? .white : .white.opacity(0.2))
+                    .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.ghost)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 18)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(isSelected ? Color.white.opacity(0.08) : Color.white.opacity(0.04))
+                    .fill(isSelected ? Design.Colors.Glass.regular : Design.Colors.Glass.thin)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(
-                        isSelected ? Color.white.opacity(0.2) : Color.white.opacity(0.06),
+                        isSelected ? Design.Colors.Border.strong : Design.Colors.Border.subtle,
                         lineWidth: 1
                     )
             )
@@ -349,7 +349,7 @@ struct POSMainView: View {
                     }
                 }
         }
-        .background(Color.black)
+        .background(Design.Colors.backgroundPrimary)
         .ignoresSafeArea()
         .onReceive(NotificationCenter.default.publisher(for: .sheetCustomerSelected)) { notification in
             if let customer = notification.object as? Customer {
@@ -423,7 +423,7 @@ struct POSMainView: View {
                 // Selection count
                 Text("\(multiSelect.selectedCount) selected")
                     .font(Design.Typography.subhead).fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
 
                 Spacer()
 
@@ -442,7 +442,7 @@ struct POSMainView: View {
                             Text("Print")
                                 .font(Design.Typography.footnote).fontWeight(.bold)
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .padding(.horizontal, 18)
                         .padding(.vertical, 10)
                     }
@@ -460,7 +460,7 @@ struct POSMainView: View {
                             Text("Export")
                                 .font(Design.Typography.footnote).fontWeight(.bold)
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .padding(.horizontal, 18)
                         .padding(.vertical, 10)
                     }
@@ -481,7 +481,7 @@ struct POSMainView: View {
                             Text("Print")
                                 .font(Design.Typography.footnote).fontWeight(.bold)
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .padding(.horizontal, 18)
                         .padding(.vertical, 10)
                     }
@@ -498,7 +498,7 @@ struct POSMainView: View {
                             Text("Ready")
                                 .font(Design.Typography.footnote).fontWeight(.bold)
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .padding(.horizontal, 18)
                         .padding(.vertical, 10)
                     }
@@ -515,7 +515,7 @@ struct POSMainView: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(Design.Typography.footnote).fontWeight(.bold)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(Design.Colors.Text.quaternary)
                         .frame(width: 36, height: 36)
                 }
                 .buttonStyle(LiquidPressStyle())
@@ -530,10 +530,10 @@ struct POSMainView: View {
             // Page indicator
             HStack(spacing: 8) {
                 Circle()
-                    .fill(Color.white.opacity(selectedTab == .products ? 0.9 : 0.3))
+                    .fill(selectedTab == .products ? Design.Colors.Text.secondary : Design.Colors.Text.placeholder)
                     .frame(width: 7, height: 7)
                 Circle()
-                    .fill(Color.white.opacity(selectedTab == .orders ? 0.9 : 0.3))
+                    .fill(selectedTab == .orders ? Design.Colors.Text.secondary : Design.Colors.Text.placeholder)
                     .frame(width: 7, height: 7)
             }
             .padding(.top, 4)

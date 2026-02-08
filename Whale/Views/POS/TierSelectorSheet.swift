@@ -96,12 +96,12 @@ struct TierSelectorSheet: View {
                         HStack {
                             Text(sku)
                                 .font(Design.Typography.caption2Mono).fontWeight(.medium)
-                                .foregroundStyle(.white.opacity(0.4))
+                                .foregroundStyle(Design.Colors.Text.subtle)
                             Spacer()
                             if let cat = product.categoryName {
                                 Text(cat)
                                     .font(Design.Typography.caption2).fontWeight(.medium)
-                                    .foregroundStyle(.white.opacity(0.3))
+                                    .foregroundStyle(Design.Colors.Text.placeholder)
                             }
                         }
                         .padding(.horizontal, 4)
@@ -128,7 +128,7 @@ struct TierSelectorSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(Design.Colors.Text.quaternary)
                 }
                 ToolbarItem(placement: .primaryAction) {
                     HStack(spacing: 12) {
@@ -142,7 +142,7 @@ struct TierSelectorSheet: View {
                         } label: {
                             Image(systemName: "info.circle")
                                 .font(Design.Typography.body)
-                                .foregroundStyle(.white.opacity(0.7))
+                                .foregroundStyle(Design.Colors.Text.quaternary)
                         }
 
                         toolbarMenu
@@ -182,7 +182,7 @@ struct TierSelectorSheet: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(.white.opacity(0.1))
+                            .fill(Design.Colors.Glass.thick)
                         RoundedRectangle(cornerRadius: 4)
                             .fill(stockColor.opacity(0.8))
                             .frame(width: geo.size.width * stockPercentage)
@@ -192,7 +192,7 @@ struct TierSelectorSheet: View {
 
                 Text("\(localStock)g")
                     .font(Design.Typography.subheadRounded).fontWeight(.semibold)
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(Design.Colors.Text.tertiary)
                     .frame(minWidth: 50, alignment: .trailing)
             }
             .contentShape(Rectangle())
@@ -220,13 +220,13 @@ struct TierSelectorSheet: View {
                 TextField("Qty", text: $auditQuantity)
                     .keyboardType(.decimalPad)
                     .font(Design.Typography.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.08)))
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.Glass.regular))
 
                 if isSubmitting {
-                    ProgressView().tint(.white)
+                    ProgressView().tint(Design.Colors.Text.primary)
                         .frame(width: 44, height: 44)
                 } else {
                     Button {
@@ -235,17 +235,17 @@ struct TierSelectorSheet: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(Design.Typography.footnote).fontWeight(.semibold)
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(Design.Colors.Text.disabled)
                             .frame(width: 44, height: 44)
-                            .background(Circle().fill(.white.opacity(0.1)))
+                            .background(Circle().fill(Design.Colors.Glass.thick))
                     }
 
                     Button { submitAudit() } label: {
                         Image(systemName: "checkmark")
                             .font(Design.Typography.footnote).fontWeight(.semibold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Design.Colors.Text.primary)
                             .frame(width: 44, height: 44)
-                            .background(Circle().fill(.white.opacity(0.15)))
+                            .background(Circle().fill(Design.Colors.Glass.ultraThick))
                     }
                 }
             }
@@ -260,11 +260,11 @@ struct TierSelectorSheet: View {
                         } label: {
                             Text(reason.displayName)
                                 .font(Design.Typography.footnote).fontWeight(auditReason == reason ? .semibold : .medium)
-                                .foregroundStyle(auditReason == reason ? .white : .white.opacity(0.6))
+                                .foregroundStyle(auditReason == reason ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
                                 .frame(minHeight: 44)
-                                .background(Capsule().fill(.white.opacity(auditReason == reason ? 0.2 : 0.08)))
+                                .background(Capsule().fill(auditReason == reason ? Design.Colors.Glass.ultraThick : Design.Colors.Glass.regular))
                         }
                         .buttonStyle(.plain)
                     }
@@ -315,7 +315,7 @@ struct TierSelectorSheet: View {
         Button(action: action) {
             Text(name)
                 .font(Design.Typography.subhead).fontWeight(isSelected ? .semibold : .medium)
-                .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
+                .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
                 .padding(.horizontal, 18)
                 .padding(.vertical, 12)
                 .frame(minHeight: 44)
@@ -323,7 +323,7 @@ struct TierSelectorSheet: View {
         }
         .buttonStyle(ScaleButtonStyle())
         .glassEffect(.regular.interactive(), in: .capsule)
-        .overlay(Capsule().stroke(isSelected ? .white.opacity(0.3) : .clear, lineWidth: 1))
+        .overlay(Capsule().stroke(isSelected ? Design.Colors.Border.strong : .clear, lineWidth: 1))
     }
 
     // MARK: - Tiers Section
@@ -333,7 +333,7 @@ struct TierSelectorSheet: View {
             if currentTiers.isEmpty {
                 Text("No pricing available")
                     .font(Design.Typography.footnote)
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(Design.Colors.Text.subtle)
                     .frame(height: 60)
             } else {
                 ForEach(currentTiers, id: \.id) { tier in
@@ -356,11 +356,11 @@ struct TierSelectorSheet: View {
             HStack {
                 Text(tier.label)
                     .font(Design.Typography.callout).fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                 Spacer()
                 Text(CurrencyFormatter.format(tier.defaultPrice))
                     .font(Design.Typography.headlineRounded).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 16)
@@ -409,7 +409,7 @@ struct TierSelectorSheet: View {
         } label: {
             Image(systemName: "ellipsis.circle")
                 .font(Design.Typography.body)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(Design.Colors.Text.quaternary)
         }
     }
 

@@ -98,7 +98,7 @@ struct POSContentBrowser: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            Color.black.ignoresSafeArea()
+            Design.Colors.backgroundPrimary.ignoresSafeArea()
 
             TabView(selection: $selectedTab) {
                 productContent
@@ -249,7 +249,7 @@ struct POSContentBrowser: View {
             } else {
                 Image(systemName: "viewfinder")
                     .font(Design.Typography.headline)
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(Design.Colors.Text.secondary)
                     .frame(width: 44, height: 44)
             }
         }
@@ -423,7 +423,7 @@ struct POSContentBrowser: View {
 
     private var filterDivider: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.15))
+            .fill(Design.Colors.Glass.ultraThick)
             .frame(width: 1, height: 20)
     }
 

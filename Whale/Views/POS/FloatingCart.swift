@@ -168,7 +168,7 @@ struct FloatingCart: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(Design.Typography.footnote).fontWeight(.semibold)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(Design.Colors.Text.tertiary)
                         .frame(width: 44, height: 44)
                         .glassEffect(.regular, in: .circle)
                 }
@@ -192,15 +192,15 @@ struct FloatingCart: View {
                 // Customer initials
                 Text(entry.customerInitials)
                     .font(Design.Typography.caption1).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .frame(width: 28, height: 28)
-                    .background(Circle().fill(isActive ? Color.accentColor : Color.white.opacity(0.25)))
+                    .background(Circle().fill(isActive ? Color.accentColor : Design.Colors.Glass.ultraThick))
 
                 // Item count if any
                 if entry.cartItemCount > 0 {
                     Text("\(entry.cartItemCount)")
                         .font(Design.Typography.caption2Rounded).fontWeight(.semibold)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(Design.Colors.Text.tertiary)
                 }
 
                 // Remove button - no haptic, just visual
@@ -209,9 +209,9 @@ struct FloatingCart: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(Design.Typography.caption2).fontWeight(.bold)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                         .frame(width: 18, height: 18)
-                        .background(Circle().fill(Color.white.opacity(0.15)))
+                        .background(Circle().fill(Design.Colors.Glass.ultraThick))
                         .padding(13)
                         .contentShape(Circle())
                 }
@@ -250,14 +250,14 @@ struct FloatingCart: View {
                 } label: {
                     Text(entry.customerInitials)
                         .font(Design.Typography.footnote).fontWeight(.bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .frame(width: 36, height: 36)
                         .background(Circle().fill(Color.accentColor))
                 }
             } else {
                 Image(systemName: "cart.fill")
                     .font(Design.Typography.headline).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Design.Colors.Text.disabled)
                     .frame(width: 36, height: 36)
                     .accessibilityHidden(true)
             }
@@ -266,10 +266,10 @@ struct FloatingCart: View {
                 // Item count badge
                 Text("\(itemCount)")
                     .font(Design.Typography.footnoteRounded).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(Capsule().fill(Color.white.opacity(0.2)))
+                    .background(Capsule().fill(Design.Colors.Glass.ultraThick))
 
                 Spacer()
 
@@ -277,7 +277,7 @@ struct FloatingCart: View {
                 if let totals = totals {
                     Text(CurrencyFormatter.format(totals.total))
                         .font(Design.Typography.headlineRounded).fontWeight(.bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                 }
 
                 // Checkout button
@@ -293,7 +293,7 @@ struct FloatingCart: View {
                         Text("Pay")
                             .font(Design.Typography.footnote).fontWeight(.bold)
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .background(Color.green, in: Capsule())
@@ -304,14 +304,14 @@ struct FloatingCart: View {
                 // Has customer but no items
                 Text("Add items")
                     .font(Design.Typography.footnote).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Design.Colors.Text.disabled)
 
                 Spacer()
             } else {
                 // No customer, no items
                 Text("Add customer")
                     .font(Design.Typography.footnote).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Design.Colors.Text.disabled)
 
                 Spacer()
 
@@ -321,7 +321,7 @@ struct FloatingCart: View {
                 } label: {
                     Image(systemName: "person.badge.plus")
                         .font(Design.Typography.callout).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
                 }
@@ -340,11 +340,11 @@ struct FloatingCart: View {
     private var pageIndicator: some View {
         HStack(spacing: 8) {
             Circle()
-                .fill(Color.white.opacity(selectedTab == .products ? 0.9 : 0.3))
+                .fill(selectedTab == .products ? Design.Colors.Text.primary : Design.Colors.Text.placeholder)
                 .frame(width: 7, height: 7)
 
             Circle()
-                .fill(Color.white.opacity(selectedTab == .orders ? 0.9 : 0.3))
+                .fill(selectedTab == .orders ? Design.Colors.Text.primary : Design.Colors.Text.placeholder)
                 .frame(width: 7, height: 7)
         }
         .padding(.top, 4)

@@ -39,15 +39,15 @@ struct FilterChip: View {
                         .background(.fill.tertiary, in: .capsule)
                 }
             }
-            .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
+            .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(
-                isSelected ? .white.opacity(0.15) : Color.clear,
+                isSelected ? Design.Colors.Glass.ultraThick : Color.clear,
                 in: .capsule
             )
         }
-        .tint(.white)
+        .tint(Design.Colors.Text.primary)
         .glassEffect(.regular.interactive(), in: .capsule)
         .accessibilityLabel(count.map { "\(label), \($0)" } ?? label)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -104,16 +104,16 @@ struct DateFilterChip: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(Design.Typography.caption2)
-                            .foregroundStyle(.white.opacity(0.5))
+                            .foregroundStyle(Design.Colors.Text.disabled)
                     }
                     .accessibilityLabel("Clear date filter")
                 }
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(Design.Colors.Text.primary)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
         }
-        .tint(.white)
+        .tint(Design.Colors.Text.primary)
         .glassEffect(.regular.interactive(), in: .capsule)
     }
 }
@@ -178,7 +178,7 @@ struct DateRangePickerSheet: View {
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
                                         .background(selectedPreset == preset ? Color.accentColor : Color(.tertiarySystemFill))
-                                        .foregroundStyle(selectedPreset == preset ? .white : .primary)
+                                        .foregroundStyle(selectedPreset == preset ? Design.Colors.Text.primary : .primary)
                                         .clipShape(Capsule())
                                 }
                             }

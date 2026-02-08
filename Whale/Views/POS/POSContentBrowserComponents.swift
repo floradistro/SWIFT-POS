@@ -70,8 +70,8 @@ extension POSContentBrowser {
                     )
                 }
             }
-            .background(Color.black)
-            .overlay(Color.black.opacity(0.15).allowsHitTesting(false))
+            .background(Design.Colors.backgroundPrimary)
+            .overlay(Design.Colors.backgroundPrimary.opacity(0.15).allowsHitTesting(false))
             .mask(RoundedRectangle(cornerRadius: 32, style: .continuous))
             .padding(.horizontal, 12)
             .padding(.top, showSearchAndFilters ? 140 : 80)
@@ -254,7 +254,7 @@ extension POSContentBrowser {
                     .font(.subheadline.bold())
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
-                    .background(.white.opacity(0.1), in: Capsule())
+                    .background(Design.Colors.Glass.thick, in: Capsule())
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

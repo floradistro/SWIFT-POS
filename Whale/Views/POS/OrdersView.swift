@@ -13,7 +13,7 @@ struct OrdersView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Design.Colors.backgroundPrimary.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 ordersHeader
@@ -118,7 +118,7 @@ struct OrdersView: View {
                     }
 
                     RoundedRectangle(cornerRadius: 1)
-                        .fill(Color.white.opacity(0.15))
+                        .fill(Design.Colors.Glass.ultraThick)
                         .frame(width: 1, height: 20)
 
                     GlassPill(
@@ -168,7 +168,7 @@ struct OrdersView: View {
         HStack(spacing: 8) {
             Text("Filters:")
                 .font(Design.Typography.caption2).fontWeight(.medium)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
 
             if store.dateRangeStart != nil || store.dateRangeEnd != nil {
                 filterChip(text: dateRangeText, icon: "calendar") {
@@ -199,7 +199,7 @@ struct OrdersView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+        .background(Design.Colors.Glass.thin, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var dateRangeText: String {
@@ -237,7 +237,7 @@ struct OrdersView: View {
                     .font(Design.Typography.caption1)
             }
         }
-        .foregroundStyle(.white.opacity(0.8))
+        .foregroundStyle(Design.Colors.Text.tertiary)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(Design.Colors.Semantic.accent.opacity(0.2), in: Capsule())
@@ -312,7 +312,7 @@ struct OrdersView: View {
                         .font(.subheadline)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(.white.opacity(0.1), in: Capsule())
+                        .background(Design.Colors.Glass.thick, in: Capsule())
                 }
             }
         }

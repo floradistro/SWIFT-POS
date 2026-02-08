@@ -28,7 +28,7 @@ struct ListRowPressStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
             .opacity(configuration.isPressed ? 0.8 : 1.0)
             .background(
-                configuration.isPressed ? Color.white.opacity(0.08) : Color.clear
+                configuration.isPressed ? Design.Colors.Glass.regular : Color.clear
             )
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, isPressed in
@@ -83,13 +83,13 @@ struct ProductGridCard: View {
                     if isMultiSelectMode {
                         ZStack {
                             Circle()
-                                .fill(isSelected ? Design.Colors.Semantic.accent : Color.black.opacity(0.5))
+                                .fill(isSelected ? Design.Colors.Semantic.accent : Design.Colors.backgroundPrimary.opacity(0.5))
                                 .frame(width: 24, height: 24)
 
                             if isSelected {
                                 Image(systemName: "checkmark")
                                     .font(Design.Typography.caption1).fontWeight(.bold)
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(Design.Colors.Text.primary)
                             }
                         }
                         .padding(8)
@@ -101,30 +101,30 @@ struct ProductGridCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(product.name)
                         .font(Design.Typography.footnote).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
 
                     Text(product.categoryName ?? " ")
                         .font(Design.Typography.caption2)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
                 .padding(10)
-                .background(Color.black.opacity(0.7))
+                .background(Design.Colors.backgroundPrimary.opacity(0.7))
             }
             .overlay(alignment: .trailing) {
                 if showRightLine {
                     Rectangle()
-                        .fill(Color.white.opacity(0.15))
+                        .fill(Design.Colors.Glass.ultraThick)
                         .frame(width: 0.5)
                 }
             }
             .overlay(alignment: .bottom) {
                 if showBottomLine {
                     Rectangle()
-                        .fill(Color.white.opacity(0.15))
+                        .fill(Design.Colors.Glass.ultraThick)
                         .frame(height: 0.5)
                 }
             }
@@ -188,7 +188,7 @@ private struct StockBadge: View {
         if quantity <= 0 { return Design.Colors.Semantic.error }
         if quantity <= 5 { return Color(red: 1, green: 0.4, blue: 0.3) }
         if quantity <= 15 { return Design.Colors.Semantic.warning }
-        return .white.opacity(0.5)
+        return Design.Colors.Text.disabled
     }
 
     private var isLow: Bool {
@@ -239,7 +239,7 @@ struct CartItemRow: View {
                     if let variantName = item.variantName {
                         Text(variantName)
                             .font(Design.Typography.caption2).fontWeight(.bold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Design.Colors.Text.primary)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
                             .background(Capsule().fill(Design.Colors.Semantic.warning.opacity(0.4)))
@@ -248,7 +248,7 @@ struct CartItemRow: View {
                     if let tierLabel = item.tierLabel {
                         Text(tierLabel)
                             .font(Design.Typography.caption2).fontWeight(.semibold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Design.Colors.Text.primary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(Capsule().fill(Design.Colors.Semantic.accent.opacity(0.3)))
@@ -345,15 +345,15 @@ struct CategoryPill: View {
         } label: {
             Text(name)
                 .font(Design.Typography.caption1).fontWeight(isSelected ? .semibold : .medium)
-                .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
+                .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(
-                    isSelected ? .white.opacity(0.15) : Color.clear,
+                    isSelected ? Design.Colors.Glass.ultraThick : Color.clear,
                     in: .capsule
                 )
         }
-        .tint(.white)
+        .tint(Design.Colors.Text.primary)
         .glassEffect(.regular.interactive(), in: .capsule)
         .accessibilityLabel(name)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
