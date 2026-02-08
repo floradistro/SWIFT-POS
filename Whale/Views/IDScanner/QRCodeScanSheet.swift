@@ -167,7 +167,7 @@ struct QRCodeScanSheet: View {
             } label: {
                 Image(systemName: currentScreen == .main || currentScreen == .success ? "xmark" : "chevron.left")
                     .font(Design.Typography.footnote).fontWeight(.semibold)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Design.Colors.Text.disabled)
                     .frame(width: 40, height: 40)
                     .background(Circle().fill(.ultraThinMaterial))
             }
@@ -179,12 +179,12 @@ struct QRCodeScanSheet: View {
                 if currentScreen != .main && currentScreen != .success {
                     Text(qrCode.name)
                         .font(Design.Typography.caption2).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.35))
+                        .foregroundStyle(Design.Colors.Text.placeholder)
                         .lineLimit(1)
                 }
                 Text(headerTitle)
                     .font(Design.Typography.headlineRounded).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
@@ -194,7 +194,7 @@ struct QRCodeScanSheet: View {
 
             Text(qrCode.type.capitalized)
                 .font(Design.Typography.caption2).fontWeight(.bold)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
                 .background(
@@ -274,7 +274,7 @@ struct QRCodeScanSheet: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(product?.name ?? qrCode.name)
                         .font(Design.Typography.callout).fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .lineLimit(1)
 
                     HStack(spacing: 8) {
@@ -286,7 +286,7 @@ struct QRCodeScanSheet: View {
                                 Image(systemName: "location.fill")
                                     .font(Design.Typography.caption2)
                             }
-                            .foregroundStyle(.white.opacity(0.45))
+                            .foregroundStyle(Design.Colors.Text.subtle)
                         }
 
                         if qrCode.totalScans > 0 {
@@ -307,13 +307,13 @@ struct QRCodeScanSheet: View {
                         image.resizable().aspectRatio(contentMode: .fill)
                     } placeholder: {
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(.white.opacity(0.08))
+                            .fill(Design.Colors.Glass.regular)
                     }
                     .frame(width: 44, height: 44)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(.white.opacity(0.1), lineWidth: 0.5)
+                            .stroke(Design.Colors.Border.regular, lineWidth: 0.5)
                     )
                 }
             }
@@ -361,7 +361,7 @@ struct QRCodeScanSheet: View {
                            let toLocation = pendingTransferDestinationName {
                             Text("\(fromLocation) → \(toLocation)")
                                 .font(Design.Typography.caption1)
-                                .foregroundStyle(.white.opacity(0.6))
+                                .foregroundStyle(Design.Colors.Text.disabled)
                         }
                     }
 
@@ -391,7 +391,7 @@ struct QRCodeScanSheet: View {
                                 .foregroundStyle(.orange)
                             Text("Scan at \(toLocation) to receive this item")
                                 .font(Design.Typography.footnote)
-                                .foregroundStyle(.white.opacity(0.7))
+                                .foregroundStyle(Design.Colors.Text.quaternary)
                         }
                         .padding(.vertical, 12)
                         .padding(.horizontal, 16)
@@ -458,7 +458,7 @@ struct QRCodeScanSheet: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(product?.name ?? qrCode.name)
                         .font(Design.Typography.subhead).fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .lineLimit(1)
                     HStack(spacing: 6) {
                         if let tierLabel = qrCode.tierLabel {
@@ -471,10 +471,10 @@ struct QRCodeScanSheet: View {
                                 .foregroundStyle(typeColor)
                         }
                         Text("•")
-                            .foregroundStyle(.white.opacity(0.3))
+                            .foregroundStyle(Design.Colors.Text.placeholder)
                         Text(qrCode.code.prefix(10) + "...")
                             .font(Design.Typography.caption2Mono)
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(Design.Colors.Text.subtle)
                     }
                 }
                 Spacer()
@@ -488,12 +488,12 @@ struct QRCodeScanSheet: View {
                 .foregroundStyle(.yellow)
             Text(message)
                 .font(Design.Typography.footnote).fontWeight(.medium)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
             Spacer()
             Button { errorMessage = nil } label: {
                 Image(systemName: "xmark")
                     .font(Design.Typography.caption1).fontWeight(.bold)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Design.Colors.Text.disabled)
                     .frame(width: 28, height: 28)
                     .contentShape(Circle())
                     .background(Circle().fill(.ultraThinMaterial))
@@ -502,7 +502,7 @@ struct QRCodeScanSheet: View {
         }
         .padding(12)
         .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.ultraThinMaterial))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.white.opacity(0.1), lineWidth: 0.5))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Design.Colors.Border.regular, lineWidth: 0.5))
         .padding(.horizontal, 20)
     }
 
@@ -527,20 +527,20 @@ struct QRCodeScanSheet: View {
                     }
                     Image(systemName: icon)
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(isPrimary ? .white : color)
+                        .foregroundStyle(isPrimary ? Design.Colors.Text.primary : color)
                 }
                 .shadow(color: isPrimary ? color.opacity(0.3) : .clear, radius: 4, y: 2)
 
                 Text(title)
                     .font(Design.Typography.subhead).fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .lineLimit(1)
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
                     .font(Design.Typography.caption2).fontWeight(.bold)
-                    .foregroundStyle(.white.opacity(0.25))
+                    .foregroundStyle(Design.Colors.Text.ghost)
                     .accessibilityHidden(true)
             }
             .padding(.vertical, 12)
@@ -553,7 +553,7 @@ struct QRCodeScanSheet: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(.white.opacity(0.1), lineWidth: 0.5)
+                    .stroke(Design.Colors.Border.regular, lineWidth: 0.5)
             )
         }
         .buttonStyle(.plain)

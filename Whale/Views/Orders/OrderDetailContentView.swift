@@ -91,7 +91,7 @@ struct OrderDetailContentView: View {
     func sectionLabel(_ text: String) -> some View {
         Text(text)
             .font(Design.Typography.caption1).fontWeight(.bold)
-            .foregroundStyle(.white.opacity(0.4))
+            .foregroundStyle(Design.Colors.Text.subtle)
             .tracking(1)
             .padding(.horizontal, 14)
             .padding(.top, 14)
@@ -102,11 +102,11 @@ struct OrderDetailContentView: View {
         HStack {
             Text(label)
                 .font(Design.Typography.footnote)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
             Spacer()
             Text(value)
                 .font(Design.Typography.footnote).fontWeight(.medium)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
         }
     }
 
@@ -114,9 +114,9 @@ struct OrderDetailContentView: View {
         switch order.status {
         case .pending, .preparing: return .orange
         case .ready, .readyToShip: return .green
-        case .completed, .delivered, .shipped: return .white.opacity(0.6)
+        case .completed, .delivered, .shipped: return Design.Colors.Text.disabled
         case .cancelled: return .red
-        default: return .white.opacity(0.5)
+        default: return Design.Colors.Text.disabled
         }
     }
 

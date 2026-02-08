@@ -49,7 +49,7 @@ struct InvoiceDetailSheet: View {
                 }
                 .padding(20)
             }
-            .background(Color.black)
+            .background(Design.Colors.backgroundPrimary)
             .navigationTitle("Invoice Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -88,11 +88,11 @@ struct InvoiceDetailSheet: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(invoice.invoiceNumber)
                         .font(.system(size: 24, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
 
                     Text("Created \(invoice.createdAt.formatted(date: .abbreviated, time: .shortened))")
                         .font(Design.Typography.footnote)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                 }
 
                 Spacer()
@@ -109,20 +109,20 @@ struct InvoiceDetailSheet: View {
                     Text(isOverdue ? "Overdue" : "Due \(dueDate.formatted(date: .abbreviated, time: .omitted))")
                         .font(Design.Typography.footnote).fontWeight(.medium)
                 }
-                .foregroundStyle(isOverdue ? Design.Colors.Semantic.error : .white.opacity(0.6))
+                .foregroundStyle(isOverdue ? Design.Colors.Semantic.error : Design.Colors.Text.disabled)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isOverdue ? Design.Colors.Semantic.error.opacity(0.15) : Color.white.opacity(0.05))
+                        .fill(isOverdue ? Design.Colors.Semantic.error.opacity(0.15) : Design.Colors.Glass.thin)
                 )
             }
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(Design.Colors.Glass.thin)
         )
     }
 
@@ -157,7 +157,7 @@ struct InvoiceDetailSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Activity")
                 .font(Design.Typography.subhead).fontWeight(.semibold)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
 
             VStack(spacing: 0) {
                 trackingStep(
@@ -198,7 +198,7 @@ struct InvoiceDetailSheet: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(Design.Colors.Glass.thin)
         )
     }
 
@@ -208,17 +208,17 @@ struct InvoiceDetailSheet: View {
             VStack(spacing: 0) {
                 ZStack {
                     Circle()
-                        .fill(isComplete ? Design.Colors.Semantic.success : Color.white.opacity(0.1))
+                        .fill(isComplete ? Design.Colors.Semantic.success : Design.Colors.Glass.thick)
                         .frame(width: 32, height: 32)
 
                     Image(systemName: icon)
                         .font(Design.Typography.footnote).fontWeight(.semibold)
-                        .foregroundStyle(isComplete ? .white : .white.opacity(0.3))
+                        .foregroundStyle(isComplete ? Design.Colors.Text.primary : Design.Colors.Text.placeholder)
                 }
 
                 if !isLast {
                     Rectangle()
-                        .fill(isComplete ? Design.Colors.Semantic.success.opacity(0.3) : Color.white.opacity(0.1))
+                        .fill(isComplete ? Design.Colors.Semantic.success.opacity(0.3) : Design.Colors.Glass.thick)
                         .frame(width: 2, height: 24)
                 }
             }
@@ -227,16 +227,16 @@ struct InvoiceDetailSheet: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(Design.Typography.footnote).fontWeight(.medium)
-                    .foregroundStyle(isComplete ? .white : .white.opacity(0.4))
+                    .foregroundStyle(isComplete ? Design.Colors.Text.primary : Design.Colors.Text.subtle)
 
                 if let timestamp = timestamp {
                     Text(timestamp.formatted(date: .abbreviated, time: .shortened))
                         .font(Design.Typography.caption1)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                 } else {
                     Text("Pending")
                         .font(Design.Typography.caption1)
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(Design.Colors.Text.placeholder)
                 }
             }
             .padding(.bottom, isLast ? 0 : 16)
@@ -251,7 +251,7 @@ struct InvoiceDetailSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Customer")
                 .font(Design.Typography.subhead).fontWeight(.semibold)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
 
             VStack(spacing: 10) {
                 infoRow(icon: "person.fill", value: invoice.displayCustomerName)
@@ -263,22 +263,22 @@ struct InvoiceDetailSheet: View {
 
             if let notes = invoice.notes, !notes.isEmpty {
                 Divider()
-                    .background(Color.white.opacity(0.1))
+                    .background(Design.Colors.Border.regular)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Notes")
                         .font(Design.Typography.caption1).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                     Text(notes)
                         .font(Design.Typography.footnote)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(Design.Colors.Text.tertiary)
                 }
             }
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(Design.Colors.Glass.thin)
         )
     }
 
@@ -286,12 +286,12 @@ struct InvoiceDetailSheet: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(Design.Typography.footnote)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
                 .frame(width: 20)
 
             Text(value)
                 .font(Design.Typography.footnote)
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(Design.Colors.Text.tertiary)
 
             Spacer()
         }
@@ -303,7 +303,7 @@ struct InvoiceDetailSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Items")
                 .font(Design.Typography.subhead).fontWeight(.semibold)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
 
             VStack(spacing: 8) {
                 ForEach(items) { item in
@@ -311,13 +311,13 @@ struct InvoiceDetailSheet: View {
                         // Quantity badge
                         Text("\(item.quantity)×")
                             .font(Design.Typography.footnoteRounded).fontWeight(.semibold)
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(Design.Colors.Text.disabled)
                             .frame(width: 30, alignment: .leading)
 
                         // Product name
                         Text(item.productName)
                             .font(Design.Typography.footnote)
-                            .foregroundStyle(.white.opacity(0.9))
+                            .foregroundStyle(Design.Colors.Text.secondary)
                             .lineLimit(2)
 
                         Spacer()
@@ -325,13 +325,13 @@ struct InvoiceDetailSheet: View {
                         // Line total
                         Text(CurrencyFormatter.format(item.total))
                             .font(Design.Typography.footnote).fontWeight(.medium)
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(Design.Colors.Text.tertiary)
                     }
                     .padding(.vertical, 8)
 
                     if item.id != items.last?.id {
                         Divider()
-                            .background(Color.white.opacity(0.1))
+                            .background(Design.Colors.Border.regular)
                     }
                 }
             }
@@ -339,7 +339,7 @@ struct InvoiceDetailSheet: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(Design.Colors.Glass.thin)
         )
     }
 
@@ -350,18 +350,18 @@ struct InvoiceDetailSheet: View {
             HStack {
                 Text("Subtotal")
                     .font(Design.Typography.footnote)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Design.Colors.Text.disabled)
                 Spacer()
                 Text(CurrencyFormatter.format(invoice.subtotal))
                     .font(Design.Typography.footnote)
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(Design.Colors.Text.tertiary)
             }
 
             if invoice.discountAmount > 0 {
                 HStack {
                     Text("Discount")
                         .font(Design.Typography.footnote)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                     Spacer()
                     Text("-\(CurrencyFormatter.format(invoice.discountAmount))")
                         .font(Design.Typography.footnote)
@@ -372,30 +372,30 @@ struct InvoiceDetailSheet: View {
             HStack {
                 Text("Tax")
                     .font(Design.Typography.footnote)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Design.Colors.Text.disabled)
                 Spacer()
                 Text(CurrencyFormatter.format(invoice.taxAmount))
                     .font(Design.Typography.footnote)
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(Design.Colors.Text.tertiary)
             }
 
             Divider()
-                .background(Color.white.opacity(0.1))
+                .background(Design.Colors.Border.regular)
 
             HStack {
                 Text("Total")
                     .font(Design.Typography.callout).fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                 Spacer()
                 Text(CurrencyFormatter.format(invoice.totalAmount))
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
             }
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(Design.Colors.Glass.thin)
         )
     }
 
@@ -409,7 +409,7 @@ struct InvoiceDetailSheet: View {
                     .foregroundStyle(Design.Colors.Semantic.success)
                 Text("Payment Received")
                     .font(Design.Typography.subhead).fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
             }
 
             VStack(spacing: 10) {
@@ -466,18 +466,18 @@ struct InvoiceDetailSheet: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(Design.Typography.footnote)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
                 .frame(width: 20)
 
             Text(label)
                 .font(Design.Typography.footnote)
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(Design.Colors.Text.disabled)
 
             Spacer()
 
             Text(value)
                 .font(Design.Typography.footnote).fontWeight(.medium)
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(Design.Colors.Text.secondary)
         }
     }
 
@@ -523,12 +523,12 @@ struct InvoiceDetailSheet: View {
                         Text(copiedLink ? "Link Copied!" : "Copy Payment Link")
                             .font(Design.Typography.footnote).fontWeight(.semibold)
                     }
-                    .foregroundStyle(copiedLink ? Design.Colors.Semantic.success : .white)
+                    .foregroundStyle(copiedLink ? Design.Colors.Semantic.success : Design.Colors.Text.primary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(copiedLink ? Design.Colors.Semantic.success.opacity(0.15) : Color.white.opacity(0.1))
+                            .fill(copiedLink ? Design.Colors.Semantic.success.opacity(0.15) : Design.Colors.Glass.thick)
                     )
                 }
             }
@@ -543,7 +543,7 @@ struct InvoiceDetailSheet: View {
                         HStack(spacing: 8) {
                             if isSendingReminder {
                                 ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .progressViewStyle(CircularProgressViewStyle(tint: Design.Colors.Text.primary))
                                     .scaleEffect(0.8)
                             } else {
                                 Image(systemName: "bell.badge")
@@ -552,7 +552,7 @@ struct InvoiceDetailSheet: View {
                             Text(reminderButtonText)
                                 .font(Design.Typography.footnote).fontWeight(.semibold)
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
                         .background(
@@ -570,7 +570,7 @@ struct InvoiceDetailSheet: View {
                     HStack(spacing: 8) {
                         if isResending {
                             ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .progressViewStyle(CircularProgressViewStyle(tint: Design.Colors.Text.primary))
                                 .scaleEffect(0.8)
                         } else {
                             Image(systemName: "arrow.clockwise")
@@ -579,7 +579,7 @@ struct InvoiceDetailSheet: View {
                         Text(isResending ? "Sending..." : "Resend Invoice Email")
                             .font(Design.Typography.footnote).fontWeight(.semibold)
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
                     .background(
@@ -677,17 +677,17 @@ struct InvoiceTrackingBadges: View {
         VStack(spacing: 4) {
             Image(systemName: icon)
                 .font(Design.Typography.footnote)
-                .foregroundStyle(isComplete ? Design.Colors.Semantic.success : .white.opacity(0.3))
+                .foregroundStyle(isComplete ? Design.Colors.Semantic.success : Design.Colors.Text.placeholder)
 
             Text(label)
                 .font(Design.Typography.caption2).fontWeight(.medium)
-                .foregroundStyle(isComplete ? .white.opacity(0.8) : .white.opacity(0.3))
+                .foregroundStyle(isComplete ? Design.Colors.Text.tertiary : Design.Colors.Text.placeholder)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isComplete ? Design.Colors.Semantic.success.opacity(0.1) : Color.white.opacity(0.05))
+                .fill(isComplete ? Design.Colors.Semantic.success.opacity(0.1) : Design.Colors.Glass.thin)
         )
     }
 }

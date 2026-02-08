@@ -20,15 +20,15 @@ extension CustomerSearchContent {
         VStack(alignment: .leading, spacing: 8) {
             Text("NAME")
                 .font(Design.Typography.caption1).fontWeight(.semibold)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
                 .tracking(0.5)
                 .padding(.leading, 4)
 
             HStack(spacing: 12) {
                 HStack(spacing: 12) {
-                    TextField("", text: $firstName, prompt: Text("First").foregroundColor(.white.opacity(0.35)))
+                    TextField("", text: $firstName, prompt: Text("First").foregroundColor(Design.Colors.Text.placeholder))
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .focused($focusedCreateField, equals: .firstName)
                 }
                 .padding(.horizontal, 16)
@@ -36,9 +36,9 @@ extension CustomerSearchContent {
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
 
                 HStack(spacing: 12) {
-                    TextField("", text: $lastName, prompt: Text("Last").foregroundColor(.white.opacity(0.35)))
+                    TextField("", text: $lastName, prompt: Text("Last").foregroundColor(Design.Colors.Text.placeholder))
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .focused($focusedCreateField, equals: .lastName)
                 }
                 .padding(.horizontal, 16)
@@ -51,18 +51,18 @@ extension CustomerSearchContent {
         VStack(alignment: .leading, spacing: 8) {
             Text("DATE OF BIRTH")
                 .font(Design.Typography.caption1).fontWeight(.semibold)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
                 .tracking(0.5)
                 .padding(.leading, 4)
 
             HStack(spacing: 12) {
                 Image(systemName: "calendar")
                     .font(Design.Typography.callout).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(Design.Colors.Text.subtle)
                     .accessibilityHidden(true)
-                TextField("", text: $dateOfBirth, prompt: Text("MM/DD/YYYY").foregroundColor(.white.opacity(0.35)))
+                TextField("", text: $dateOfBirth, prompt: Text("MM/DD/YYYY").foregroundColor(Design.Colors.Text.placeholder))
                     .font(Design.Typography.subhead).fontWeight(.medium)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .keyboardType(.numbersAndPunctuation)
                     .focused($focusedCreateField, equals: .dob)
                     .onChange(of: dateOfBirth) { _, newValue in
@@ -78,7 +78,7 @@ extension CustomerSearchContent {
         VStack(alignment: .leading, spacing: 8) {
             Text("CONTACT (OPTIONAL)")
                 .font(Design.Typography.caption1).fontWeight(.semibold)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
                 .tracking(0.5)
                 .padding(.leading, 4)
 
@@ -86,29 +86,29 @@ extension CustomerSearchContent {
                 HStack(spacing: 12) {
                     Image(systemName: "phone.fill")
                         .font(Design.Typography.footnote).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                         .frame(width: 20)
                         .accessibilityHidden(true)
-                    TextField("", text: $phone, prompt: Text("Phone").foregroundColor(.white.opacity(0.35)))
+                    TextField("", text: $phone, prompt: Text("Phone").foregroundColor(Design.Colors.Text.placeholder))
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .keyboardType(.phonePad)
                         .focused($focusedCreateField, equals: .phone)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
 
-                Divider().background(.white.opacity(0.08))
+                Divider().background(Design.Colors.Border.regular)
 
                 HStack(spacing: 12) {
                     Image(systemName: "envelope.fill")
                         .font(Design.Typography.footnote).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                         .frame(width: 20)
                         .accessibilityHidden(true)
-                    TextField("", text: $email, prompt: Text("Email").foregroundColor(.white.opacity(0.35)))
+                    TextField("", text: $email, prompt: Text("Email").foregroundColor(Design.Colors.Text.placeholder))
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .focused($focusedCreateField, equals: .email)
@@ -145,7 +145,7 @@ extension CustomerSearchContent {
                 if isCreating {
                     ProgressView()
                         .scaleEffect(0.8)
-                        .tint(.white)
+                        .tint(Design.Colors.Text.primary)
                 } else {
                     Image(systemName: "person.badge.plus")
                         .font(Design.Typography.callout).fontWeight(.semibold)
@@ -153,10 +153,10 @@ extension CustomerSearchContent {
                         .font(Design.Typography.callout).fontWeight(.semibold)
                 }
             }
-            .foregroundStyle(isCreateValid ? .white : .white.opacity(0.4))
+            .foregroundStyle(isCreateValid ? Design.Colors.Text.primary : Design.Colors.Text.subtle)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(.white.opacity(isCreateValid ? 0.15 : 0.08), in: RoundedRectangle(cornerRadius: 14))
+            .background(isCreateValid ? Design.Colors.Glass.ultraThick : Design.Colors.Glass.regular, in: RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
         .disabled(!isCreateValid || isCreating)
@@ -169,18 +169,18 @@ extension CustomerSearchContent {
             ZStack {
                 ProgressView()
                     .scaleEffect(1.3)
-                    .tint(.white.opacity(0.6))
+                    .tint(Design.Colors.Text.disabled)
             }
             .frame(width: 80, height: 80)
-            .background(Circle().fill(.white.opacity(0.08)))
+            .background(Circle().fill(Design.Colors.Glass.regular))
 
             Text("Launching scanner...")
                 .font(Design.Typography.subhead).fontWeight(.medium)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
-        .background(RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.04)))
+        .background(RoundedRectangle(cornerRadius: 14).fill(Design.Colors.Glass.thin))
         .onAppear {
             showFullScreenScanner = true
         }

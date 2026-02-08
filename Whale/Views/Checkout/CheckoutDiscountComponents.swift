@@ -44,17 +44,17 @@ struct LineItemDiscountOverlay: View {
             VStack(spacing: 4) {
                 Text(item.productName)
                     .font(Design.Typography.subhead).fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .lineLimit(1)
 
                 Text(CurrencyFormatter.format(item.originalLineTotal))
                     .font(Design.Typography.footnoteRounded).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Design.Colors.Text.disabled)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
 
-            Divider().background(.white.opacity(0.15))
+            Divider().background(Design.Colors.Border.strong)
 
             // Discount options
             VStack(spacing: 0) {
@@ -67,7 +67,7 @@ struct LineItemDiscountOverlay: View {
                     showDiscountInput(type: .customPrice, for: item)
                 }
 
-                Divider().background(.white.opacity(0.1)).padding(.leading, 48)
+                Divider().background(Design.Colors.Border.regular).padding(.leading, 48)
 
                 // Percentage Off
                 discountMenuRow(
@@ -78,7 +78,7 @@ struct LineItemDiscountOverlay: View {
                     showDiscountInput(type: .percentage, for: item)
                 }
 
-                Divider().background(.white.opacity(0.1)).padding(.leading, 48)
+                Divider().background(Design.Colors.Border.regular).padding(.leading, 48)
 
                 // Flat Amount Off
                 discountMenuRow(
@@ -92,7 +92,7 @@ struct LineItemDiscountOverlay: View {
 
             // Remove discount (if exists)
             if item.discountAmount > 0 {
-                Divider().background(.white.opacity(0.15))
+                Divider().background(Design.Colors.Border.strong)
 
                 Button {
                     removeLineItemDiscount(for: item)
@@ -119,7 +119,7 @@ struct LineItemDiscountOverlay: View {
             }
 
             // Remove from cart
-            Divider().background(.white.opacity(0.15))
+            Divider().background(Design.Colors.Border.strong)
 
             Button {
                 Task {
@@ -156,24 +156,24 @@ struct LineItemDiscountOverlay: View {
             HStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(Design.Typography.footnote).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(Design.Colors.Text.quaternary)
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
 
                     Text(subtitle)
                         .font(Design.Typography.caption2)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
                     .font(Design.Typography.caption1).fontWeight(.semibold)
-                    .foregroundStyle(.white.opacity(0.3))
+                    .foregroundStyle(Design.Colors.Text.placeholder)
                     .accessibilityHidden(true)
             }
             .padding(.horizontal, 16)
@@ -287,13 +287,13 @@ struct CheckoutCartItemRow: View {
         HStack(spacing: 10) {
             Text("\(item.quantity)×")
                 .font(Design.Typography.caption1Rounded).fontWeight(.bold)
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(Design.Colors.Text.subtle)
                 .frame(width: 24, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.productName)
                     .font(Design.Typography.footnote).fontWeight(.medium)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .lineLimit(1)
 
                 // Show discount badge if item has discount
@@ -309,13 +309,13 @@ struct CheckoutCartItemRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(CurrencyFormatter.format(item.lineTotal))
                     .font(Design.Typography.footnoteRounded).fontWeight(.semibold)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Design.Colors.Text.disabled)
 
                 // Show original price if discounted
                 if item.discountAmount > 0 {
                     Text(CurrencyFormatter.format(item.originalLineTotal))
                         .font(Design.Typography.caption2).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(Design.Colors.Text.placeholder)
                         .strikethrough()
                 }
             }

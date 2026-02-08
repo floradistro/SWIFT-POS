@@ -187,13 +187,13 @@ struct CheckoutSheet: View {
                         HStack(spacing: 6) {
                             Text(customer.initials)
                                 .font(Design.Typography.caption1).fontWeight(.bold)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Design.Colors.Text.primary)
                                 .frame(width: 28, height: 28)
                                 .background(Circle().fill(Color.accentColor))
 
                             Text(customer.firstName ?? "Customer")
                                 .font(Design.Typography.footnote).fontWeight(.medium)
-                                .foregroundStyle(.white.opacity(0.6))
+                                .foregroundStyle(Design.Colors.Text.disabled)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
@@ -205,13 +205,13 @@ struct CheckoutSheet: View {
                     // Total
                     Text(CurrencyFormatter.format(displayTotal))
                         .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .contentTransition(.numericText())
 
                     // Item count
                     Text("\(cartItems.count) item\(cartItems.count == 1 ? "" : "s")")
                         .font(Design.Typography.footnote).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                 }
 
                 Spacer()
@@ -249,7 +249,7 @@ struct CheckoutSheet: View {
             if cartItems.count > 5 {
                 Text("+\(cartItems.count - 5) more items")
                     .font(Design.Typography.caption1).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.3))
+                    .foregroundStyle(Design.Colors.Text.placeholder)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14)
                     .padding(.bottom, 10)
@@ -289,7 +289,7 @@ struct CheckoutSheet: View {
 
             // Divider
             Rectangle()
-                .fill(Color.white.opacity(0.1))
+                .fill(Design.Colors.Glass.thick)
                 .frame(height: 1)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
@@ -298,11 +298,11 @@ struct CheckoutSheet: View {
             HStack {
                 Text("Total")
                     .font(Design.Typography.callout).fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                 Spacer()
                 Text(CurrencyFormatter.format(displayTotal))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .contentTransition(.numericText())
             }
             .padding(.horizontal, 14)
@@ -311,11 +311,11 @@ struct CheckoutSheet: View {
         .glassEffect(.regular, in: .rect(cornerRadius: 14))
     }
 
-    private func totalsRow(label: String, value: String, valueColor: Color = .white.opacity(0.6)) -> some View {
+    private func totalsRow(label: String, value: String, valueColor: Color = Design.Colors.Text.disabled) -> some View {
         HStack {
             Text(label)
                 .font(Design.Typography.footnote)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
             Spacer()
             Text(value)
                 .font(Design.Typography.footnote).fontWeight(.medium)
@@ -341,11 +341,11 @@ struct CheckoutSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Loyalty Points")
                         .font(Design.Typography.footnote).fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
 
                     Text("\(selectedCustomer?.loyaltyPoints ?? 0) available • \(CurrencyFormatter.format(pointValue)) each")
                         .font(Design.Typography.caption2)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                 }
 
                 Spacer()
@@ -378,7 +378,7 @@ struct CheckoutSheet: View {
                 HStack {
                     Text("0")
                         .font(Design.Typography.caption2Rounded).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(Design.Colors.Text.placeholder)
 
                     Spacer()
 
@@ -390,14 +390,14 @@ struct CheckoutSheet: View {
                     } else {
                         Text("Slide to redeem")
                             .font(Design.Typography.caption2).fontWeight(.medium)
-                            .foregroundStyle(.white.opacity(0.35))
+                            .foregroundStyle(Design.Colors.Text.placeholder)
                     }
 
                     Spacer()
 
                     Text("\(maxRedeemablePoints)")
                         .font(Design.Typography.caption2Rounded).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(Design.Colors.Text.placeholder)
                 }
             }
         }
@@ -433,19 +433,19 @@ struct CheckoutSheet: View {
                 Text(method.label)
                     .font(Design.Typography.caption2).fontWeight(.semibold)
             }
-            .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
+            .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
             .frame(width: 72, height: 56)
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.white.opacity(0.15))
+                        .fill(Design.Colors.Glass.ultraThick)
                 }
             }
             .glassEffect(.regular, in: .rect(cornerRadius: 14))
             .overlay {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
+                        .strokeBorder(Design.Colors.Border.strong, lineWidth: 1)
                 }
             }
         }
@@ -518,7 +518,7 @@ struct CheckoutSheet: View {
                 // Animated spinner
                 ZStack {
                     Circle()
-                        .stroke(.white.opacity(0.1), lineWidth: 4)
+                        .stroke(Design.Colors.Border.regular, lineWidth: 4)
                         .frame(width: 80, height: 80)
 
                     ProgressView()
@@ -529,15 +529,15 @@ struct CheckoutSheet: View {
                 VStack(spacing: 6) {
                     Text("Processing...")
                         .font(Design.Typography.title3).fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                     Text(selectedPaymentMethod.label)
                         .font(Design.Typography.footnote).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                 }
 
                 Text(CurrencyFormatter.format(displayTotal))
                     .font(.system(size: 42, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
             }
 
             Spacer()
@@ -562,12 +562,12 @@ struct CheckoutSheet: View {
                 VStack(spacing: 4) {
                     Text(isInvoice ? "Invoice Sent" : "Payment Complete")
                         .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
 
                     if let orderNumber = completedOrder?.orderNumber {
                         Text(orderNumber)
                             .font(Design.Typography.footnoteMono).fontWeight(.medium)
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(Design.Colors.Text.subtle)
                     }
                 }
 
@@ -590,7 +590,7 @@ struct CheckoutSheet: View {
                             .accessibilityHidden(true)
                         Text("Labels failed to print")
                             .font(Design.Typography.footnote).fontWeight(.medium)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Design.Colors.Text.primary)
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
@@ -621,7 +621,7 @@ struct CheckoutSheet: View {
                             Text(copiedLink ? "Copied!" : "Copy Payment Link")
                                 .font(Design.Typography.subhead).fontWeight(.semibold)
                         }
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(Design.Colors.Text.quaternary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
                     }
@@ -644,7 +644,7 @@ struct CheckoutSheet: View {
                     Text("Done")
                         .font(Design.Typography.headline)
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 54)
                 .background(isInvoice ? Color.blue : Color.green, in: RoundedRectangle(cornerRadius: 14))

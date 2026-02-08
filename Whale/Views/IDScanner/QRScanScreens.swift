@@ -39,7 +39,7 @@ extension QRCodeScanSheet {
                         }
                         Text(fromLocation)
                             .font(Design.Typography.caption2).fontWeight(.medium)
-                            .foregroundStyle(.white.opacity(0.5))
+                            .foregroundStyle(Design.Colors.Text.disabled)
                             .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity)
@@ -70,11 +70,11 @@ extension QRCodeScanSheet {
                                 .shadow(color: greenColor.opacity(0.4), radius: 6, y: 2)
                             Image(systemName: "checkmark")
                                 .font(Design.Typography.footnote).fontWeight(.bold)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Design.Colors.Text.primary)
                         }
                         Text(session.selectedLocation?.name ?? "Here")
                             .font(Design.Typography.caption2).fontWeight(.semibold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Design.Colors.Text.primary)
                             .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity)
@@ -104,16 +104,16 @@ extension QRCodeScanSheet {
                             .shadow(color: greenColor.opacity(0.4), radius: 6, y: 2)
                         Image(systemName: "tray.and.arrow.down.fill")
                             .font(Design.Typography.headline).fontWeight(.medium)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Design.Colors.Text.primary)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Add to Inventory")
                             .font(Design.Typography.footnote).fontWeight(.semibold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Design.Colors.Text.primary)
                         Text(session.selectedLocation?.name ?? "Current Location")
                             .font(Design.Typography.caption1)
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(Design.Colors.Text.disabled)
                     }
 
                     Spacer()
@@ -161,11 +161,11 @@ extension QRCodeScanSheet {
                             .shadow(color: blueColor.opacity(0.4), radius: 6, y: 2)
                         Image(systemName: "building.2.fill")
                             .font(Design.Typography.footnote).fontWeight(.medium)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Design.Colors.Text.primary)
                     }
                     Text(session.selectedLocation?.name ?? "Here")
                         .font(Design.Typography.caption2).fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity)
@@ -197,7 +197,7 @@ extension QRCodeScanSheet {
                                 .shadow(color: blueColor.opacity(0.4), radius: 6, y: 2)
                             Image(systemName: "checkmark")
                                 .font(Design.Typography.footnote).fontWeight(.bold)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Design.Colors.Text.primary)
                         } else {
                             Circle()
                                 .fill(blueColor.opacity(0.15))
@@ -212,7 +212,7 @@ extension QRCodeScanSheet {
                     }
                     Text(selectedTransferDestination?.name ?? "Select")
                         .font(Design.Typography.caption2).fontWeight(selectedTransferDestination != nil ? .semibold : .medium)
-                        .foregroundStyle(selectedTransferDestination != nil ? .white : .white.opacity(0.5))
+                        .foregroundStyle(selectedTransferDestination != nil ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity)
@@ -228,14 +228,14 @@ extension QRCodeScanSheet {
                 HStack {
                     Text("Select Destination")
                         .font(Design.Typography.footnote).fontWeight(.semibold)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(Design.Colors.Text.quaternary)
                     Spacer()
                 }
 
                 if transferDestinations.isEmpty {
                     Text("No other locations available")
                         .font(Design.Typography.footnote)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                         .padding(.vertical, 8)
                 } else {
                     ScrollView {
@@ -263,11 +263,11 @@ extension QRCodeScanSheet {
                 Text("Select a destination")
                     .font(Design.Typography.headline).fontWeight(.semibold)
             }
-            .foregroundStyle(.white.opacity(0.3))
+            .foregroundStyle(Design.Colors.Text.placeholder)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.ultraThinMaterial))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.white.opacity(0.1), lineWidth: 0.5))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Design.Colors.Border.regular, lineWidth: 0.5))
         }
     }
 
@@ -285,7 +285,7 @@ extension QRCodeScanSheet {
                 // Selection indicator
                 ZStack {
                     Circle()
-                        .stroke(isSelected ? color : .white.opacity(0.2), lineWidth: 2)
+                        .stroke(isSelected ? color : Design.Colors.Text.ghost, lineWidth: 2)
                         .frame(width: 22, height: 22)
                     if isSelected {
                         Circle()
@@ -297,20 +297,20 @@ extension QRCodeScanSheet {
                 // Location icon
                 Image(systemName: location.isWarehouse ? "shippingbox.fill" : "building.2.fill")
                     .font(Design.Typography.footnote)
-                    .foregroundStyle(isSelected ? color : .white.opacity(0.5))
+                    .foregroundStyle(isSelected ? color : Design.Colors.Text.disabled)
                     .frame(width: 20)
 
                 // Location name
                 Text(location.name)
                     .font(Design.Typography.subhead).fontWeight(.medium)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
 
                 Spacer()
 
                 // Location type badge
                 Text(location.type.capitalized)
                     .font(Design.Typography.caption2).fontWeight(.semibold)
-                    .foregroundStyle(isSelected ? color : .white.opacity(0.4))
+                    .foregroundStyle(isSelected ? color : Design.Colors.Text.subtle)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(Capsule().fill(.ultraThinMaterial))
@@ -320,7 +320,7 @@ extension QRCodeScanSheet {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(RoundedRectangle(cornerRadius: 12))
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.ultraThinMaterial))
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(isSelected ? color.opacity(0.3) : .white.opacity(0.1), lineWidth: 0.5))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(isSelected ? color.opacity(0.3) : Design.Colors.Border.regular, lineWidth: 0.5))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(location.name), \(location.type)")
@@ -372,11 +372,11 @@ extension QRCodeScanSheet {
                                 .shadow(color: purpleColor.opacity(0.4), radius: 6, y: 2)
                             Image(systemName: "shippingbox.fill")
                                 .font(Design.Typography.headline).fontWeight(.medium)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Design.Colors.Text.primary)
                         }
                         Text(qrCode.tierLabel ?? "Package")
                             .font(Design.Typography.footnote).fontWeight(.semibold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Design.Colors.Text.primary)
                     }
                 }
 
@@ -389,7 +389,7 @@ extension QRCodeScanSheet {
                 if splitOptions.isEmpty {
                     Text("No split options available")
                         .font(Design.Typography.footnote)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                         .padding(.vertical, 8)
                 } else {
                     VStack(spacing: 8) {
@@ -420,11 +420,11 @@ extension QRCodeScanSheet {
                             .font(Design.Typography.headline).fontWeight(.semibold)
                     }
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
                 .contentShape(RoundedRectangle(cornerRadius: 16))
-                .background(Color.white.opacity(0.15))
+                .background(Design.Colors.Glass.ultraThick)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(.plain)
@@ -437,11 +437,11 @@ extension QRCodeScanSheet {
                 Text("Select a split option")
                     .font(Design.Typography.headline).fontWeight(.semibold)
             }
-            .foregroundStyle(.white.opacity(0.3))
+            .foregroundStyle(Design.Colors.Text.placeholder)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.ultraThinMaterial))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.white.opacity(0.1), lineWidth: 0.5))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Design.Colors.Border.regular, lineWidth: 0.5))
         }
     }
 
@@ -459,7 +459,7 @@ extension QRCodeScanSheet {
                 // Selection indicator
                 ZStack {
                     Circle()
-                        .stroke(isSelected ? color : .white.opacity(0.2), lineWidth: 2)
+                        .stroke(isSelected ? color : Design.Colors.Text.ghost, lineWidth: 2)
                         .frame(width: 22, height: 22)
                     if isSelected {
                         Circle()
@@ -471,13 +471,13 @@ extension QRCodeScanSheet {
                 // Count badge
                 Text("\(option.count)x")
                     .font(Design.Typography.calloutRounded).fontWeight(.bold)
-                    .foregroundStyle(isSelected ? color : .white.opacity(0.7))
+                    .foregroundStyle(isSelected ? color : Design.Colors.Text.quaternary)
                     .frame(width: 36)
 
                 // Tier label
                 Text(option.tier.label)
                     .font(Design.Typography.subhead).fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
 
                 Spacer()
 
@@ -485,13 +485,13 @@ extension QRCodeScanSheet {
                 HStack(spacing: 3) {
                     ForEach(0..<min(option.count, 6), id: \.self) { _ in
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(isSelected ? color.opacity(0.6) : .white.opacity(0.15))
+                            .fill(isSelected ? color.opacity(0.6) : Design.Colors.Glass.ultraThick)
                             .frame(width: 12, height: 12)
                     }
                     if option.count > 6 {
                         Text("+\(option.count - 6)")
                             .font(Design.Typography.caption2).fontWeight(.semibold)
-                            .foregroundStyle(.white.opacity(0.5))
+                            .foregroundStyle(Design.Colors.Text.disabled)
                     }
                 }
             }
@@ -500,7 +500,7 @@ extension QRCodeScanSheet {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(RoundedRectangle(cornerRadius: 12))
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.ultraThinMaterial))
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(isSelected ? color.opacity(0.3) : .white.opacity(0.1), lineWidth: 0.5))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(isSelected ? color.opacity(0.3) : Design.Colors.Border.regular, lineWidth: 0.5))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(option.count) times \(option.tier.label)")
@@ -546,7 +546,7 @@ extension QRCodeScanSheet {
 
                 // Animated checkmark path
                 AnimatedCheckmark(trimEnd: checkmarkTrimEnd)
-                    .stroke(.white, style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round))
+                    .stroke(Design.Colors.Text.primary, style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round))
                     .frame(width: 28, height: 28)
             }
             .scaleEffect(successScale)
@@ -556,11 +556,11 @@ extension QRCodeScanSheet {
             VStack(spacing: 6) {
                 Text("Success")
                     .font(Design.Typography.title3Rounded).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
 
                 Text(successMessage)
                     .font(Design.Typography.footnote).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Design.Colors.Text.disabled)
                     .multilineTextAlignment(.center)
             }
             .opacity(successOpacity)
@@ -575,11 +575,11 @@ extension QRCodeScanSheet {
         } label: {
             Text("Done")
                 .font(Design.Typography.headline).fontWeight(.semibold)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
                 .contentShape(RoundedRectangle(cornerRadius: 14))
-                .background(Color.white.opacity(0.15))
+                .background(Design.Colors.Glass.ultraThick)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -594,19 +594,19 @@ extension QRCodeScanSheet {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(Design.Typography.footnote)
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(Design.Colors.Text.subtle)
                 .frame(width: 20)
                 .accessibilityHidden(true)
 
             Text(label)
                 .font(Design.Typography.footnote)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
 
             Spacer()
 
             Text(value)
                 .font(Design.Typography.footnote).fontWeight(.medium)
-                .foregroundStyle(.white)
+                .foregroundStyle(Design.Colors.Text.primary)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label): \(value)")

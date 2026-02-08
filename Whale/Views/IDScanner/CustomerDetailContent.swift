@@ -41,7 +41,7 @@ extension CustomerSearchContent {
                         Text(isEditingCustomer ? "Cancel" : "Back")
                             .font(Design.Typography.subhead).fontWeight(.medium)
                     }
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(Design.Colors.Text.tertiary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                 }
@@ -59,7 +59,7 @@ extension CustomerSearchContent {
                             if isSavingCustomer {
                                 ProgressView()
                                     .scaleEffect(0.7)
-                                    .tint(.white)
+                                    .tint(Design.Colors.Text.primary)
                             } else {
                                 Image(systemName: "checkmark")
                                     .font(Design.Typography.footnote).fontWeight(.semibold)
@@ -67,7 +67,7 @@ extension CustomerSearchContent {
                             Text("Save")
                                 .font(Design.Typography.subhead).fontWeight(.medium)
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                     }
@@ -85,7 +85,7 @@ extension CustomerSearchContent {
                             Text("Edit")
                                 .font(Design.Typography.subhead).fontWeight(.medium)
                         }
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(Design.Colors.Text.tertiary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                     }
@@ -99,7 +99,7 @@ extension CustomerSearchContent {
                 } label: {
                     Text("Done")
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                 }
                 .buttonStyle(.plain)
             }
@@ -149,7 +149,7 @@ extension CustomerSearchContent {
                     Spacer()
                     Text(message)
                         .font(Design.Typography.footnote).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                         .background(.green.opacity(0.9), in: Capsule())
@@ -182,7 +182,7 @@ extension CustomerSearchContent {
                             .font(Design.Typography.subhead).fontWeight(.medium)
                             .lineLimit(1)
                     }
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(Design.Colors.Text.tertiary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                 }
@@ -193,7 +193,7 @@ extension CustomerSearchContent {
 
                 Text("Order #\(order.shortOrderNumber)")
                     .font(Design.Typography.headline).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
 
                 Spacer()
 
@@ -203,7 +203,7 @@ extension CustomerSearchContent {
                 } label: {
                     Text("Done")
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                 }
                 .buttonStyle(.plain)
             }
@@ -235,7 +235,7 @@ extension CustomerSearchContent {
                             .font(Design.Typography.subhead).fontWeight(.medium)
                             .lineLimit(1)
                     }
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(Design.Colors.Text.tertiary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                 }
@@ -246,7 +246,7 @@ extension CustomerSearchContent {
 
                 Text("Order History")
                     .font(Design.Typography.headline).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
 
                 Spacer()
 
@@ -256,7 +256,7 @@ extension CustomerSearchContent {
                 } label: {
                     Text("Done")
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                 }
                 .buttonStyle(.plain)
             }
@@ -267,12 +267,12 @@ extension CustomerSearchContent {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
                     .font(Design.Typography.subhead).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(Design.Colors.Text.subtle)
                     .accessibilityHidden(true)
 
                 TextField("Search orders...", text: $orderHistorySearchText)
                     .font(Design.Typography.subhead)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
 
@@ -282,7 +282,7 @@ extension CustomerSearchContent {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(Design.Typography.callout)
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(Design.Colors.Text.subtle)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Clear search")
@@ -290,7 +290,7 @@ extension CustomerSearchContent {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(.white.opacity(0.06), in: .rect(cornerRadius: 12))
+            .background(Design.Colors.Border.subtle, in: .rect(cornerRadius: 12))
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
 
@@ -298,18 +298,18 @@ extension CustomerSearchContent {
                 Spacer()
                 ProgressView()
                     .scaleEffect(1.2)
-                    .tint(.white.opacity(0.5))
+                    .tint(Design.Colors.Text.disabled)
                 Spacer()
             } else if filteredOrderHistory.isEmpty {
                 Spacer()
                 VStack(spacing: 12) {
                     Image(systemName: orderHistorySearchText.isEmpty ? "bag" : "magnifyingglass")
                         .font(Design.Typography.largeTitle).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.15))
+                        .foregroundStyle(Design.Colors.Text.ghost)
                         .accessibilityHidden(true)
                     Text(orderHistorySearchText.isEmpty ? "No orders yet" : "No matching orders")
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                 }
                 Spacer()
             } else {
@@ -325,7 +325,7 @@ extension CustomerSearchContent {
 
                             if index < filteredOrderHistory.count - 1 {
                                 Divider()
-                                    .background(.white.opacity(0.08))
+                                    .background(Design.Colors.Border.regular)
                                     .padding(.horizontal, 14)
                             }
                         }
@@ -401,10 +401,10 @@ extension CustomerSearchContent {
                 Text("Select Customer")
                     .font(Design.Typography.callout).fontWeight(.semibold)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(Design.Colors.Text.primary)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 14))
+            .background(Design.Colors.Glass.ultraThick, in: RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(ScaleButtonStyle())
         .onAppear {
@@ -417,24 +417,24 @@ extension CustomerSearchContent {
         VStack(alignment: .leading, spacing: 8) {
             Text("NAME")
                 .font(Design.Typography.caption1).fontWeight(.semibold)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
                 .tracking(0.5)
                 .padding(.leading, 4)
 
             HStack(spacing: 12) {
                 HStack(spacing: 12) {
-                    TextField("", text: $editFirstName, prompt: Text("First").foregroundColor(.white.opacity(0.35)))
+                    TextField("", text: $editFirstName, prompt: Text("First").foregroundColor(Design.Colors.Text.placeholder))
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                 }
                 .padding(.horizontal, 16)
                 .frame(height: 48)
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
 
                 HStack(spacing: 12) {
-                    TextField("", text: $editLastName, prompt: Text("Last").foregroundColor(.white.opacity(0.35)))
+                    TextField("", text: $editLastName, prompt: Text("Last").foregroundColor(Design.Colors.Text.placeholder))
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                 }
                 .padding(.horizontal, 16)
                 .frame(height: 48)
@@ -445,7 +445,7 @@ extension CustomerSearchContent {
         VStack(alignment: .leading, spacing: 8) {
             Text("CONTACT INFORMATION")
                 .font(Design.Typography.caption1).fontWeight(.semibold)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
                 .tracking(0.5)
                 .padding(.leading, 4)
 
@@ -453,28 +453,28 @@ extension CustomerSearchContent {
                 HStack(spacing: 12) {
                     Image(systemName: "phone.fill")
                         .font(Design.Typography.footnote).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                         .frame(width: 20)
                         .accessibilityHidden(true)
-                    TextField("", text: $editPhone, prompt: Text("Phone").foregroundColor(.white.opacity(0.35)))
+                    TextField("", text: $editPhone, prompt: Text("Phone").foregroundColor(Design.Colors.Text.placeholder))
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .keyboardType(.phonePad)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
 
-                Divider().background(.white.opacity(0.08))
+                Divider().background(Design.Colors.Border.regular)
 
                 HStack(spacing: 12) {
                     Image(systemName: "envelope.fill")
                         .font(Design.Typography.footnote).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                         .frame(width: 20)
                         .accessibilityHidden(true)
-                    TextField("", text: $editEmail, prompt: Text("Email").foregroundColor(.white.opacity(0.35)))
+                    TextField("", text: $editEmail, prompt: Text("Email").foregroundColor(Design.Colors.Text.placeholder))
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -482,17 +482,17 @@ extension CustomerSearchContent {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
 
-                Divider().background(.white.opacity(0.08))
+                Divider().background(Design.Colors.Border.regular)
 
                 HStack(spacing: 12) {
                     Image(systemName: "calendar")
                         .font(Design.Typography.footnote).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                         .frame(width: 20)
                         .accessibilityHidden(true)
-                    TextField("", text: $editDateOfBirth, prompt: Text("MM/DD/YYYY").foregroundColor(.white.opacity(0.35)))
+                    TextField("", text: $editDateOfBirth, prompt: Text("MM/DD/YYYY").foregroundColor(Design.Colors.Text.placeholder))
                         .font(Design.Typography.subhead).fontWeight(.medium)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Design.Colors.Text.primary)
                         .keyboardType(.numbersAndPunctuation)
                         .onChange(of: editDateOfBirth) { _, newValue in
                             editDateOfBirth = formatDateInput(newValue)
@@ -521,7 +521,7 @@ extension CustomerSearchContent {
 
         Text("Tap Save to update customer information")
             .font(Design.Typography.footnote).fontWeight(.medium)
-            .foregroundStyle(.white.opacity(0.4))
+            .foregroundStyle(Design.Colors.Text.subtle)
             .frame(maxWidth: .infinity)
             .padding(.top, 8)
     }
@@ -606,19 +606,19 @@ extension CustomerSearchContent {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(.white.opacity(0.1))
+                    .fill(Design.Colors.Glass.thick)
                     .frame(width: 72, height: 72)
 
                 Text(customer.initials)
                     .font(Design.Typography.title2).fontWeight(.bold)
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(Design.Colors.Text.secondary)
             }
             .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(customer.displayName)
                     .font(Design.Typography.title2).fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Design.Colors.Text.primary)
 
                 HStack(spacing: 12) {
                     HStack(spacing: 5) {
@@ -628,14 +628,14 @@ extension CustomerSearchContent {
                         Text(customer.loyaltyTierDisplay)
                             .font(Design.Typography.caption1).fontWeight(.bold)
                     }
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(Design.Colors.Text.quaternary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(.white.opacity(0.1), in: .capsule)
+                    .background(Design.Colors.Glass.thick, in: .capsule)
 
                     Text("Since \(formatMemberSince(customer.createdAt))")
                         .font(Design.Typography.caption1).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Design.Colors.Text.subtle)
                 }
             }
 
@@ -650,7 +650,7 @@ extension CustomerSearchContent {
         VStack(alignment: .leading, spacing: 10) {
             Text("METRICS")
                 .font(Design.Typography.caption1).fontWeight(.semibold)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
                 .tracking(0.5)
                 .padding(.leading, 4)
 
@@ -694,7 +694,7 @@ extension CustomerSearchContent {
         VStack(alignment: .leading, spacing: 10) {
             Text("CONTACT INFORMATION")
                 .font(Design.Typography.caption1).fontWeight(.semibold)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Design.Colors.Text.disabled)
                 .tracking(0.5)
                 .padding(.leading, 4)
 
@@ -717,7 +717,7 @@ extension CustomerSearchContent {
                         Spacer()
                         Text("No contact info on file")
                             .font(Design.Typography.footnote).fontWeight(.medium)
-                            .foregroundStyle(.white.opacity(0.3))
+                            .foregroundStyle(Design.Colors.Text.placeholder)
                         Spacer()
                     }
                     .padding(.vertical, 16)
@@ -732,7 +732,7 @@ extension CustomerSearchContent {
             HStack {
                 Text("RECENT ORDERS")
                     .font(Design.Typography.caption1).fontWeight(.semibold)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Design.Colors.Text.disabled)
                     .tracking(0.5)
 
                 Spacer()
@@ -740,7 +740,7 @@ extension CustomerSearchContent {
                 if isLoadingOrders {
                     ProgressView()
                         .scaleEffect(0.7)
-                        .tint(.white.opacity(0.4))
+                        .tint(Design.Colors.Text.subtle)
                 } else if customerOrders.count > 0 {
                     Button {
                         Haptics.light()
@@ -755,7 +755,7 @@ extension CustomerSearchContent {
                                 .font(Design.Typography.caption2).fontWeight(.semibold)
                                 .accessibilityHidden(true)
                         }
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("See all orders")
@@ -769,11 +769,11 @@ extension CustomerSearchContent {
                     VStack(spacing: 8) {
                         Image(systemName: "bag")
                             .font(Design.Typography.title2).fontWeight(.medium)
-                            .foregroundStyle(.white.opacity(0.15))
+                            .foregroundStyle(Design.Colors.Text.ghost)
                             .accessibilityHidden(true)
                         Text("No order history")
                             .font(Design.Typography.footnote).fontWeight(.medium)
-                            .foregroundStyle(.white.opacity(0.3))
+                            .foregroundStyle(Design.Colors.Text.placeholder)
                     }
                     .padding(.vertical, 28)
                     Spacer()
@@ -791,7 +791,7 @@ extension CustomerSearchContent {
 
                         if index < min(customerOrders.count, 3) - 1 {
                             Divider()
-                                .background(.white.opacity(0.08))
+                                .background(Design.Colors.Border.regular)
                                 .padding(.horizontal, 14)
                         }
                     }
