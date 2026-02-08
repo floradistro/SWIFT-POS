@@ -19,6 +19,7 @@ struct SheetContainer: View {
         sheetContent
             .presentationDetents(detentsForType)
             .presentationDragIndicator(.visible)
+            .tint(Design.Colors.Semantic.accent)
             .id(theme.themeVersion)
     }
 

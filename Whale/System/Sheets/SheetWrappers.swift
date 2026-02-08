@@ -259,7 +259,6 @@ struct OrderDetailSheet: View {
                     SheetCoordinator.shared.dismiss()
                 }
                 .font(Design.Typography.subhead).fontWeight(.medium)
-                .foregroundStyle(Design.Colors.Text.quaternary)
 
                 Spacer()
 

@@ -118,6 +118,7 @@ struct ModalBackButton: View {
 struct ModalActionButton: View {
     enum Style {
         case primary
+        case accent
         case success
         case destructive
         case glass
@@ -125,6 +126,7 @@ struct ModalActionButton: View {
         var backgroundColor: Color {
             switch self {
             case .primary: return Design.Colors.Glass.ultraThick
+            case .accent: return Design.Colors.Semantic.accent
             case .success: return Design.Colors.Semantic.successBackground
             case .destructive: return Design.Colors.Semantic.errorBackground
             case .glass: return Design.Colors.Glass.thick
@@ -134,6 +136,7 @@ struct ModalActionButton: View {
         var foregroundColor: Color {
             switch self {
             case .primary: return Design.Colors.Text.primary
+            case .accent: return .white
             case .success: return Design.Colors.Semantic.success
             case .destructive: return Design.Colors.Semantic.error
             case .glass: return Design.Colors.Text.tertiary

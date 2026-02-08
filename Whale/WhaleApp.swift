@@ -233,11 +233,13 @@ struct RootView: View {
                     .environmentObject(session)
                     .environmentObject(themeManager)
                     .applyDetents(sheetType.detents)
+                    .tint(Design.Colors.Semantic.accent)
             }
             .fullScreenCover(item: sheetCoordinator.fullScreenBinding) { sheetType in
                 SheetContainer(sheetType: sheetType)
                     .environmentObject(session)
                     .environmentObject(themeManager)
+                    .tint(Design.Colors.Semantic.accent)
             }
     }
 }

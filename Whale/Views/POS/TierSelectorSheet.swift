@@ -128,7 +128,6 @@ struct TierSelectorSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
-                        .foregroundStyle(Design.Colors.Text.quaternary)
                 }
                 ToolbarItem(placement: .primaryAction) {
                     HStack(spacing: 12) {

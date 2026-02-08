@@ -193,7 +193,6 @@ struct CustomerSearchContent: View {
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Done") { onDismiss() }
-                                .foregroundStyle(Design.Colors.Text.quaternary)
                         }
                         ToolbarItem(placement: .primaryAction) {
                             toolbarActions

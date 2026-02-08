@@ -55,7 +55,6 @@ struct InvoiceDetailSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { onDismiss() }
-                        .foregroundStyle(Design.Colors.Semantic.accent)
                 }
             }
         }
