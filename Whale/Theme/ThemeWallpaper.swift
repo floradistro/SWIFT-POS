@@ -27,10 +27,16 @@ struct ThemeWallpaper: View {
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
 
-                // Darkening overlay for text readability
-                Color.black.opacity(0.3)
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
+                // Mode-adaptive overlay for text readability
+                Group {
+                    if theme.palette.baseMode == .light {
+                        Color.white.opacity(0.15)
+                    } else {
+                        Color.black.opacity(0.3)
+                    }
+                }
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
             }
         }
     }

@@ -22,6 +22,7 @@ enum BootStep: Equatable {
 
 struct BootSheet: View {
     @EnvironmentObject private var session: SessionObserver
+    @EnvironmentObject private var themeManager: ThemeManager
 
     // Animation states
     @State private var contentOpacity: CGFloat = 0
@@ -55,8 +56,10 @@ struct BootSheet: View {
                 modalView
 
             case .authenticated:
-                // Show POS directly
+                // Show POS directly — .id() forces recreation when theme changes
+                // so Design.Colors.* static properties re-evaluate with new values
                 POSMainView()
+                    .id(themeManager.themeVersion)
             }
         }
         .onAppear {
@@ -190,10 +193,6 @@ struct BootSheet: View {
     // MARK: - Boot Sequence
 
     private func startBootSequence() {
-        // Logo and modal are already visible (set in @State initial values)
-        // This ensures the splash appears on the VERY FIRST FRAME
-        // No animation needed here - just wait for session to be ready
-
         // NOTE: session.start() is called from RootView.task AFTER first frame
         // onSessionReady() is triggered by .onChange(of: hasCheckedSession)
     }

@@ -18,6 +18,11 @@ final class ThemeManager: ObservableObject {
         didSet { rebuildColors() }
     }
 
+    /// Incremented on every palette change. Views use `.id(themeVersion)` to
+    /// force recreation, since `Design.Colors.*` static properties can't be
+    /// tracked by SwiftUI's dependency system.
+    @Published private(set) var themeVersion = 0
+
     // MARK: - Resolved Colors (rebuilt on palette change)
 
     // Backgrounds
@@ -259,24 +264,26 @@ final class ThemeManager: ObservableObject {
         let p = palette
         let overlay = p.glassOverlay
         let text = p.textBase
+        let isLight = p.baseMode == .light
 
-        // Backgrounds
-        backgroundPrimary = p.backgroundPrimary.color
-        backgroundSecondary = p.backgroundSecondary.color
-        backgroundTertiary = p.backgroundTertiary.color
+        // Backgrounds (with accent tint)
+        let tintAmount = 0.04
+        backgroundPrimary = accentTintedBackground(p.backgroundPrimary, tint: p.accent, amount: tintAmount)
+        backgroundSecondary = accentTintedBackground(p.backgroundSecondary, tint: p.accent, amount: tintAmount)
+        backgroundTertiary = accentTintedBackground(p.backgroundTertiary, tint: p.accent, amount: tintAmount)
 
-        // Glass (using overlay base)
-        glassUltraThin = overlay.withOpacity(0.02)
-        glassThin = overlay.withOpacity(0.03)
-        glassRegular = overlay.withOpacity(0.08)
-        glassThick = overlay.withOpacity(0.12)
-        glassUltraThick = overlay.withOpacity(0.15)
+        // Glass (using overlay base, boosted for light mode)
+        glassUltraThin = overlay.withOpacity(isLight ? 0.04 : 0.02)
+        glassThin = overlay.withOpacity(isLight ? 0.05 : 0.03)
+        glassRegular = overlay.withOpacity(isLight ? 0.14 : 0.08)
+        glassThick = overlay.withOpacity(isLight ? 0.22 : 0.12)
+        glassUltraThick = overlay.withOpacity(isLight ? 0.27 : 0.15)
 
-        // Borders (using overlay base)
-        borderSubtle = overlay.withOpacity(0.06)
-        borderRegular = overlay.withOpacity(0.1)
-        borderEmphasis = overlay.withOpacity(0.12)
-        borderStrong = overlay.withOpacity(0.15)
+        // Borders (using overlay base, boosted for light mode)
+        borderSubtle = overlay.withOpacity(isLight ? 0.10 : 0.06)
+        borderRegular = overlay.withOpacity(isLight ? 0.16 : 0.1)
+        borderEmphasis = overlay.withOpacity(isLight ? 0.19 : 0.12)
+        borderStrong = overlay.withOpacity(isLight ? 0.24 : 0.15)
 
         // Text (using text base with high contrast boost)
         textPrimary = text.color
@@ -304,10 +311,21 @@ final class ThemeManager: ObservableObject {
         semanticAccent = p.accent.color
         semanticAccentBackground = p.accent.withOpacity(0.3)
 
-        // Interactive (using overlay base)
-        interactiveDefault = overlay.withOpacity(0.08)
-        interactiveHover = overlay.withOpacity(0.12)
-        interactiveActive = overlay.withOpacity(0.15)
-        interactiveDisabled = overlay.withOpacity(0.03)
+        // Interactive (using overlay base, boosted for light mode)
+        interactiveDefault = overlay.withOpacity(isLight ? 0.12 : 0.08)
+        interactiveHover = overlay.withOpacity(isLight ? 0.18 : 0.12)
+        interactiveActive = overlay.withOpacity(isLight ? 0.22 : 0.15)
+        interactiveDisabled = overlay.withOpacity(isLight ? 0.05 : 0.03)
+
+        themeVersion += 1
+    }
+
+    // MARK: - Accent Tint Blending
+
+    private func accentTintedBackground(_ base: ThemeColor, tint: ThemeColor, amount: Double) -> Color {
+        let r = base.red * (1 - amount) + tint.red * amount
+        let g = base.green * (1 - amount) + tint.green * amount
+        let b = base.blue * (1 - amount) + tint.blue * amount
+        return Color(.sRGB, red: r, green: g, blue: b, opacity: base.opacity)
     }
 }

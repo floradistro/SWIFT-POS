@@ -102,9 +102,9 @@ struct ThemePalette: Codable, Equatable {
 
     static let defaultLight = ThemePalette(
         baseMode: .light,
-        backgroundPrimary: ThemeColor(red: 0.96, green: 0.96, blue: 0.97),
-        backgroundSecondary: ThemeColor(red: 1, green: 1, blue: 1, opacity: 0.6),
-        backgroundTertiary: ThemeColor(red: 0.95, green: 0.95, blue: 0.96, opacity: 0.85),
+        backgroundPrimary: ThemeColor(red: 0.949, green: 0.949, blue: 0.969),       // #F2F2F7 Apple systemGroupedBackground
+        backgroundSecondary: ThemeColor(red: 1, green: 1, blue: 1),                  // #FFFFFF Apple secondarySystemGroupedBackground
+        backgroundTertiary: ThemeColor(red: 0.949, green: 0.949, blue: 0.969, opacity: 0.95),
         glassOverlay: ThemeColor(red: 0, green: 0, blue: 0),
         textBase: ThemeColor(red: 0, green: 0, blue: 0),
         accent: ThemeColor(red: 59/255, green: 130/255, blue: 246/255),
