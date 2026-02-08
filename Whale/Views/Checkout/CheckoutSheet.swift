@@ -109,7 +109,6 @@ struct CheckoutSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .preferredColorScheme(.dark)
         .onChange(of: paymentStore.uiState) { _, state in
             handlePaymentStateChange(state)
         }

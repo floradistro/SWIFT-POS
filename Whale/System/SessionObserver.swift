@@ -220,10 +220,13 @@ final class SessionObserver: ObservableObject {
                     Log.session.info("Session valid, no biometric - unlocking")
                 }
 
-                // Load saved selections - await them so boot completes with full state
+                // Load saved selections and theme - await them so boot completes with full state
                 await loadSavedLocation()
                 await loadSavedRegister()
                 await loadSavedPOSSession()
+                if let uid = publicUserId {
+                    await ThemeManager.shared.loadFromSupabase(userId: uid)
+                }
             } else {
                 isLocked = false
             }
@@ -254,10 +257,13 @@ final class SessionObserver: ObservableObject {
             isLoading = false
             notifyChange()
 
-            // Load saved selections in background
+            // Load saved selections and theme in background
             Task {
                 await loadSavedLocation()
                 await loadSavedRegister()
+                if let uid = publicUserId {
+                    await ThemeManager.shared.loadFromSupabase(userId: uid)
+                }
             }
 
             return true

@@ -18,7 +18,6 @@ struct SheetContainer: View {
         sheetContent
             .presentationDetents(detentsForType)
             .presentationDragIndicator(.visible)
-            .preferredColorScheme(.dark)
     }
 
     // MARK: - Sheet Content

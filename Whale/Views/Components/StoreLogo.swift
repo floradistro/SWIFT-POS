@@ -91,5 +91,4 @@ struct StoreLogo: View {
             StoreLogo(url: nil, size: 60, storeName: "Test")
         }
     }
-    .preferredColorScheme(.dark)
 }

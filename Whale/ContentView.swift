@@ -166,7 +166,6 @@ struct ContentView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var isFormValid: Bool {

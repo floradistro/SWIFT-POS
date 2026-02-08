@@ -204,7 +204,6 @@ struct CustomerSearchContent: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .preferredColorScheme(.dark)
         .onAppear {
             Log.scanner.debug("CustomerSearchContent appeared - isScannedMode: \(isScannedMode), scannedID: \(scannedID?.fullDisplayName ?? "nil"), matches: \(scannedMatches?.count ?? 0)")
         }
@@ -618,5 +617,4 @@ struct CustomerSearchContent: View {
             onCancel: {}
         )
     }
-    .preferredColorScheme(.dark)
 }

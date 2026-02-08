@@ -634,6 +634,5 @@ struct ErrorAlertSheet: View {
         }
         .frame(maxWidth: .infinity)
         .background(Color(.secondarySystemGroupedBackground))
-        .preferredColorScheme(.dark)
     }
 }

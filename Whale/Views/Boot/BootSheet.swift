@@ -41,7 +41,7 @@ struct BootSheet: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            ThemeWallpaper()
 
             switch currentStep {
             case .splash:
@@ -59,7 +59,6 @@ struct BootSheet: View {
                 POSMainView()
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear {
             startBootSequence()
         }

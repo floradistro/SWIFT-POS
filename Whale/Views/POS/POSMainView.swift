@@ -123,7 +123,6 @@ struct POSMainView: View {
                 Spacer(minLength: 24)
             }
         }
-        .preferredColorScheme(.dark)
         .task {
             await session.fetchLocations()
         }
@@ -352,7 +351,6 @@ struct POSMainView: View {
         }
         .background(Color.black)
         .ignoresSafeArea()
-        .preferredColorScheme(.dark)
         .onReceive(NotificationCenter.default.publisher(for: .sheetCustomerSelected)) { notification in
             if let customer = notification.object as? Customer {
                 handleCustomerSelected(customer)

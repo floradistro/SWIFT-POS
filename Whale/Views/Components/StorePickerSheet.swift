@@ -68,6 +68,5 @@ struct StorePickerSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 }
