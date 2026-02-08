@@ -37,9 +37,9 @@ extension CustomerSearchContent {
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                         Text(isEditingCustomer ? "Cancel" : "Back")
-                            .font(.system(size: 15, weight: .medium))
+                            .font(Design.Typography.subhead).fontWeight(.medium)
                     }
                     .foregroundStyle(.white.opacity(0.8))
                     .padding(.horizontal, 14)
@@ -62,10 +62,10 @@ extension CustomerSearchContent {
                                     .tint(.white)
                             } else {
                                 Image(systemName: "checkmark")
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(Design.Typography.footnote).fontWeight(.semibold)
                             }
                             Text("Save")
-                                .font(.system(size: 15, weight: .medium))
+                                .font(Design.Typography.subhead).fontWeight(.medium)
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, 14)
@@ -81,9 +81,9 @@ extension CustomerSearchContent {
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "pencil")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(Design.Typography.footnote).fontWeight(.semibold)
                             Text("Edit")
-                                .font(.system(size: 15, weight: .medium))
+                                .font(Design.Typography.subhead).fontWeight(.medium)
                         }
                         .foregroundStyle(.white.opacity(0.8))
                         .padding(.horizontal, 14)
@@ -98,7 +98,7 @@ extension CustomerSearchContent {
                     onDismiss()
                 } label: {
                     Text("Done")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.6))
                 }
                 .buttonStyle(.plain)
@@ -148,7 +148,7 @@ extension CustomerSearchContent {
                 VStack {
                     Spacer()
                     Text(message)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
@@ -177,9 +177,9 @@ extension CustomerSearchContent {
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                         Text(customer.displayName)
-                            .font(.system(size: 15, weight: .medium))
+                            .font(Design.Typography.subhead).fontWeight(.medium)
                             .lineLimit(1)
                     }
                     .foregroundStyle(.white.opacity(0.8))
@@ -192,7 +192,7 @@ extension CustomerSearchContent {
                 Spacer()
 
                 Text("Order #\(order.shortOrderNumber)")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(Design.Typography.headline).fontWeight(.bold)
                     .foregroundStyle(.white)
 
                 Spacer()
@@ -202,7 +202,7 @@ extension CustomerSearchContent {
                     onDismiss()
                 } label: {
                     Text("Done")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.6))
                 }
                 .buttonStyle(.plain)
@@ -230,9 +230,9 @@ extension CustomerSearchContent {
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                         Text(customer.displayName)
-                            .font(.system(size: 15, weight: .medium))
+                            .font(Design.Typography.subhead).fontWeight(.medium)
                             .lineLimit(1)
                     }
                     .foregroundStyle(.white.opacity(0.8))
@@ -245,7 +245,7 @@ extension CustomerSearchContent {
                 Spacer()
 
                 Text("Order History")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(Design.Typography.headline).fontWeight(.bold)
                     .foregroundStyle(.white)
 
                 Spacer()
@@ -255,7 +255,7 @@ extension CustomerSearchContent {
                     onDismiss()
                 } label: {
                     Text("Done")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.6))
                 }
                 .buttonStyle(.plain)
@@ -266,12 +266,12 @@ extension CustomerSearchContent {
 
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(Design.Typography.subhead).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.4))
                     .accessibilityHidden(true)
 
                 TextField("Search orders...", text: $orderHistorySearchText)
-                    .font(.system(size: 15))
+                    .font(Design.Typography.subhead)
                     .foregroundStyle(.white)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -281,7 +281,7 @@ extension CustomerSearchContent {
                         orderHistorySearchText = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 16))
+                            .font(Design.Typography.callout)
                             .foregroundStyle(.white.opacity(0.4))
                     }
                     .buttonStyle(.plain)
@@ -304,11 +304,11 @@ extension CustomerSearchContent {
                 Spacer()
                 VStack(spacing: 12) {
                     Image(systemName: orderHistorySearchText.isEmpty ? "bag" : "magnifyingglass")
-                        .font(.system(size: 32, weight: .medium))
+                        .font(Design.Typography.largeTitle).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.15))
                         .accessibilityHidden(true)
                     Text(orderHistorySearchText.isEmpty ? "No orders yet" : "No matching orders")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.4))
                 }
                 Spacer()
@@ -397,9 +397,9 @@ extension CustomerSearchContent {
         } label: {
             HStack {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(Design.Typography.headline).fontWeight(.semibold)
                 Text("Select Customer")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(Design.Typography.callout).fontWeight(.semibold)
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
@@ -416,7 +416,7 @@ extension CustomerSearchContent {
     func customerEditContent(_ customer: Customer) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("NAME")
-                .font(.system(size: 12, weight: .semibold))
+                .font(Design.Typography.caption1).fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
@@ -424,7 +424,7 @@ extension CustomerSearchContent {
             HStack(spacing: 12) {
                 HStack(spacing: 12) {
                     TextField("", text: $editFirstName, prompt: Text("First").foregroundColor(.white.opacity(0.35)))
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
                 }
                 .padding(.horizontal, 16)
@@ -433,7 +433,7 @@ extension CustomerSearchContent {
 
                 HStack(spacing: 12) {
                     TextField("", text: $editLastName, prompt: Text("Last").foregroundColor(.white.opacity(0.35)))
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
                 }
                 .padding(.horizontal, 16)
@@ -444,7 +444,7 @@ extension CustomerSearchContent {
 
         VStack(alignment: .leading, spacing: 8) {
             Text("CONTACT INFORMATION")
-                .font(.system(size: 12, weight: .semibold))
+                .font(Design.Typography.caption1).fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
@@ -452,12 +452,12 @@ extension CustomerSearchContent {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     Image(systemName: "phone.fill")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 20)
                         .accessibilityHidden(true)
                     TextField("", text: $editPhone, prompt: Text("Phone").foregroundColor(.white.opacity(0.35)))
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
                         .keyboardType(.phonePad)
                 }
@@ -468,12 +468,12 @@ extension CustomerSearchContent {
 
                 HStack(spacing: 12) {
                     Image(systemName: "envelope.fill")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 20)
                         .accessibilityHidden(true)
                     TextField("", text: $editEmail, prompt: Text("Email").foregroundColor(.white.opacity(0.35)))
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
@@ -486,12 +486,12 @@ extension CustomerSearchContent {
 
                 HStack(spacing: 12) {
                     Image(systemName: "calendar")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 20)
                         .accessibilityHidden(true)
                     TextField("", text: $editDateOfBirth, prompt: Text("MM/DD/YYYY").foregroundColor(.white.opacity(0.35)))
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
                         .keyboardType(.numbersAndPunctuation)
                         .onChange(of: editDateOfBirth) { _, newValue in
@@ -507,10 +507,10 @@ extension CustomerSearchContent {
         if let error = editErrorMessage {
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 15))
+                    .font(Design.Typography.subhead)
                     .accessibilityHidden(true)
                 Text(error)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
             }
             .foregroundStyle(Design.Colors.Semantic.error)
             .accessibilityElement(children: .combine)
@@ -520,7 +520,7 @@ extension CustomerSearchContent {
         }
 
         Text("Tap Save to update customer information")
-            .font(.system(size: 13, weight: .medium))
+            .font(Design.Typography.footnote).fontWeight(.medium)
             .foregroundStyle(.white.opacity(0.4))
             .frame(maxWidth: .infinity)
             .padding(.top, 8)
@@ -610,23 +610,23 @@ extension CustomerSearchContent {
                     .frame(width: 72, height: 72)
 
                 Text(customer.initials)
-                    .font(.system(size: 26, weight: .bold))
+                    .font(Design.Typography.title2).fontWeight(.bold)
                     .foregroundStyle(.white.opacity(0.9))
             }
             .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(customer.displayName)
-                    .font(.system(size: 22, weight: .bold))
+                    .font(Design.Typography.title2).fontWeight(.bold)
                     .foregroundStyle(.white)
 
                 HStack(spacing: 12) {
                     HStack(spacing: 5) {
                         Image(systemName: "crown.fill")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(Design.Typography.caption2).fontWeight(.bold)
                             .accessibilityHidden(true)
                         Text(customer.loyaltyTierDisplay)
-                            .font(.system(size: 12, weight: .bold))
+                            .font(Design.Typography.caption1).fontWeight(.bold)
                     }
                     .foregroundStyle(.white.opacity(0.7))
                     .padding(.horizontal, 10)
@@ -634,7 +634,7 @@ extension CustomerSearchContent {
                     .background(.white.opacity(0.1), in: .capsule)
 
                     Text("Since \(formatMemberSince(customer.createdAt))")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(Design.Typography.caption1).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.4))
                 }
             }
@@ -649,7 +649,7 @@ extension CustomerSearchContent {
     func customerCRMStats(_ customer: Customer) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("METRICS")
-                .font(.system(size: 12, weight: .semibold))
+                .font(Design.Typography.caption1).fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
@@ -693,7 +693,7 @@ extension CustomerSearchContent {
     func customerContactSection(_ customer: Customer) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("CONTACT INFORMATION")
-                .font(.system(size: 12, weight: .semibold))
+                .font(Design.Typography.caption1).fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
@@ -716,7 +716,7 @@ extension CustomerSearchContent {
                     HStack {
                         Spacer()
                         Text("No contact info on file")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.3))
                         Spacer()
                     }
@@ -731,7 +731,7 @@ extension CustomerSearchContent {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("RECENT ORDERS")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(Design.Typography.caption1).fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.5))
                     .tracking(0.5)
 
@@ -750,9 +750,9 @@ extension CustomerSearchContent {
                     } label: {
                         HStack(spacing: 4) {
                             Text("See All")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(Design.Typography.footnote).fontWeight(.medium)
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(Design.Typography.caption2).fontWeight(.semibold)
                                 .accessibilityHidden(true)
                         }
                         .foregroundStyle(.white.opacity(0.5))
@@ -768,11 +768,11 @@ extension CustomerSearchContent {
                     Spacer()
                     VStack(spacing: 8) {
                         Image(systemName: "bag")
-                            .font(.system(size: 24, weight: .medium))
+                            .font(Design.Typography.title2).fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.15))
                             .accessibilityHidden(true)
                         Text("No order history")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.3))
                     }
                     .padding(.vertical, 28)

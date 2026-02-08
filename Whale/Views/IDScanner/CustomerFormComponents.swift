@@ -19,7 +19,7 @@ extension CustomerSearchContent {
         // Name fields
         VStack(alignment: .leading, spacing: 8) {
             Text("NAME")
-                .font(.system(size: 12, weight: .semibold))
+                .font(Design.Typography.caption1).fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
@@ -27,7 +27,7 @@ extension CustomerSearchContent {
             HStack(spacing: 12) {
                 HStack(spacing: 12) {
                     TextField("", text: $firstName, prompt: Text("First").foregroundColor(.white.opacity(0.35)))
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
                         .focused($focusedCreateField, equals: .firstName)
                 }
@@ -37,7 +37,7 @@ extension CustomerSearchContent {
 
                 HStack(spacing: 12) {
                     TextField("", text: $lastName, prompt: Text("Last").foregroundColor(.white.opacity(0.35)))
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
                         .focused($focusedCreateField, equals: .lastName)
                 }
@@ -50,18 +50,18 @@ extension CustomerSearchContent {
         // DOB
         VStack(alignment: .leading, spacing: 8) {
             Text("DATE OF BIRTH")
-                .font(.system(size: 12, weight: .semibold))
+                .font(Design.Typography.caption1).fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
 
             HStack(spacing: 12) {
                 Image(systemName: "calendar")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(Design.Typography.callout).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.4))
                     .accessibilityHidden(true)
                 TextField("", text: $dateOfBirth, prompt: Text("MM/DD/YYYY").foregroundColor(.white.opacity(0.35)))
-                    .font(.system(size: 15, weight: .medium))
+                    .font(Design.Typography.subhead).fontWeight(.medium)
                     .foregroundStyle(.white)
                     .keyboardType(.numbersAndPunctuation)
                     .focused($focusedCreateField, equals: .dob)
@@ -77,7 +77,7 @@ extension CustomerSearchContent {
         // Contact
         VStack(alignment: .leading, spacing: 8) {
             Text("CONTACT (OPTIONAL)")
-                .font(.system(size: 12, weight: .semibold))
+                .font(Design.Typography.caption1).fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.5))
                 .tracking(0.5)
                 .padding(.leading, 4)
@@ -85,12 +85,12 @@ extension CustomerSearchContent {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     Image(systemName: "phone.fill")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 20)
                         .accessibilityHidden(true)
                     TextField("", text: $phone, prompt: Text("Phone").foregroundColor(.white.opacity(0.35)))
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
                         .keyboardType(.phonePad)
                         .focused($focusedCreateField, equals: .phone)
@@ -102,12 +102,12 @@ extension CustomerSearchContent {
 
                 HStack(spacing: 12) {
                     Image(systemName: "envelope.fill")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.4))
                         .frame(width: 20)
                         .accessibilityHidden(true)
                     TextField("", text: $email, prompt: Text("Email").foregroundColor(.white.opacity(0.35)))
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(.white)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
@@ -123,10 +123,10 @@ extension CustomerSearchContent {
         if let error = errorMessage {
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 15))
+                    .font(Design.Typography.subhead)
                     .accessibilityHidden(true)
                 Text(error)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
             }
             .foregroundStyle(Design.Colors.Semantic.error)
             .accessibilityElement(children: .combine)
@@ -148,9 +148,9 @@ extension CustomerSearchContent {
                         .tint(.white)
                 } else {
                     Image(systemName: "person.badge.plus")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(Design.Typography.callout).fontWeight(.semibold)
                     Text("Create Customer")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(Design.Typography.callout).fontWeight(.semibold)
                 }
             }
             .foregroundStyle(isCreateValid ? .white : .white.opacity(0.4))
@@ -175,7 +175,7 @@ extension CustomerSearchContent {
             .background(Circle().fill(.white.opacity(0.08)))
 
             Text("Launching scanner...")
-                .font(.system(size: 15, weight: .medium))
+                .font(Design.Typography.subhead).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.5))
         }
         .frame(maxWidth: .infinity)

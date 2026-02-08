@@ -47,10 +47,10 @@ struct InventoryUnitScanSheet: View {
                     if let error = errorMessage {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
-                            Text(error).font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                            Text(error).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(.white)
                             Spacer()
                             Button { errorMessage = nil } label: {
-                                Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundStyle(.white.opacity(0.5)).frame(width: 28, height: 28)
+                                Image(systemName: "xmark").font(Design.Typography.caption1).fontWeight(.bold).foregroundStyle(.white.opacity(0.5)).frame(width: 28, height: 28)
                             }
                             .buttonStyle(.plain)
                         }
@@ -89,7 +89,8 @@ struct InventoryUnitScanSheet: View {
                 }
                 ToolbarItem(placement: .principal) {
                     Text(unit.status.displayName)
-                        .font(.system(size: 10, weight: .bold))
+                        .font(Design.Typography.caption2)
+                        .fontWeight(.bold)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(Capsule().fill(statusColor))
@@ -109,7 +110,8 @@ struct InventoryUnitScanSheet: View {
                 else { withAnimation(.spring(response: 0.3)) { currentScreen = .main; clearInputs() } }
             } label: {
                 Image(systemName: currentScreen == .main || currentScreen == .success ? "xmark" : "chevron.left")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(Design.Typography.footnote)
+                    .fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.7))
                     .frame(width: 44, height: 44)
                     .contentShape(Circle())
@@ -121,14 +123,14 @@ struct InventoryUnitScanSheet: View {
 
             VStack(spacing: 2) {
                 if currentScreen != .main && currentScreen != .success {
-                    Text(unit.productName ?? "Inventory").font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.4))
+                    Text(unit.productName ?? "Inventory").font(Design.Typography.caption2).fontWeight(.medium).foregroundStyle(.white.opacity(0.4))
                 }
-                Text(headerTitle).font(.system(size: currentScreen == .main ? 22 : 20, weight: .bold, design: .rounded)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.7)
+                Text(headerTitle).font(Design.Typography.title2Rounded).fontWeight(.bold).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.7)
             }
 
             Spacer()
 
-            Text(unit.status.displayName).font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+            Text(unit.status.displayName).font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white)
                 .padding(.horizontal, 8).padding(.vertical, 4).background(Capsule().fill(statusColor))
         }
         .padding(.horizontal, 20).padding(.top, 20).padding(.bottom, 12)
@@ -155,16 +157,16 @@ struct InventoryUnitScanSheet: View {
                 ZStack {
                     Circle().fill(statusColor.opacity(0.15)).frame(width: 56, height: 56)
                     VStack(spacing: 2) {
-                        Image(systemName: unit.tierIcon).font(.system(size: 18, weight: .semibold)).foregroundStyle(statusColor)
-                        Text(unit.qrPrefix).font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(statusColor)
+                        Image(systemName: unit.tierIcon).font(Design.Typography.headline).fontWeight(.semibold).foregroundStyle(statusColor)
+                        Text(unit.qrPrefix).font(Design.Typography.caption2Mono).fontWeight(.bold).foregroundStyle(statusColor)
                     }
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(unit.tierLabel ?? unit.tierId.uppercased()).font(.system(size: 16, weight: .semibold)).foregroundStyle(.white)
+                    Text(unit.tierLabel ?? unit.tierId.uppercased()).font(Design.Typography.callout).fontWeight(.semibold).foregroundStyle(.white)
                     HStack(spacing: 6) {
-                        Text(unit.quantityFormatted).font(.system(size: 13, weight: .bold, design: .rounded)).foregroundStyle(statusColor)
+                        Text(unit.quantityFormatted).font(Design.Typography.footnoteRounded).fontWeight(.bold).foregroundStyle(statusColor)
                         Text("•").foregroundStyle(.white.opacity(0.3))
-                        Text("Gen \(unit.generation)").font(.system(size: 12)).foregroundStyle(.white.opacity(0.5))
+                        Text("Gen \(unit.generation)").font(Design.Typography.caption1).foregroundStyle(.white.opacity(0.5))
                     }
                 }
                 Spacer()
@@ -188,16 +190,16 @@ struct InventoryUnitScanSheet: View {
             ModalSection {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("HISTORY").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                        Text("HISTORY").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
                         Spacer()
-                        Text("\(history.count) scans").font(.system(size: 10)).foregroundStyle(.white.opacity(0.3))
+                        Text("\(history.count) scans").font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.3))
                     }
                     ForEach(history.prefix(3)) { scan in
                         HStack(spacing: 8) {
                             Circle().fill(scanColor(for: scan.operation)).frame(width: 6, height: 6)
-                            Text(scan.operation.replacingOccurrences(of: "_", with: " ").capitalized).font(.system(size: 12, weight: .medium)).foregroundStyle(.white)
+                            Text(scan.operation.replacingOccurrences(of: "_", with: " ").capitalized).font(Design.Typography.caption1).fontWeight(.medium).foregroundStyle(.white)
                             Spacer()
-                            Text(scan.scannedAt.formatted(.relative(presentation: .named))).font(.system(size: 10)).foregroundStyle(.white.opacity(0.4))
+                            Text(scan.scannedAt.formatted(.relative(presentation: .named))).font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.4))
                         }
                     }
                 }
@@ -211,8 +213,8 @@ struct InventoryUnitScanSheet: View {
             if unit.status == .available {
                 if isAtCurrentLocation {
                     HStack(spacing: 10) {
-                        Image(systemName: "checkmark.circle.fill").font(.system(size: 16)).foregroundStyle(.green)
-                        Text("Already at this location").font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.6))
+                        Image(systemName: "checkmark.circle.fill").font(Design.Typography.callout).foregroundStyle(.green)
+                        Text("Already at this location").font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(.white.opacity(0.6))
                         Spacer()
                     }.padding(.vertical, 8).padding(.horizontal, 14)
                     actionRow("Transfer to Another Location", icon: "arrow.right.circle.fill", color: .blue) { navigateTo(.transfer) }
@@ -242,10 +244,10 @@ struct InventoryUnitScanSheet: View {
         if isTransferReceive {
             ModalSection {
                 HStack(spacing: 12) {
-                    Image(systemName: "shippingbox.and.arrow.backward.fill").font(.system(size: 24)).foregroundStyle(.blue)
+                    Image(systemName: "shippingbox.and.arrow.backward.fill").font(Design.Typography.title2).foregroundStyle(.blue)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("TRANSFER IN").font(.system(size: 10, weight: .bold)).foregroundStyle(.blue).tracking(0.5)
-                        Text("\(lookupResult.location?.name ?? "Unknown") → \(session.selectedLocation?.name ?? "Here")").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+                        Text("TRANSFER IN").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.blue).tracking(0.5)
+                        Text("\(lookupResult.location?.name ?? "Unknown") → \(session.selectedLocation?.name ?? "Here")").font(Design.Typography.footnote).fontWeight(.semibold).foregroundStyle(.white)
                     }
                     Spacer()
                 }
@@ -254,27 +256,27 @@ struct InventoryUnitScanSheet: View {
 
         ModalSection {
             VStack(alignment: .leading, spacing: 10) {
-                Text(isTransferReceive ? "RECEIVE AT" : "CONFIRM LOCATION").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                Text(isTransferReceive ? "RECEIVE AT" : "CONFIRM LOCATION").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
                 if let location = session.selectedLocation {
                     HStack(spacing: 12) {
-                        Image(systemName: "mappin.circle.fill").font(.system(size: 20)).foregroundStyle(.green)
+                        Image(systemName: "mappin.circle.fill").font(Design.Typography.title3).foregroundStyle(.green)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(location.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
-                            Text("Your Location").font(.system(size: 11)).foregroundStyle(.white.opacity(0.4))
+                            Text(location.name).font(Design.Typography.subhead).fontWeight(.semibold).foregroundStyle(.white)
+                            Text("Your Location").font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.4))
                         }
                         Spacer()
-                        Image(systemName: "checkmark.circle.fill").font(.system(size: 18)).foregroundStyle(.green)
+                        Image(systemName: "checkmark.circle.fill").font(Design.Typography.headline).foregroundStyle(.green)
                     }
                 } else {
-                    Text("No location selected").font(.system(size: 14)).foregroundStyle(.white.opacity(0.5))
+                    Text("No location selected").font(Design.Typography.footnote).foregroundStyle(.white.opacity(0.5))
                 }
             }
         }
 
         ModalSection {
             VStack(alignment: .leading, spacing: 8) {
-                Text("BIN LOCATION (OPTIONAL)").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
-                TextField("e.g., A-1-3, Shelf B", text: $binLocation).font(.system(size: 15, weight: .medium)).foregroundStyle(.white).textInputAutocapitalization(.characters).padding(.vertical, 8)
+                Text("BIN LOCATION (OPTIONAL)").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                TextField("e.g., A-1-3, Shelf B", text: $binLocation).font(Design.Typography.subhead).fontWeight(.medium).foregroundStyle(.white).textInputAutocapitalization(.characters).padding(.vertical, 8)
             }
         }
 
@@ -291,11 +293,11 @@ struct InventoryUnitScanSheet: View {
 
         ModalSection {
             VStack(alignment: .leading, spacing: 10) {
-                Text("TRANSFER FROM").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                Text("TRANSFER FROM").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
                 if let location = lookupResult.location {
                     HStack(spacing: 12) {
-                        Image(systemName: "building.2.fill").font(.system(size: 18)).foregroundStyle(.blue)
-                        Text(location.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
+                        Image(systemName: "building.2.fill").font(Design.Typography.headline).foregroundStyle(.blue)
+                        Text(location.name).font(Design.Typography.subhead).fontWeight(.semibold).foregroundStyle(.white)
                         Spacer()
                     }
                 }
@@ -304,8 +306,8 @@ struct InventoryUnitScanSheet: View {
 
         ModalSection {
             VStack(alignment: .leading, spacing: 10) {
-                Text("TRANSFER TO").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
-                Text("Select destination when scanning at receiving location").font(.system(size: 13)).foregroundStyle(.white.opacity(0.5))
+                Text("TRANSFER TO").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                Text("Select destination when scanning at receiving location").font(Design.Typography.footnote).foregroundStyle(.white.opacity(0.5))
             }
         }
 
@@ -322,27 +324,27 @@ struct InventoryUnitScanSheet: View {
 
         ModalSection {
             VStack(alignment: .leading, spacing: 12) {
-                Text("VERIFY QUANTITY").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                Text("VERIFY QUANTITY").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Expected").font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))
-                        Text(unit.quantityFormatted).font(.system(size: 20, weight: .bold, design: .rounded)).foregroundStyle(.white.opacity(0.6))
+                        Text("Expected").font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.5))
+                        Text(unit.quantityFormatted).font(Design.Typography.title3Rounded).fontWeight(.bold).foregroundStyle(.white.opacity(0.6))
                     }
-                    Image(systemName: "arrow.right").font(.system(size: 14)).foregroundStyle(.white.opacity(0.3))
+                    Image(systemName: "arrow.right").font(Design.Typography.footnote).foregroundStyle(.white.opacity(0.3))
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Actual").font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))
+                        Text("Actual").font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.5))
                         HStack(spacing: 4) {
-                            TextField("0", text: $auditQuantity).font(.system(size: 20, weight: .bold, design: .rounded)).foregroundStyle(.white).keyboardType(.decimalPad).frame(width: 80)
-                            Text(unit.baseUnit).font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.5))
+                            TextField("0", text: $auditQuantity).font(Design.Typography.title3Rounded).fontWeight(.bold).foregroundStyle(.white).keyboardType(.decimalPad).frame(width: 80)
+                            Text(unit.baseUnit).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(.white.opacity(0.5))
                         }
                     }
                 }
                 if let actual = Double(auditQuantity), actual != unit.quantity {
                     let variance = actual - unit.quantity
                     HStack(spacing: 6) {
-                        Image(systemName: variance > 0 ? "arrow.up.circle.fill" : "arrow.down.circle.fill").font(.system(size: 14))
-                        Text(String(format: "%+.1f%@", variance, unit.baseUnit)).font(.system(size: 13, weight: .semibold))
-                        Text("variance").font(.system(size: 12)).foregroundStyle(.white.opacity(0.5))
+                        Image(systemName: variance > 0 ? "arrow.up.circle.fill" : "arrow.down.circle.fill").font(Design.Typography.footnote)
+                        Text(String(format: "%+.1f%@", variance, unit.baseUnit)).font(Design.Typography.footnote).fontWeight(.semibold)
+                        Text("variance").font(Design.Typography.caption1).foregroundStyle(.white.opacity(0.5))
                     }.foregroundStyle(variance > 0 ? .green : .orange).padding(.top, 4)
                 }
             }
@@ -361,7 +363,7 @@ struct InventoryUnitScanSheet: View {
 
         ModalSection {
             VStack(alignment: .leading, spacing: 10) {
-                Text("DAMAGE REASON").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                Text("DAMAGE REASON").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
                 VStack(spacing: 8) {
                     damageReasonButton("Water Damage", icon: "drop.fill")
                     damageReasonButton("Physical Damage", icon: "hammer.fill")
@@ -373,7 +375,7 @@ struct InventoryUnitScanSheet: View {
         }
 
         if damageReason == "Other" {
-            ModalSection { TextField("Describe the issue...", text: $notes).font(.system(size: 14)).foregroundStyle(.white) }
+            ModalSection { TextField("Describe the issue...", text: $notes).font(Design.Typography.footnote).foregroundStyle(.white) }
         }
 
         Spacer().frame(height: 8)
@@ -392,8 +394,8 @@ struct InventoryUnitScanSheet: View {
                     Image(uiImage: qrImage).interpolation(.none).resizable().frame(width: 120, height: 120).clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 VStack(spacing: 4) {
-                    Text(unit.qrCode).font(.system(size: 12, weight: .medium, design: .monospaced)).foregroundStyle(.white.opacity(0.7))
-                    Text(unit.trackingURL).font(.system(size: 10)).foregroundStyle(.white.opacity(0.4))
+                    Text(unit.qrCode).font(Design.Typography.caption1Mono).fontWeight(.medium).foregroundStyle(.white.opacity(0.7))
+                    Text(unit.trackingURL).font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.4))
                 }
             }.frame(maxWidth: .infinity).padding(.vertical, 8)
         }
@@ -409,8 +411,8 @@ struct InventoryUnitScanSheet: View {
     private var successContent: some View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(.green).symbolEffect(.bounce, value: currentScreen == .success)
-            Text(successMessage ?? "Operation Complete").font(.system(size: 17, weight: .semibold)).foregroundStyle(.white).multilineTextAlignment(.center)
-            Text(unit.qrCode).font(.system(size: 12, design: .monospaced)).foregroundStyle(.white.opacity(0.5))
+            Text(successMessage ?? "Operation Complete").font(Design.Typography.headline).fontWeight(.semibold).foregroundStyle(.white).multilineTextAlignment(.center)
+            Text(unit.qrCode).font(Design.Typography.caption1Mono).foregroundStyle(.white.opacity(0.5))
         }.frame(maxWidth: .infinity).padding(.vertical, 24)
 
         ModalActionButton("Done", icon: "checkmark") { dismiss(); onDismiss() }
@@ -424,11 +426,11 @@ struct InventoryUnitScanSheet: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle().fill(statusColor.opacity(0.15)).frame(width: 44, height: 44)
-                    Image(systemName: unit.tierIcon).font(.system(size: 16, weight: .semibold)).foregroundStyle(statusColor)
+                    Image(systemName: unit.tierIcon).font(Design.Typography.callout).fontWeight(.semibold).foregroundStyle(statusColor)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(unit.productName ?? unit.tierLabel ?? "Unit").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                    Text("\(unit.quantityFormatted) • \(unit.qrCode.prefix(12))...").font(.system(size: 11, design: .monospaced)).foregroundStyle(.white.opacity(0.5))
+                    Text(unit.productName ?? unit.tierLabel ?? "Unit").font(Design.Typography.footnote).fontWeight(.semibold).foregroundStyle(.white).lineLimit(1)
+                    Text("\(unit.quantityFormatted) • \(unit.qrCode.prefix(12))...").font(Design.Typography.caption2Mono).foregroundStyle(.white.opacity(0.5))
                 }
                 Spacer()
             }
@@ -438,28 +440,28 @@ struct InventoryUnitScanSheet: View {
     private var notesInput: some View {
         ModalSection {
             VStack(alignment: .leading, spacing: 8) {
-                Text("NOTES (OPTIONAL)").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
-                TextField("Add notes...", text: $notes).font(.system(size: 14)).foregroundStyle(.white)
+                Text("NOTES (OPTIONAL)").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                TextField("Add notes...", text: $notes).font(Design.Typography.footnote).foregroundStyle(.white)
             }
         }
     }
 
     private func detailRow(icon: String, label: String, value: String, color: Color, mono: Bool = false) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: icon).font(.system(size: 14)).foregroundStyle(color).frame(width: 20)
-            Text(label).font(.system(size: 12)).foregroundStyle(.white.opacity(0.5))
+            Image(systemName: icon).font(Design.Typography.footnote).foregroundStyle(color).frame(width: 20)
+            Text(label).font(Design.Typography.caption1).foregroundStyle(.white.opacity(0.5))
             Spacer()
-            Text(value).font(.system(size: 12, weight: .medium, design: mono ? .monospaced : .default)).foregroundStyle(.white.opacity(0.8)).lineLimit(1)
+            Text(value).font(mono ? Design.Typography.caption1Mono : Design.Typography.caption1).fontWeight(.medium).foregroundStyle(.white.opacity(0.8)).lineLimit(1)
         }
     }
 
     private func actionRow(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
         Button { Haptics.light(); action() } label: {
             HStack(spacing: 12) {
-                ZStack { Circle().fill(color.opacity(0.15)).frame(width: 36, height: 36); Image(systemName: icon).font(.system(size: 15)).foregroundStyle(color) }
-                Text(title).font(.system(size: 15, weight: .medium)).foregroundStyle(.white)
+                ZStack { Circle().fill(color.opacity(0.15)).frame(width: 36, height: 36); Image(systemName: icon).font(Design.Typography.subhead).foregroundStyle(color) }
+                Text(title).font(Design.Typography.subhead).fontWeight(.medium).foregroundStyle(.white)
                 Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white.opacity(0.3))
+                Image(systemName: "chevron.right").font(Design.Typography.caption1).fontWeight(.semibold).foregroundStyle(.white.opacity(0.3))
             }
             .padding(.vertical, 10).padding(.horizontal, 14)
             .frame(maxWidth: .infinity)
@@ -473,10 +475,10 @@ struct InventoryUnitScanSheet: View {
     private func damageReasonButton(_ title: String, icon: String) -> some View {
         Button { Haptics.light(); damageReason = title } label: {
             HStack(spacing: 10) {
-                Image(systemName: icon).font(.system(size: 14)).foregroundStyle(damageReason == title ? .red : .white.opacity(0.5)).frame(width: 20)
-                Text(title).font(.system(size: 14, weight: .medium)).foregroundStyle(damageReason == title ? .white : .white.opacity(0.7))
+                Image(systemName: icon).font(Design.Typography.footnote).foregroundStyle(damageReason == title ? .red : .white.opacity(0.5)).frame(width: 20)
+                Text(title).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(damageReason == title ? .white : .white.opacity(0.7))
                 Spacer()
-                if damageReason == title { Image(systemName: "checkmark.circle.fill").font(.system(size: 16)).foregroundStyle(.red) }
+                if damageReason == title { Image(systemName: "checkmark.circle.fill").font(Design.Typography.callout).foregroundStyle(.red) }
             }
             .padding(.vertical, 10).padding(.horizontal, 12)
             .frame(maxWidth: .infinity)

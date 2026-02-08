@@ -38,7 +38,7 @@ struct PackageReceiveSheet: View {
                     if let error = errorMessage {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
-                            Text(error).font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                            Text(error).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(.white)
                             Spacer()
                         }
                         .padding(12).background(Color.red.opacity(0.3)).padding(.horizontal, 20)
@@ -57,8 +57,8 @@ struct PackageReceiveSheet: View {
                                 }
                             } else if transfer.status == .completed {
                                 HStack(spacing: 10) {
-                                    Image(systemName: "checkmark.circle.fill").font(.system(size: 18)).foregroundStyle(.green)
-                                    Text("Already Received").font(.system(size: 15, weight: .medium)).foregroundStyle(.white.opacity(0.6))
+                                    Image(systemName: "checkmark.circle.fill").font(Design.Typography.headline).foregroundStyle(.green)
+                                    Text("Already Received").font(Design.Typography.subhead).fontWeight(.medium).foregroundStyle(.white.opacity(0.6))
                                 }.padding(.vertical, 12)
                             }
                         }
@@ -78,7 +78,8 @@ struct PackageReceiveSheet: View {
                 }
                 ToolbarItem(placement: .principal) {
                     Text(transfer.status.displayName)
-                        .font(.system(size: 10, weight: .bold))
+                        .font(Design.Typography.caption2)
+                        .fontWeight(.bold)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(Capsule().fill(statusColor))
@@ -95,22 +96,22 @@ struct PackageReceiveSheet: View {
             VStack(spacing: 12) {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("FROM").font(.system(size: 9, weight: .bold)).foregroundStyle(.white.opacity(0.4))
-                        Text(transfer.sourceLocationName ?? "Unknown").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+                        Text("FROM").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4))
+                        Text(transfer.sourceLocationName ?? "Unknown").font(Design.Typography.footnote).fontWeight(.semibold).foregroundStyle(.white)
                     }
-                    Image(systemName: "arrow.right").font(.system(size: 14, weight: .bold)).foregroundStyle(.blue)
+                    Image(systemName: "arrow.right").font(Design.Typography.footnote).fontWeight(.bold).foregroundStyle(.blue)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("TO").font(.system(size: 9, weight: .bold)).foregroundStyle(.white.opacity(0.4))
-                        Text(transfer.destinationLocationName ?? "Unknown").font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+                        Text("TO").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4))
+                        Text(transfer.destinationLocationName ?? "Unknown").font(Design.Typography.footnote).fontWeight(.semibold).foregroundStyle(.white)
                     }
                     Spacer()
                 }
                 Divider().background(.white.opacity(0.1))
                 HStack {
-                    Label("\(items.count) items", systemImage: "cube.box").font(.system(size: 12)).foregroundStyle(.white.opacity(0.6))
+                    Label("\(items.count) items", systemImage: "cube.box").font(Design.Typography.caption1).foregroundStyle(.white.opacity(0.6))
                     Spacer()
                     if let date = transfer.shippedAt ?? transfer.createdAt as Date? {
-                        Text(date.formatted(.relative(presentation: .named))).font(.system(size: 11)).foregroundStyle(.white.opacity(0.4))
+                        Text(date.formatted(.relative(presentation: .named))).font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.4))
                     }
                 }
             }
@@ -122,18 +123,18 @@ struct PackageReceiveSheet: View {
     private var itemsList: some View {
         ModalSection {
             VStack(alignment: .leading, spacing: 10) {
-                Text("ITEMS").font(.system(size: 10, weight: .bold)).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
+                Text("ITEMS").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.4)).tracking(0.5)
 
                 ForEach(items) { item in
                     HStack(spacing: 12) {
                         RoundedRectangle(cornerRadius: 8).fill(.white.opacity(0.1)).frame(width: 40, height: 40)
-                            .overlay(Image(systemName: "cube.box").font(.system(size: 16)).foregroundStyle(.white.opacity(0.3)))
+                            .overlay(Image(systemName: "cube.box").font(Design.Typography.callout).foregroundStyle(.white.opacity(0.3)))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(item.productName ?? "Unknown Product").font(.system(size: 13, weight: .medium)).foregroundStyle(.white).lineLimit(1)
-                            if let sku = item.productSKU { Text(sku).font(.system(size: 11)).foregroundStyle(.white.opacity(0.4)) }
+                            Text(item.productName ?? "Unknown Product").font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(.white).lineLimit(1)
+                            if let sku = item.productSKU { Text(sku).font(Design.Typography.caption2).foregroundStyle(.white.opacity(0.4)) }
                         }
                         Spacer()
-                        Text("×\(Int(item.quantity))").font(.system(size: 15, weight: .bold, design: .rounded)).foregroundStyle(.white)
+                        Text("×\(Int(item.quantity))").font(Design.Typography.subheadRounded).fontWeight(.bold).foregroundStyle(.white)
                     }
                     if item.id != items.last?.id { Divider().background(.white.opacity(0.05)) }
                 }
@@ -146,9 +147,9 @@ struct PackageReceiveSheet: View {
     private var successContent: some View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(.green).symbolEffect(.bounce, value: isReceived)
-            Text("Package Received!").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
-            Text("\(items.count) items added to inventory").font(.system(size: 14)).foregroundStyle(.white.opacity(0.6))
-            Text(transfer.displayNumber).font(.system(size: 12, design: .monospaced)).foregroundStyle(.white.opacity(0.4))
+            Text("Package Received!").font(Design.Typography.title3).fontWeight(.bold).foregroundStyle(.white)
+            Text("\(items.count) items added to inventory").font(Design.Typography.footnote).foregroundStyle(.white.opacity(0.6))
+            Text(transfer.displayNumber).font(Design.Typography.caption1Mono).foregroundStyle(.white.opacity(0.4))
 
             ModalActionButton("Done", icon: "checkmark") { dismiss(); onDismiss() }
         }

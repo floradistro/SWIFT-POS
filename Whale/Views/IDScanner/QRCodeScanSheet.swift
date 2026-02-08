@@ -166,7 +166,7 @@ struct QRCodeScanSheet: View {
                 }
             } label: {
                 Image(systemName: currentScreen == .main || currentScreen == .success ? "xmark" : "chevron.left")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(Design.Typography.footnote).fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.6))
                     .frame(width: 40, height: 40)
                     .background(Circle().fill(.ultraThinMaterial))
@@ -178,12 +178,12 @@ struct QRCodeScanSheet: View {
             VStack(spacing: 3) {
                 if currentScreen != .main && currentScreen != .success {
                     Text(qrCode.name)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Design.Typography.caption2).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.35))
                         .lineLimit(1)
                 }
                 Text(headerTitle)
-                    .font(.system(size: currentScreen == .main ? 18 : 17, weight: .bold, design: .rounded))
+                    .font(Design.Typography.headlineRounded).fontWeight(.bold)
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -193,7 +193,7 @@ struct QRCodeScanSheet: View {
             Spacer()
 
             Text(qrCode.type.capitalized)
-                .font(.system(size: 10, weight: .bold))
+                .font(Design.Typography.caption2).fontWeight(.bold)
                 .foregroundStyle(.white)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
@@ -267,13 +267,13 @@ struct QRCodeScanSheet: View {
                         .stroke(typeColor.opacity(0.3), lineWidth: 1)
                         .frame(width: 48, height: 48)
                     Image(systemName: typeIcon)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(Design.Typography.headline).fontWeight(.semibold)
                         .foregroundStyle(typeColor)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(product?.name ?? qrCode.name)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(Design.Typography.callout).fontWeight(.semibold)
                         .foregroundStyle(.white)
                         .lineLimit(1)
 
@@ -281,17 +281,17 @@ struct QRCodeScanSheet: View {
                         if let locationName = qrCode.locationName {
                             Label {
                                 Text(locationName)
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(Design.Typography.caption1).fontWeight(.medium)
                             } icon: {
                                 Image(systemName: "location.fill")
-                                    .font(.system(size: 9))
+                                    .font(Design.Typography.caption2)
                             }
                             .foregroundStyle(.white.opacity(0.45))
                         }
 
                         if qrCode.totalScans > 0 {
                             Text("\(qrCode.totalScans) scans")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(Design.Typography.caption2).fontWeight(.semibold)
                                 .foregroundStyle(typeColor.opacity(0.9))
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -348,19 +348,19 @@ struct QRCodeScanSheet: View {
                             .fill(Color.orange.opacity(0.2))
                             .frame(width: 40, height: 40)
                         Image(systemName: "shippingbox.fill")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(Design.Typography.callout).fontWeight(.medium)
                             .foregroundStyle(.orange)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("In Transit")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                             .foregroundStyle(.orange)
 
                         if let fromLocation = pendingTransferSourceName,
                            let toLocation = pendingTransferDestinationName {
                             Text("\(fromLocation) → \(toLocation)")
-                                .font(.system(size: 12))
+                                .font(Design.Typography.caption1)
                                 .foregroundStyle(.white.opacity(0.6))
                         }
                     }
@@ -369,7 +369,7 @@ struct QRCodeScanSheet: View {
 
                     if let transfer = activeTransfer {
                         Text(transfer.transferNumber)
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .font(Design.Typography.caption2Mono).fontWeight(.semibold)
                             .foregroundStyle(.orange.opacity(0.8))
                     }
                 }
@@ -387,10 +387,10 @@ struct QRCodeScanSheet: View {
                     } else if let toLocation = pendingTransferDestinationName {
                         HStack(spacing: 12) {
                             Image(systemName: "info.circle.fill")
-                                .font(.system(size: 16))
+                                .font(Design.Typography.callout)
                                 .foregroundStyle(.orange)
                             Text("Scan at \(toLocation) to receive this item")
-                                .font(.system(size: 14))
+                                .font(Design.Typography.footnote)
                                 .foregroundStyle(.white.opacity(0.7))
                         }
                         .padding(.vertical, 12)
@@ -452,28 +452,28 @@ struct QRCodeScanSheet: View {
                         .stroke(typeColor.opacity(0.3), lineWidth: 1)
                         .frame(width: 44, height: 44)
                     Image(systemName: typeIcon)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(Design.Typography.callout).fontWeight(.semibold)
                         .foregroundStyle(typeColor)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text(product?.name ?? qrCode.name)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(Design.Typography.subhead).fontWeight(.semibold)
                         .foregroundStyle(.white)
                         .lineLimit(1)
                     HStack(spacing: 6) {
                         if let tierLabel = qrCode.tierLabel {
                             Text(tierLabel)
-                                .font(.system(size: 11, weight: .medium))
+                                .font(Design.Typography.caption2).fontWeight(.medium)
                                 .foregroundStyle(typeColor)
                         } else {
                             Text(qrCode.type.capitalized)
-                                .font(.system(size: 11, weight: .medium))
+                                .font(Design.Typography.caption2).fontWeight(.medium)
                                 .foregroundStyle(typeColor)
                         }
                         Text("•")
                             .foregroundStyle(.white.opacity(0.3))
                         Text(qrCode.code.prefix(10) + "...")
-                            .font(.system(size: 10, design: .monospaced))
+                            .font(Design.Typography.caption2Mono)
                             .foregroundStyle(.white.opacity(0.4))
                     }
                 }
@@ -487,12 +487,12 @@ struct QRCodeScanSheet: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.yellow)
             Text(message)
-                .font(.system(size: 13, weight: .medium))
+                .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(.white)
             Spacer()
             Button { errorMessage = nil } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(Design.Typography.caption1).fontWeight(.bold)
                     .foregroundStyle(.white.opacity(0.5))
                     .frame(width: 28, height: 28)
                     .contentShape(Circle())
@@ -526,20 +526,20 @@ struct QRCodeScanSheet: View {
                             .frame(width: 38, height: 38)
                     }
                     Image(systemName: icon)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Design.Typography.subhead).fontWeight(.medium)
                         .foregroundStyle(isPrimary ? .white : color)
                 }
                 .shadow(color: isPrimary ? color.opacity(0.3) : .clear, radius: 4, y: 2)
 
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Design.Typography.subhead).fontWeight(.semibold)
                     .foregroundStyle(.white)
                     .lineLimit(1)
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(Design.Typography.caption2).fontWeight(.bold)
                     .foregroundStyle(.white.opacity(0.25))
                     .accessibilityHidden(true)
             }

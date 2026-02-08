@@ -34,11 +34,11 @@ extension QRCodeScanSheet {
                                 .fill(greenColor.opacity(0.15))
                                 .frame(width: 36, height: 36)
                             Image(systemName: "building.2.fill")
-                                .font(.system(size: 14))
+                                .font(Design.Typography.footnote)
                                 .foregroundStyle(greenColor.opacity(0.7))
                         }
                         Text(fromLocation)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Design.Typography.caption2).fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.5))
                             .lineLimit(1)
                     }
@@ -47,10 +47,10 @@ extension QRCodeScanSheet {
                     // Arrow
                     VStack(spacing: 4) {
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(Design.Typography.callout).fontWeight(.bold)
                             .foregroundStyle(greenColor)
                         Text("Transfer")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(Design.Typography.caption2).fontWeight(.semibold)
                             .foregroundStyle(greenColor.opacity(0.6))
                     }
                     .frame(width: 60)
@@ -69,11 +69,11 @@ extension QRCodeScanSheet {
                                 .frame(width: 36, height: 36)
                                 .shadow(color: greenColor.opacity(0.4), radius: 6, y: 2)
                             Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(Design.Typography.footnote).fontWeight(.bold)
                                 .foregroundStyle(.white)
                         }
                         Text(session.selectedLocation?.name ?? "Here")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(Design.Typography.caption2).fontWeight(.semibold)
                             .foregroundStyle(.white)
                             .lineLimit(1)
                     }
@@ -103,16 +103,16 @@ extension QRCodeScanSheet {
                             .frame(width: 44, height: 44)
                             .shadow(color: greenColor.opacity(0.4), radius: 6, y: 2)
                         Image(systemName: "tray.and.arrow.down.fill")
-                            .font(.system(size: 18, weight: .medium))
+                            .font(Design.Typography.headline).fontWeight(.medium)
                             .foregroundStyle(.white)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Add to Inventory")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                             .foregroundStyle(.white)
                         Text(session.selectedLocation?.name ?? "Current Location")
-                            .font(.system(size: 12))
+                            .font(Design.Typography.caption1)
                             .foregroundStyle(.white.opacity(0.6))
                     }
 
@@ -160,11 +160,11 @@ extension QRCodeScanSheet {
                             .frame(width: 36, height: 36)
                             .shadow(color: blueColor.opacity(0.4), radius: 6, y: 2)
                         Image(systemName: "building.2.fill")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(Design.Typography.footnote).fontWeight(.medium)
                             .foregroundStyle(.white)
                     }
                     Text(session.selectedLocation?.name ?? "Here")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(Design.Typography.caption2).fontWeight(.semibold)
                         .foregroundStyle(.white)
                         .lineLimit(1)
                 }
@@ -173,10 +173,10 @@ extension QRCodeScanSheet {
                 // Arrow
                 VStack(spacing: 4) {
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(Design.Typography.callout).fontWeight(.bold)
                         .foregroundStyle(blueColor)
                     Text("Transfer")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(Design.Typography.caption2).fontWeight(.semibold)
                         .foregroundStyle(blueColor.opacity(0.6))
                 }
                 .frame(width: 60)
@@ -196,7 +196,7 @@ extension QRCodeScanSheet {
                                 .frame(width: 36, height: 36)
                                 .shadow(color: blueColor.opacity(0.4), radius: 6, y: 2)
                             Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(Design.Typography.footnote).fontWeight(.bold)
                                 .foregroundStyle(.white)
                         } else {
                             Circle()
@@ -206,12 +206,12 @@ extension QRCodeScanSheet {
                                 .stroke(blueColor.opacity(0.3), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
                                 .frame(width: 36, height: 36)
                             Image(systemName: "questionmark")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(Design.Typography.footnote).fontWeight(.medium)
                                 .foregroundStyle(blueColor.opacity(0.6))
                         }
                     }
                     Text(selectedTransferDestination?.name ?? "Select")
-                        .font(.system(size: 11, weight: selectedTransferDestination != nil ? .semibold : .medium))
+                        .font(Design.Typography.caption2).fontWeight(selectedTransferDestination != nil ? .semibold : .medium)
                         .foregroundStyle(selectedTransferDestination != nil ? .white : .white.opacity(0.5))
                         .lineLimit(1)
                 }
@@ -227,14 +227,14 @@ extension QRCodeScanSheet {
             VStack(spacing: 8) {
                 HStack {
                     Text("Select Destination")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(Design.Typography.footnote).fontWeight(.semibold)
                         .foregroundStyle(.white.opacity(0.7))
                     Spacer()
                 }
 
                 if transferDestinations.isEmpty {
                     Text("No other locations available")
-                        .font(.system(size: 13))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.4))
                         .padding(.vertical, 8)
                 } else {
@@ -259,9 +259,9 @@ extension QRCodeScanSheet {
             // Disabled state
             HStack(spacing: 10) {
                 Image(systemName: "arrow.up.forward.square.fill")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(Design.Typography.headline).fontWeight(.semibold)
                 Text("Select a destination")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(Design.Typography.headline).fontWeight(.semibold)
             }
             .foregroundStyle(.white.opacity(0.3))
             .frame(maxWidth: .infinity)
@@ -296,20 +296,20 @@ extension QRCodeScanSheet {
 
                 // Location icon
                 Image(systemName: location.isWarehouse ? "shippingbox.fill" : "building.2.fill")
-                    .font(.system(size: 14))
+                    .font(Design.Typography.footnote)
                     .foregroundStyle(isSelected ? color : .white.opacity(0.5))
                     .frame(width: 20)
 
                 // Location name
                 Text(location.name)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(Design.Typography.subhead).fontWeight(.medium)
                     .foregroundStyle(.white)
 
                 Spacer()
 
                 // Location type badge
                 Text(location.type.capitalized)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(Design.Typography.caption2).fontWeight(.semibold)
                     .foregroundStyle(isSelected ? color : .white.opacity(0.4))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -371,24 +371,24 @@ extension QRCodeScanSheet {
                                 .frame(width: 44, height: 44)
                                 .shadow(color: purpleColor.opacity(0.4), radius: 6, y: 2)
                             Image(systemName: "shippingbox.fill")
-                                .font(.system(size: 18, weight: .medium))
+                                .font(Design.Typography.headline).fontWeight(.medium)
                                 .foregroundStyle(.white)
                         }
                         Text(qrCode.tierLabel ?? "Package")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(Design.Typography.footnote).fontWeight(.semibold)
                             .foregroundStyle(.white)
                     }
                 }
 
                 // Arrow down
                 Image(systemName: "arrow.down")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(Design.Typography.callout).fontWeight(.bold)
                     .foregroundStyle(purpleColor)
 
                 // Split options
                 if splitOptions.isEmpty {
                     Text("No split options available")
-                        .font(.system(size: 13))
+                        .font(Design.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.5))
                         .padding(.vertical, 8)
                 } else {
@@ -415,9 +415,9 @@ extension QRCodeScanSheet {
                             .scaleEffect(0.9)
                     } else {
                         Image(systemName: "square.split.2x2.fill")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(Design.Typography.headline).fontWeight(.semibold)
                         Text("Split into \(selected.displayLabel)")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(Design.Typography.headline).fontWeight(.semibold)
                     }
                 }
                 .foregroundStyle(.white)
@@ -433,9 +433,9 @@ extension QRCodeScanSheet {
             // Disabled state
             HStack(spacing: 10) {
                 Image(systemName: "square.split.2x2.fill")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(Design.Typography.headline).fontWeight(.semibold)
                 Text("Select a split option")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(Design.Typography.headline).fontWeight(.semibold)
             }
             .foregroundStyle(.white.opacity(0.3))
             .frame(maxWidth: .infinity)
@@ -470,13 +470,13 @@ extension QRCodeScanSheet {
 
                 // Count badge
                 Text("\(option.count)x")
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .font(Design.Typography.calloutRounded).fontWeight(.bold)
                     .foregroundStyle(isSelected ? color : .white.opacity(0.7))
                     .frame(width: 36)
 
                 // Tier label
                 Text(option.tier.label)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(Design.Typography.subhead).fontWeight(.semibold)
                     .foregroundStyle(.white)
 
                 Spacer()
@@ -490,7 +490,7 @@ extension QRCodeScanSheet {
                     }
                     if option.count > 6 {
                         Text("+\(option.count - 6)")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(Design.Typography.caption2).fontWeight(.semibold)
                             .foregroundStyle(.white.opacity(0.5))
                     }
                 }
@@ -555,11 +555,11 @@ extension QRCodeScanSheet {
 
             VStack(spacing: 6) {
                 Text("Success")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(Design.Typography.title3Rounded).fontWeight(.bold)
                     .foregroundStyle(.white)
 
                 Text(successMessage)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.footnote).fontWeight(.medium)
                     .foregroundStyle(.white.opacity(0.6))
                     .multilineTextAlignment(.center)
             }
@@ -574,7 +574,7 @@ extension QRCodeScanSheet {
             dismiss(); onDismiss()
         } label: {
             Text("Done")
-                .font(.system(size: 17, weight: .semibold))
+                .font(Design.Typography.headline).fontWeight(.semibold)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
@@ -593,19 +593,19 @@ extension QRCodeScanSheet {
     func detailRow(_ label: String, value: String, icon: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 13))
+                .font(Design.Typography.footnote)
                 .foregroundStyle(.white.opacity(0.4))
                 .frame(width: 20)
                 .accessibilityHidden(true)
 
             Text(label)
-                .font(.system(size: 13))
+                .font(Design.Typography.footnote)
                 .foregroundStyle(.white.opacity(0.5))
 
             Spacer()
 
             Text(value)
-                .font(.system(size: 13, weight: .medium))
+                .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(.white)
         }
         .accessibilityElement(children: .ignore)

@@ -232,7 +232,7 @@ struct CustomerSearchContent: View {
             HStack(spacing: 8) {
                 if isScannedMode, let age = effectiveScannedID?.age {
                     Text("\(age)")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .font(Design.Typography.footnoteRounded).fontWeight(.bold)
                         .foregroundStyle(Design.Colors.Semantic.success)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -242,7 +242,7 @@ struct CustomerSearchContent: View {
                     mode = .scanner
                 } label: {
                     Image(systemName: "camera.viewfinder")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(Design.Typography.callout).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.6))
                 }
                 .accessibilityLabel("Scan ID")
@@ -251,7 +251,7 @@ struct CustomerSearchContent: View {
                     mode = .create
                 } label: {
                     Image(systemName: "person.badge.plus")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(Design.Typography.callout).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.6))
                 }
                 .accessibilityLabel("Create customer")
@@ -261,7 +261,7 @@ struct CustomerSearchContent: View {
                 mode = .search
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(Design.Typography.footnote).fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.6))
             }
         case .detail, .orderDetail, .orderHistory:
@@ -287,12 +287,12 @@ struct CustomerSearchContent: View {
     private var searchField: some View {
         HStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 16, weight: .medium))
+                .font(Design.Typography.callout).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.4))
                 .accessibilityHidden(true)
 
             TextField("", text: $searchQuery, prompt: Text("Name, phone, or email...").foregroundColor(.white.opacity(0.35)))
-                .font(.system(size: 15, weight: .medium))
+                .font(Design.Typography.subhead).fontWeight(.medium)
                 .foregroundStyle(.white)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -314,7 +314,7 @@ struct CustomerSearchContent: View {
                     searchResults = []
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 18))
+                        .font(Design.Typography.headline)
                         .foregroundStyle(.white.opacity(0.3))
                 }
                 .accessibilityLabel("Clear search")
@@ -328,7 +328,7 @@ struct CustomerSearchContent: View {
     private func scannedInfoBanner(_ scanned: ScannedID) -> some View {
         HStack(spacing: 14) {
             Text(scanned.initials)
-                .font(.system(size: 18, weight: .bold))
+                .font(Design.Typography.headline).fontWeight(.bold)
                 .foregroundStyle(.white)
                 .frame(width: 50, height: 50)
                 .glassEffect(.regular, in: .circle)
@@ -336,18 +336,18 @@ struct CustomerSearchContent: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(scanned.fullDisplayName)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(Design.Typography.headline).fontWeight(.semibold)
                     .foregroundStyle(.white)
 
                 HStack(spacing: 8) {
                     if let state = scanned.state {
                         Text("\(state) License")
-                            .font(.system(size: 12))
+                            .font(Design.Typography.caption1)
                             .foregroundStyle(.white.opacity(0.5))
                     }
                     if scanned.isExpired {
                         Text("EXPIRED")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(Design.Typography.caption2).fontWeight(.bold)
                             .foregroundStyle(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -370,7 +370,7 @@ struct CustomerSearchContent: View {
                     scannedMatchesSection(matches)
                 } else if !searchResults.isEmpty {
                     Text("\(searchResults.count) \(searchResults.count == 1 ? "result" : "results")")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(Design.Typography.caption2).fontWeight(.semibold)
                         .foregroundStyle(.white.opacity(0.35))
                         .textCase(.uppercase)
                         .tracking(0.5)
@@ -404,7 +404,7 @@ struct CustomerSearchContent: View {
     private func scannedMatchesSection(_ matches: [CustomerMatch]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(matches.count == 1 ? "1 Match Found" : "\(matches.count) Matches Found")
-                .font(.system(size: 11, weight: .semibold))
+                .font(Design.Typography.caption2).fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.35))
                 .textCase(.uppercase)
                 .tracking(0.5)
@@ -423,9 +423,9 @@ struct CustomerSearchContent: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "person.badge.plus")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                     Text("Create New Customer")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                 }
                 .foregroundStyle(.white.opacity(0.6))
                 .frame(maxWidth: .infinity)
@@ -446,7 +446,7 @@ struct CustomerSearchContent: View {
         } label: {
             HStack(spacing: 12) {
                 Text(match.customer.initials)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(Design.Typography.footnote).fontWeight(.bold)
                     .foregroundStyle(.white)
                     .frame(width: 40, height: 40)
                     .glassEffect(.regular, in: .circle)
@@ -454,12 +454,12 @@ struct CustomerSearchContent: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text(match.customer.displayName)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(Design.Typography.subhead).fontWeight(.semibold)
                             .foregroundStyle(.white)
 
                         if match.matchType == .exact {
                             Image(systemName: "checkmark.seal.fill")
-                                .font(.system(size: 12))
+                                .font(Design.Typography.caption1)
                                 .foregroundStyle(Design.Colors.Semantic.success)
                                 .accessibilityLabel("Exact match")
                         }
@@ -468,11 +468,11 @@ struct CustomerSearchContent: View {
                     HStack(spacing: 8) {
                         if let phone = match.customer.formattedPhone {
                             Text(phone)
-                                .font(.system(size: 12, weight: .medium))
+                                .font(Design.Typography.caption1).fontWeight(.medium)
                                 .foregroundStyle(.white.opacity(0.45))
                         } else if let email = match.customer.email, !email.isEmpty {
                             Text(email)
-                                .font(.system(size: 12, weight: .medium))
+                                .font(Design.Typography.caption1).fontWeight(.medium)
                                 .foregroundStyle(.white.opacity(0.45))
                                 .lineLimit(1)
                         }
@@ -480,10 +480,10 @@ struct CustomerSearchContent: View {
                         if let points = match.customer.loyaltyPoints {
                             HStack(spacing: 2) {
                                 Image(systemName: "star.fill")
-                                    .font(.system(size: 8, weight: .bold))
+                                    .font(Design.Typography.caption2).fontWeight(.bold)
                                     .accessibilityHidden(true)
                                 Text("\(points)")
-                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .font(Design.Typography.caption2Rounded).fontWeight(.bold)
                             }
                             .foregroundStyle(points >= 0 ? .yellow.opacity(0.8) : .red.opacity(0.7))
                             .padding(.horizontal, 5)
@@ -501,7 +501,7 @@ struct CustomerSearchContent: View {
                     selectScannedMatch(match)
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 24, weight: .medium))
+                        .font(Design.Typography.title2).fontWeight(.medium)
                         .foregroundStyle(.white.opacity(0.6))
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
@@ -510,7 +510,7 @@ struct CustomerSearchContent: View {
                 .accessibilityLabel("Select \(match.customer.displayName)")
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(Design.Typography.footnote).fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.3))
                     .accessibilityHidden(true)
             }
@@ -525,12 +525,12 @@ struct CustomerSearchContent: View {
     private var noResultsView: some View {
         VStack(spacing: 16) {
             Image(systemName: "person.slash")
-                .font(.system(size: 28, weight: .medium))
+                .font(Design.Typography.title1).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.25))
                 .accessibilityHidden(true)
 
             Text("No customers found")
-                .font(.system(size: 14, weight: .medium))
+                .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.4))
 
             Button {
@@ -539,9 +539,9 @@ struct CustomerSearchContent: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "person.badge.plus")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                     Text("Create New Customer")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(Design.Typography.footnote).fontWeight(.medium)
                 }
                 .foregroundStyle(.white.opacity(0.7))
                 .padding(.horizontal, 20)
@@ -558,12 +558,12 @@ struct CustomerSearchContent: View {
     private var noMatchScannedView: some View {
         VStack(spacing: 20) {
             Image(systemName: "person.crop.circle.badge.questionmark")
-                .font(.system(size: 36, weight: .medium))
+                .font(Design.Typography.largeTitle).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.3))
                 .accessibilityHidden(true)
 
             Text("No existing customer found")
-                .font(.system(size: 15, weight: .medium))
+                .font(Design.Typography.subhead).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.5))
 
             Button {
@@ -573,9 +573,9 @@ struct CustomerSearchContent: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "person.badge.plus")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(Design.Typography.callout).fontWeight(.semibold)
                     Text("Create Customer")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(Design.Typography.callout).fontWeight(.semibold)
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
@@ -592,12 +592,12 @@ struct CustomerSearchContent: View {
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Image(systemName: "person.crop.circle.badge.magnifyingglass")
-                .font(.system(size: 28, weight: .medium))
+                .font(Design.Typography.title1).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.25))
                 .accessibilityHidden(true)
 
             Text("Search customers")
-                .font(.system(size: 14, weight: .medium))
+                .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(.white.opacity(0.4))
         }
         .frame(maxWidth: .infinity)
