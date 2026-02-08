@@ -30,30 +30,30 @@ struct StorePickerSheet: View {
                             HStack(spacing: 14) {
                                 Image(systemName: "building.2.fill")
                                     .font(Design.Typography.headline)
-                                    .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
+                                    .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
                                     .frame(width: 28)
 
                                 Text(association.displayName)
                                     .font(Design.Typography.callout).fontWeight(.medium)
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(Design.Colors.Text.primary)
 
                                 Spacer()
 
                                 if isSelected {
                                     Image(systemName: "checkmark")
                                         .font(Design.Typography.footnote).fontWeight(.semibold)
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(Design.Colors.Text.primary)
                                 }
                             }
                             .padding(.horizontal, 18)
                             .padding(.vertical, 16)
                             .background(
-                                isSelected ? Color.white.opacity(0.12) : Color.white.opacity(0.06),
+                                isSelected ? Design.Colors.Glass.regular : Design.Colors.Glass.thin,
                                 in: RoundedRectangle(cornerRadius: 14)
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(isSelected ? Color.white.opacity(0.2) : Color.white.opacity(0.08), lineWidth: 1)
+                                    .stroke(isSelected ? Design.Colors.Border.strong : Design.Colors.Border.subtle, lineWidth: 1)
                             )
                         }
                     }

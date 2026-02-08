@@ -36,7 +36,7 @@ struct FilterChip: View {
                         .font(Design.Typography.caption2Rounded).fontWeight(.bold)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
-                        .background(.fill.tertiary, in: .capsule)
+                        .background(Design.Colors.Glass.regular, in: .capsule)
                 }
             }
             .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)

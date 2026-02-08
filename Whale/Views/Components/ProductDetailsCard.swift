@@ -36,7 +36,7 @@ struct ProductDetailsCard: View {
             .aspectRatio(contentMode: .fit)
             .frame(maxWidth: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Design.Colors.Border.subtle, lineWidth: 1))
     }
 
     // MARK: - Stats Row
@@ -67,7 +67,7 @@ struct ProductDetailsCard: View {
                 }
             }
             .padding(12)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.03)))
+            .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.Glass.ultraThin))
         }
     }
 
@@ -119,15 +119,15 @@ struct ProductDetailsCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Description")
                     .font(Design.Typography.caption1).fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Design.Colors.Text.disabled)
                 Text(description)
                     .font(Design.Typography.footnote)
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(Design.Colors.Text.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.03)))
+            .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.Glass.ultraThin))
         }
     }
 
@@ -142,7 +142,7 @@ struct ProductDetailsCard: View {
                         .foregroundStyle(Design.Colors.Semantic.success)
                     Text("Certificate of Analysis")
                         .font(Design.Typography.caption1).fontWeight(.medium)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(Design.Colors.Text.disabled)
                     Spacer()
                 }
 
@@ -157,7 +157,7 @@ struct ProductDetailsCard: View {
                 }
             }
             .padding(12)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.03)))
+            .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.Glass.ultraThin))
         }
     }
 
@@ -173,6 +173,6 @@ struct ProductDetailsCard: View {
             }
         }
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.03)))
+        .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.Glass.ultraThin))
     }
 }

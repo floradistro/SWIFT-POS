@@ -309,7 +309,7 @@ struct LabelTemplateSheet: View {
                             if let tier = item.wrappedValue.displayTierLabel {
                                 Text(tier)
                                     .font(Design.Typography.caption2).fontWeight(.medium)
-                                    .foregroundStyle(item.wrappedValue.isCustomQuantity ? .purple.opacity(0.9) : Design.Colors.Text.disabled)
+                                    .foregroundStyle(item.wrappedValue.isCustomQuantity ? Design.Colors.Semantic.info : Design.Colors.Text.disabled)
                                 Text("•")
                                     .font(Design.Typography.caption2)
                                     .foregroundStyle(Design.Colors.Text.placeholder)
@@ -317,11 +317,11 @@ struct LabelTemplateSheet: View {
                             if isWarehouseItem {
                                 Text("Adding stock")
                                     .font(Design.Typography.caption2)
-                                    .foregroundStyle(.green.opacity(0.8))
+                                    .foregroundStyle(Design.Colors.Semantic.success)
                             } else {
                                 Text("\(stockAmount)g in stock")
                                     .font(Design.Typography.caption2)
-                                    .foregroundStyle(stockAmount > 0 ? Design.Colors.Text.disabled : .red.opacity(0.8))
+                                    .foregroundStyle(stockAmount > 0 ? Design.Colors.Text.disabled : Design.Colors.Semantic.error)
                             }
                         }
                     }
@@ -365,7 +365,7 @@ struct LabelTemplateSheet: View {
                 } else if !item.wrappedValue.product.allTiers.isEmpty && !isWarehouseItem {
                     Text("Not enough stock for any size")
                         .font(Design.Typography.caption2)
-                        .foregroundStyle(.orange.opacity(0.8))
+                        .foregroundStyle(Design.Colors.Semantic.warning)
                 }
             }
         }

@@ -92,7 +92,7 @@ struct LabelPrinterSetupView: View {
                     HStack(spacing: 12) {
                         Image(systemName: settings.isAutoPrintEnabled ? "bolt.fill" : "bolt")
                             .font(Design.Typography.callout).fontWeight(.medium)
-                            .foregroundStyle(settings.isAutoPrintEnabled ? .yellow : Design.Colors.Text.disabled)
+                            .foregroundStyle(settings.isAutoPrintEnabled ? Design.Colors.Semantic.warning : Design.Colors.Text.disabled)
                             .frame(width: 24)
 
                         VStack(alignment: .leading, spacing: 2) {

@@ -17,10 +17,10 @@ struct StatPill: View {
         VStack(spacing: 3) {
             Text(label)
                 .font(Design.Typography.caption2).fontWeight(.medium)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Design.Colors.Text.secondary)
             Text(value)
                 .font(Design.Typography.footnote).fontWeight(.semibold)
-                .foregroundStyle(.primary)
+                .foregroundStyle(Design.Colors.Text.primary)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -38,11 +38,11 @@ struct DetailRow: View {
         HStack {
             Text(label)
                 .font(Design.Typography.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Design.Colors.Text.secondary)
             Spacer()
             Text(value)
                 .font(Design.Typography.footnote).fontWeight(.medium)
-                .foregroundStyle(.primary)
+                .foregroundStyle(Design.Colors.Text.primary)
         }
     }
 }

@@ -77,7 +77,7 @@ struct StoreLogo: View {
                 // Show initials instead of generic icon
                 Text(initials)
                     .font(.system(size: size * 0.35, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Design.Colors.Text.disabled)
             }
         }
     }

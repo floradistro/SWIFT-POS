@@ -437,7 +437,7 @@ private struct ShimmerModifier: ViewModifier {
                     LinearGradient(
                         colors: [
                             .clear,
-                            .white.opacity(0.1),
+                            Design.Colors.Text.primary.opacity(0.1),
                             .clear
                         ],
                         startPoint: .leading,

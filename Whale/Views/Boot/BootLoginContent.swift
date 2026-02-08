@@ -112,7 +112,7 @@ struct BootLoginContent: View {
                         HStack {
                             if isAuthenticating {
                                 ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                                    .progressViewStyle(CircularProgressViewStyle(tint: Design.Colors.Text.primary))
                                     .scaleEffect(0.9)
                             } else {
                                 Text("Sign In")
