@@ -411,7 +411,7 @@ extension QRCodeScanSheet {
                 HStack(spacing: 10) {
                     if isPrinting {
                         ProgressView()
-                            .tint(Design.Colors.Text.primary)
+                            .tint(.white)
                             .scaleEffect(0.9)
                     } else {
                         Image(systemName: "square.split.2x2.fill")
@@ -420,11 +420,11 @@ extension QRCodeScanSheet {
                             .font(Design.Typography.headline).fontWeight(.semibold)
                     }
                 }
-                .foregroundStyle(Design.Colors.Text.primary)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
                 .contentShape(RoundedRectangle(cornerRadius: 16))
-                .background(Design.Colors.Glass.ultraThick)
+                .background(Design.Colors.Semantic.accent)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(.plain)
@@ -575,11 +575,11 @@ extension QRCodeScanSheet {
         } label: {
             Text("Done")
                 .font(Design.Typography.headline).fontWeight(.semibold)
-                .foregroundStyle(Design.Colors.Text.primary)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
                 .contentShape(RoundedRectangle(cornerRadius: 14))
-                .background(Design.Colors.Glass.ultraThick)
+                .background(Design.Colors.Semantic.accent)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)

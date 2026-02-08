@@ -258,7 +258,7 @@ struct AdvancedOrderFiltersSheet: View {
         } label: {
             Text(label)
                 .font(Design.Typography.footnote).fontWeight(selectedDatePreset == preset ? .semibold : .medium)
-                .foregroundStyle(selectedDatePreset == preset ? Design.Colors.Text.primary : .primary)
+                .foregroundStyle(selectedDatePreset == preset ? .white : .primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(
@@ -280,7 +280,7 @@ struct AdvancedOrderFiltersSheet: View {
         } label: {
             Text(label)
                 .font(Design.Typography.caption1).fontWeight(isSelected ? .semibold : .medium)
-                .foregroundStyle(isSelected ? Design.Colors.Text.primary : .primary)
+                .foregroundStyle(isSelected ? .white : .primary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(
@@ -306,7 +306,7 @@ struct AdvancedOrderFiltersSheet: View {
                 Text(label)
                     .font(Design.Typography.footnote).fontWeight(isSelected ? .semibold : .medium)
             }
-            .foregroundStyle(isSelected ? Design.Colors.Text.primary : .primary)
+            .foregroundStyle(isSelected ? .white : .primary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
             .background(
@@ -330,7 +330,7 @@ struct AdvancedOrderFiltersSheet: View {
                 Text(label)
                     .font(Design.Typography.footnote).fontWeight(isSelected ? .semibold : .medium)
             }
-            .foregroundStyle(isSelected ? Design.Colors.Text.primary : .primary)
+            .foregroundStyle(isSelected ? .white : .primary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
             .background(

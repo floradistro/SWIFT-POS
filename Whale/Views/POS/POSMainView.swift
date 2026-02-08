@@ -248,7 +248,7 @@ struct POSMainView: View {
                 // Checkmark
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(Design.Typography.title3)
-                    .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.ghost)
+                    .foregroundStyle(isSelected ? Design.Colors.Semantic.accent : Design.Colors.Text.ghost)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 18)
@@ -259,8 +259,8 @@ struct POSMainView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(
-                        isSelected ? Design.Colors.Border.strong : Design.Colors.Border.subtle,
-                        lineWidth: 1
+                        isSelected ? Design.Colors.Semantic.accent : Design.Colors.Border.subtle,
+                        lineWidth: isSelected ? 2 : 1
                     )
             )
         }

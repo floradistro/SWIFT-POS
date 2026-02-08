@@ -199,7 +199,7 @@ struct POSSettingsSheet: View {
 
                 Toggle("", isOn: $printerSettings.isAutoPrintEnabled)
                     .labelsHidden()
-                    .tint(Design.Colors.Semantic.success)
+                    .tint(Design.Colors.Semantic.accent)
             }
         }
     }
@@ -233,16 +233,16 @@ struct POSSettingsSheet: View {
                             } label: {
                                 Text("\(position + 1)")
                                     .font(Design.Typography.footnoteRounded).fontWeight(isSelected ? .bold : .medium)
-                                    .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
+                                    .foregroundStyle(isSelected ? .white : Design.Colors.Text.disabled)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 36)
                                     .background(
                                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .fill(isSelected ? Design.Colors.Glass.ultraThick : Design.Colors.Glass.thin)
+                                            .fill(isSelected ? Design.Colors.Semantic.accent : Design.Colors.Glass.thin)
                                     )
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .stroke(isSelected ? Design.Colors.Border.strong : Design.Colors.Border.subtle, lineWidth: 1)
+                                            .stroke(isSelected ? Design.Colors.Semantic.accent : Design.Colors.Border.subtle, lineWidth: 1)
                                     )
                             }
                             .buttonStyle(.plain)

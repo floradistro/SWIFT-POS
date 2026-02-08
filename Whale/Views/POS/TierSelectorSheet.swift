@@ -259,11 +259,11 @@ struct TierSelectorSheet: View {
                         } label: {
                             Text(reason.displayName)
                                 .font(Design.Typography.footnote).fontWeight(auditReason == reason ? .semibold : .medium)
-                                .foregroundStyle(auditReason == reason ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
+                                .foregroundStyle(auditReason == reason ? .white : Design.Colors.Text.disabled)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
                                 .frame(minHeight: 44)
-                                .background(Capsule().fill(auditReason == reason ? Design.Colors.Glass.ultraThick : Design.Colors.Glass.regular))
+                                .background(Capsule().fill(auditReason == reason ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular))
                         }
                         .buttonStyle(.plain)
                     }
@@ -322,7 +322,7 @@ struct TierSelectorSheet: View {
         }
         .buttonStyle(ScaleButtonStyle())
         .glassEffect(.regular.interactive(), in: .capsule)
-        .overlay(Capsule().stroke(isSelected ? Design.Colors.Border.strong : .clear, lineWidth: 1))
+        .overlay(Capsule().stroke(isSelected ? Design.Colors.Semantic.accent : .clear, lineWidth: 1))
     }
 
     // MARK: - Tiers Section

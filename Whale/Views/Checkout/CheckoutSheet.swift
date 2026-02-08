@@ -433,19 +433,19 @@ struct CheckoutSheet: View {
                 Text(method.label)
                     .font(Design.Typography.caption2).fontWeight(.semibold)
             }
-            .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
+            .foregroundStyle(isSelected ? .white : Design.Colors.Text.disabled)
             .frame(width: 72, height: 56)
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(Design.Colors.Glass.ultraThick)
+                        .fill(Design.Colors.Semantic.accent)
                 }
             }
             .glassEffect(.regular, in: .rect(cornerRadius: 14))
             .overlay {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(Design.Colors.Border.strong, lineWidth: 1)
+                        .strokeBorder(Design.Colors.Semantic.accent, lineWidth: 1)
                 }
             }
         }

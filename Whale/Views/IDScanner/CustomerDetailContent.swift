@@ -401,10 +401,10 @@ extension CustomerSearchContent {
                 Text("Select Customer")
                     .font(Design.Typography.callout).fontWeight(.semibold)
             }
-            .foregroundStyle(Design.Colors.Text.primary)
+            .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(Design.Colors.Glass.ultraThick, in: RoundedRectangle(cornerRadius: 14))
+            .background(Design.Colors.Semantic.accent, in: RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(ScaleButtonStyle())
         .onAppear {

@@ -345,11 +345,11 @@ struct CategoryPill: View {
         } label: {
             Text(name)
                 .font(Design.Typography.caption1).fontWeight(isSelected ? .semibold : .medium)
-                .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
+                .foregroundStyle(isSelected ? .white : Design.Colors.Text.disabled)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(
-                    isSelected ? Design.Colors.Glass.ultraThick : Color.clear,
+                    isSelected ? Design.Colors.Semantic.accent : Color.clear,
                     in: .capsule
                 )
         }
