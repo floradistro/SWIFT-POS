@@ -83,10 +83,10 @@ struct QRCodeScanSheet: View {
 
     var typeColor: Color {
         switch qrCode.type {
-        case "sale": return Color(red: 34/255, green: 197/255, blue: 94/255)
-        case "product": return Color(red: 59/255, green: 130/255, blue: 246/255)
-        case "bulk": return Color(red: 251/255, green: 146/255, blue: 60/255)
-        default: return Color(white: 0.5)
+        case "sale": return Design.Colors.Semantic.success
+        case "product": return Design.Colors.Semantic.accent
+        case "bulk": return Design.Colors.Semantic.warning
+        default: return Design.Colors.Text.disabled
         }
     }
 
@@ -345,17 +345,17 @@ struct QRCodeScanSheet: View {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(Color.orange.opacity(0.2))
+                            .fill(Design.Colors.Semantic.warning.opacity(0.2))
                             .frame(width: 40, height: 40)
                         Image(systemName: "shippingbox.fill")
                             .font(Design.Typography.callout).fontWeight(.medium)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Design.Colors.Semantic.warning)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("In Transit")
                             .font(Design.Typography.footnote).fontWeight(.semibold)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Design.Colors.Semantic.warning)
 
                         if let fromLocation = pendingTransferSourceName,
                            let toLocation = pendingTransferDestinationName {
@@ -370,7 +370,7 @@ struct QRCodeScanSheet: View {
                     if let transfer = activeTransfer {
                         Text(transfer.transferNumber)
                             .font(Design.Typography.caption2Mono).fontWeight(.semibold)
-                            .foregroundStyle(.orange.opacity(0.8))
+                            .foregroundStyle(Design.Colors.Semantic.warning.opacity(0.8))
                     }
                 }
             }
@@ -381,14 +381,14 @@ struct QRCodeScanSheet: View {
             if !qrCode.isSale {
                 if isQRCodeInTransit {
                     if isAtTransferDestination, let fromLocation = pendingTransferSourceName {
-                        actionRow("Receive from \(fromLocation)", icon: "tray.and.arrow.down.fill", color: Color(red: 34/255, green: 197/255, blue: 94/255), isPrimary: true) {
+                        actionRow("Receive from \(fromLocation)", icon: "tray.and.arrow.down.fill", color: Design.Colors.Semantic.success, isPrimary: true) {
                             navigateTo(.receive)
                         }
                     } else if let toLocation = pendingTransferDestinationName {
                         HStack(spacing: 12) {
                             Image(systemName: "info.circle.fill")
                                 .font(Design.Typography.callout)
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Design.Colors.Semantic.warning)
                             Text("Scan at \(toLocation) to receive this item")
                                 .font(Design.Typography.footnote)
                                 .foregroundStyle(Design.Colors.Text.quaternary)
@@ -398,34 +398,34 @@ struct QRCodeScanSheet: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(.orange.opacity(0.1))
+                                .fill(Design.Colors.Semantic.warning.opacity(0.1))
                         )
                     }
                 } else {
                     if canSplit {
-                        actionRow("Split Package", icon: "square.split.2x2.fill", color: Color(red: 168/255, green: 85/255, blue: 247/255), isPrimary: true) {
+                        actionRow("Split Package", icon: "square.split.2x2.fill", color: Design.Colors.Semantic.info, isPrimary: true) {
                             prepareSplitOptions()
                             navigateTo(.split)
                         }
                     }
 
-                    actionRow("Transfer Out", icon: "arrow.up.forward.square.fill", color: Color(red: 59/255, green: 130/255, blue: 246/255)) {
+                    actionRow("Transfer Out", icon: "arrow.up.forward.square.fill", color: Design.Colors.Semantic.accent) {
                         navigateTo(.transfer)
                     }
 
-                    actionRow("Add to Inventory", icon: "tray.and.arrow.down.fill", color: Color(red: 34/255, green: 197/255, blue: 94/255)) {
+                    actionRow("Add to Inventory", icon: "tray.and.arrow.down.fill", color: Design.Colors.Semantic.success) {
                         navigateTo(.receive)
                     }
                 }
             }
 
             if qrCode.storeId == storeId {
-                actionRow("Reprint Label", icon: "printer.fill", color: Color(white: 0.55)) {
+                actionRow("Reprint Label", icon: "printer.fill", color: Design.Colors.Text.disabled) {
                     navigateTo(.reprint)
                 }
             }
 
-            actionRow("View Lab Results", icon: "doc.text.fill", color: Color(red: 251/255, green: 146/255, blue: 60/255)) {
+            actionRow("View Lab Results", icon: "doc.text.fill", color: Design.Colors.Semantic.warning) {
                 if let url = URL(string: "https://floradistro.com/qr/\(qrCode.code)") {
                     UIApplication.shared.open(url)
                 }
@@ -485,7 +485,7 @@ struct QRCodeScanSheet: View {
     func errorBanner(_ message: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.yellow)
+                .foregroundStyle(Design.Colors.Semantic.warning)
             Text(message)
                 .font(Design.Typography.footnote).fontWeight(.medium)
                 .foregroundStyle(Design.Colors.Text.primary)

@@ -31,12 +31,12 @@ struct InventoryUnitScanSheet: View {
 
     private var statusColor: Color {
         switch unit.status {
-        case .available: return .green
-        case .reserved: return .orange
-        case .inTransit: return .blue
-        case .consumed, .sold: return .gray
-        case .damaged, .expired: return .red
-        case .sample, .adjustment: return .purple
+        case .available: return Design.Colors.Semantic.success
+        case .reserved: return Design.Colors.Semantic.warning
+        case .inTransit: return Design.Colors.Semantic.accent
+        case .consumed, .sold: return Design.Colors.Text.disabled
+        case .damaged, .expired: return Design.Colors.Semantic.error
+        case .sample, .adjustment: return Design.Colors.Semantic.info
         }
     }
 
@@ -46,7 +46,7 @@ struct InventoryUnitScanSheet: View {
                 VStack(spacing: 0) {
                     if let error = errorMessage {
                         HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Design.Colors.Semantic.warning)
                             Text(error).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(Design.Colors.Text.primary)
                             Spacer()
                             Button { errorMessage = nil } label: {
@@ -55,7 +55,7 @@ struct InventoryUnitScanSheet: View {
                             .buttonStyle(.plain)
                         }
                         .padding(12)
-                        .background(Color.red.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
+                        .background(Design.Colors.Semantic.error.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
                         .padding(.horizontal, 20)
                     }
 
@@ -179,10 +179,10 @@ struct InventoryUnitScanSheet: View {
 
         ModalSection {
             VStack(spacing: 10) {
-                if let location = lookupResult.location { detailRow(icon: "mappin.circle.fill", label: "Location", value: location.name, color: .blue) }
-                if let bin = unit.binLocation, !bin.isEmpty { detailRow(icon: "archivebox.fill", label: "Bin", value: bin, color: .purple) }
-                if let batch = unit.batchNumber, !batch.isEmpty { detailRow(icon: "number.circle.fill", label: "Batch", value: batch, color: .orange) }
-                detailRow(icon: "qrcode", label: "Code", value: unit.qrCode, color: .gray, mono: true)
+                if let location = lookupResult.location { detailRow(icon: "mappin.circle.fill", label: "Location", value: location.name, color: Design.Colors.Semantic.accent) }
+                if let bin = unit.binLocation, !bin.isEmpty { detailRow(icon: "archivebox.fill", label: "Bin", value: bin, color: Design.Colors.Semantic.info) }
+                if let batch = unit.batchNumber, !batch.isEmpty { detailRow(icon: "number.circle.fill", label: "Batch", value: batch, color: Design.Colors.Semantic.warning) }
+                detailRow(icon: "qrcode", label: "Code", value: unit.qrCode, color: Design.Colors.Text.disabled, mono: true)
             }
         }
 
@@ -213,23 +213,23 @@ struct InventoryUnitScanSheet: View {
             if unit.status == .available {
                 if isAtCurrentLocation {
                     HStack(spacing: 10) {
-                        Image(systemName: "checkmark.circle.fill").font(Design.Typography.callout).foregroundStyle(.green)
+                        Image(systemName: "checkmark.circle.fill").font(Design.Typography.callout).foregroundStyle(Design.Colors.Semantic.success)
                         Text("Already at this location").font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(Design.Colors.Text.disabled)
                         Spacer()
                     }.padding(.vertical, 8).padding(.horizontal, 14)
-                    actionRow("Transfer to Another Location", icon: "arrow.right.circle.fill", color: .blue) { navigateTo(.transfer) }
+                    actionRow("Transfer to Another Location", icon: "arrow.right.circle.fill", color: Design.Colors.Semantic.accent) { navigateTo(.transfer) }
                 } else {
-                    actionRow("Receive / Transfer In", icon: "shippingbox.and.arrow.backward.fill", color: .green) { navigateTo(.receive) }
+                    actionRow("Receive / Transfer In", icon: "shippingbox.and.arrow.backward.fill", color: Design.Colors.Semantic.success) { navigateTo(.receive) }
                 }
             }
 
             if unit.status == .inTransit {
-                actionRow("Complete Transfer", icon: "shippingbox.and.arrow.backward.fill", color: .green) { navigateTo(.receive) }
+                actionRow("Complete Transfer", icon: "shippingbox.and.arrow.backward.fill", color: Design.Colors.Semantic.success) { navigateTo(.receive) }
             }
 
-            actionRow("Audit / Count", icon: "checklist", color: .orange) { auditQuantity = String(format: "%.1f", unit.quantity); navigateTo(.audit) }
-            actionRow("Report Damage", icon: "exclamationmark.triangle.fill", color: .red) { navigateTo(.damage) }
-            actionRow("Reprint Label", icon: "printer.fill", color: .gray) { navigateTo(.reprint) }
+            actionRow("Audit / Count", icon: "checklist", color: Design.Colors.Semantic.warning) { auditQuantity = String(format: "%.1f", unit.quantity); navigateTo(.audit) }
+            actionRow("Report Damage", icon: "exclamationmark.triangle.fill", color: Design.Colors.Semantic.error) { navigateTo(.damage) }
+            actionRow("Reprint Label", icon: "printer.fill", color: Design.Colors.Text.disabled) { navigateTo(.reprint) }
         }
     }
 
@@ -244,9 +244,9 @@ struct InventoryUnitScanSheet: View {
         if isTransferReceive {
             ModalSection {
                 HStack(spacing: 12) {
-                    Image(systemName: "shippingbox.and.arrow.backward.fill").font(Design.Typography.title2).foregroundStyle(.blue)
+                    Image(systemName: "shippingbox.and.arrow.backward.fill").font(Design.Typography.title2).foregroundStyle(Design.Colors.Semantic.accent)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("TRANSFER IN").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(.blue).tracking(0.5)
+                        Text("TRANSFER IN").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(Design.Colors.Semantic.accent).tracking(0.5)
                         Text("\(lookupResult.location?.name ?? "Unknown") → \(session.selectedLocation?.name ?? "Here")").font(Design.Typography.footnote).fontWeight(.semibold).foregroundStyle(Design.Colors.Text.primary)
                     }
                     Spacer()
@@ -259,13 +259,13 @@ struct InventoryUnitScanSheet: View {
                 Text(isTransferReceive ? "RECEIVE AT" : "CONFIRM LOCATION").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(Design.Colors.Text.subtle).tracking(0.5)
                 if let location = session.selectedLocation {
                     HStack(spacing: 12) {
-                        Image(systemName: "mappin.circle.fill").font(Design.Typography.title3).foregroundStyle(.green)
+                        Image(systemName: "mappin.circle.fill").font(Design.Typography.title3).foregroundStyle(Design.Colors.Semantic.success)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(location.name).font(Design.Typography.subhead).fontWeight(.semibold).foregroundStyle(Design.Colors.Text.primary)
                             Text("Your Location").font(Design.Typography.caption2).foregroundStyle(Design.Colors.Text.subtle)
                         }
                         Spacer()
-                        Image(systemName: "checkmark.circle.fill").font(Design.Typography.headline).foregroundStyle(.green)
+                        Image(systemName: "checkmark.circle.fill").font(Design.Typography.headline).foregroundStyle(Design.Colors.Semantic.success)
                     }
                 } else {
                     Text("No location selected").font(Design.Typography.footnote).foregroundStyle(Design.Colors.Text.disabled)
@@ -296,7 +296,7 @@ struct InventoryUnitScanSheet: View {
                 Text("TRANSFER FROM").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(Design.Colors.Text.subtle).tracking(0.5)
                 if let location = lookupResult.location {
                     HStack(spacing: 12) {
-                        Image(systemName: "building.2.fill").font(Design.Typography.headline).foregroundStyle(.blue)
+                        Image(systemName: "building.2.fill").font(Design.Typography.headline).foregroundStyle(Design.Colors.Semantic.accent)
                         Text(location.name).font(Design.Typography.subhead).fontWeight(.semibold).foregroundStyle(Design.Colors.Text.primary)
                         Spacer()
                     }
@@ -345,7 +345,7 @@ struct InventoryUnitScanSheet: View {
                         Image(systemName: variance > 0 ? "arrow.up.circle.fill" : "arrow.down.circle.fill").font(Design.Typography.footnote)
                         Text(String(format: "%+.1f%@", variance, unit.baseUnit)).font(Design.Typography.footnote).fontWeight(.semibold)
                         Text("variance").font(Design.Typography.caption1).foregroundStyle(Design.Colors.Text.disabled)
-                    }.foregroundStyle(variance > 0 ? .green : .orange).padding(.top, 4)
+                    }.foregroundStyle(variance > 0 ? Design.Colors.Semantic.success : Design.Colors.Semantic.warning).padding(.top, 4)
                 }
             }
         }
@@ -410,7 +410,7 @@ struct InventoryUnitScanSheet: View {
     @ViewBuilder
     private var successContent: some View {
         VStack(spacing: 20) {
-            Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(.green).symbolEffect(.bounce, value: currentScreen == .success)
+            Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(Design.Colors.Semantic.success).symbolEffect(.bounce, value: currentScreen == .success)
             Text(successMessage ?? "Operation Complete").font(Design.Typography.headline).fontWeight(.semibold).foregroundStyle(Design.Colors.Text.primary).multilineTextAlignment(.center)
             Text(unit.qrCode).font(Design.Typography.caption1Mono).foregroundStyle(Design.Colors.Text.disabled)
         }.frame(maxWidth: .infinity).padding(.vertical, 24)
@@ -475,28 +475,28 @@ struct InventoryUnitScanSheet: View {
     private func damageReasonButton(_ title: String, icon: String) -> some View {
         Button { Haptics.light(); damageReason = title } label: {
             HStack(spacing: 10) {
-                Image(systemName: icon).font(Design.Typography.footnote).foregroundStyle(damageReason == title ? .red : Design.Colors.Text.disabled).frame(width: 20)
+                Image(systemName: icon).font(Design.Typography.footnote).foregroundStyle(damageReason == title ? Design.Colors.Semantic.error : Design.Colors.Text.disabled).frame(width: 20)
                 Text(title).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(damageReason == title ? Design.Colors.Text.primary : Design.Colors.Text.quaternary)
                 Spacer()
-                if damageReason == title { Image(systemName: "checkmark.circle.fill").font(Design.Typography.callout).foregroundStyle(.red) }
+                if damageReason == title { Image(systemName: "checkmark.circle.fill").font(Design.Typography.callout).foregroundStyle(Design.Colors.Semantic.error) }
             }
             .padding(.vertical, 10).padding(.horizontal, 12)
             .frame(maxWidth: .infinity)
             .contentShape(RoundedRectangle(cornerRadius: 10))
             .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.ultraThinMaterial))
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(damageReason == title ? .red.opacity(0.3) : Design.Colors.Border.regular, lineWidth: 0.5))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(damageReason == title ? Design.Colors.Semantic.error.opacity(0.3) : Design.Colors.Border.regular, lineWidth: 0.5))
         }
         .buttonStyle(.plain)
     }
 
     private func scanColor(for operation: String) -> Color {
         switch operation.lowercased() {
-        case "receiving", "receive": return .green
-        case "transfer_out", "transfer_in": return .blue
-        case "audit": return .orange
-        case "damage": return .red
-        case "sale": return .purple
-        default: return .gray
+        case "receiving", "receive": return Design.Colors.Semantic.success
+        case "transfer_out", "transfer_in": return Design.Colors.Semantic.accent
+        case "audit": return Design.Colors.Semantic.warning
+        case "damage": return Design.Colors.Semantic.error
+        case "sale": return Design.Colors.Semantic.info
+        default: return Design.Colors.Text.disabled
         }
     }
 

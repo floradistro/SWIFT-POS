@@ -110,7 +110,7 @@ struct LineItemDiscountOverlay: View {
                         Text("+\(CurrencyFormatter.format(item.discountAmount))")
                             .font(Design.Typography.footnoteRounded).fontWeight(.medium)
                     }
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Design.Colors.Semantic.warning)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .contentShape(Rectangle())
@@ -139,7 +139,7 @@ struct LineItemDiscountOverlay: View {
 
                     Spacer()
                 }
-                .foregroundStyle(.red)
+                .foregroundStyle(Design.Colors.Semantic.error)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
                 .contentShape(Rectangle())
@@ -300,7 +300,7 @@ struct CheckoutCartItemRow: View {
                 if item.discountAmount > 0 {
                     Text("-\(CurrencyFormatter.format(item.discountAmount))")
                         .font(Design.Typography.caption2).fontWeight(.semibold)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Design.Colors.Semantic.success)
                 }
             }
 

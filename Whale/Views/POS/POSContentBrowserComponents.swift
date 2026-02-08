@@ -240,7 +240,7 @@ extension POSContentBrowser {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 40))
-                .foregroundStyle(.orange)
+                .foregroundStyle(Design.Colors.Semantic.warning)
 
             Text(message)
                 .font(.subheadline)

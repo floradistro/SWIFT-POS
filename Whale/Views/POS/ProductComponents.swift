@@ -186,7 +186,7 @@ private struct StockBadge: View {
 
     private var color: Color {
         if quantity <= 0 { return Design.Colors.Semantic.error }
-        if quantity <= 5 { return Color(red: 1, green: 0.4, blue: 0.3) }
+        if quantity <= 5 { return Design.Colors.Semantic.error }
         if quantity <= 15 { return Design.Colors.Semantic.warning }
         return Design.Colors.Text.disabled
     }

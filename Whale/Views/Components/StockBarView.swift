@@ -66,8 +66,8 @@ struct StockBarRow: View {
     }
 
     private var displayColor: Color {
-        if isSuccess { return .green }
-        if value <= 10 && value > 0 { return .orange }
+        if isSuccess { return Design.Colors.Semantic.success }
+        if value <= 10 && value > 0 { return Design.Colors.Semantic.warning }
         return color
     }
 
@@ -82,7 +82,7 @@ struct StockBarRow: View {
             if let error = errorMessage {
                 Text(error)
                     .font(Design.Typography.caption2)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Design.Colors.Semantic.error)
             }
         }
     }
@@ -129,7 +129,7 @@ struct StockBarRow: View {
                     ProgressView().tint(Design.Colors.Text.primary)
                 } else if isSuccess {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Design.Colors.Semantic.success)
                         .font(Design.Typography.title3)
                         .accessibilityLabel("Saved successfully")
                 } else {

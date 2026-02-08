@@ -21,7 +21,7 @@ extension QRCodeScanSheet {
         let fromLocation = pendingTransferSourceName ?? qrCode.locationName ?? "External"
         let sourceIsDifferent = pendingTransferSourceName != nil &&
             fromLocation.lowercased() != currentLocationName.lowercased()
-        let greenColor = Color(red: 34/255, green: 197/255, blue: 94/255)
+        let greenColor = Design.Colors.Semantic.success
 
         // Only show transfer visual if source is different from current location
         if sourceIsDifferent {
@@ -141,7 +141,7 @@ extension QRCodeScanSheet {
     var transferContent: some View {
         summaryCard
 
-        let blueColor = Color(red: 59/255, green: 130/255, blue: 246/255)
+        let blueColor = Design.Colors.Semantic.accent
 
         // Transfer flow visualization
         ModalSection {
@@ -348,7 +348,7 @@ extension QRCodeScanSheet {
 
     @ViewBuilder
     var splitContent: some View {
-        let purpleColor = Color(red: 168/255, green: 85/255, blue: 247/255)
+        let purpleColor = Design.Colors.Semantic.info
 
         // Current package info
         summaryCard
@@ -411,7 +411,7 @@ extension QRCodeScanSheet {
                 HStack(spacing: 10) {
                     if isPrinting {
                         ProgressView()
-                            .tint(.black)
+                            .tint(Design.Colors.Text.primary)
                             .scaleEffect(0.9)
                     } else {
                         Image(systemName: "square.split.2x2.fill")
@@ -521,7 +521,7 @@ extension QRCodeScanSheet {
                 Circle()
                     .fill(
                         RadialGradient(
-                            colors: [Color(red: 34/255, green: 197/255, blue: 94/255).opacity(0.3), .clear],
+                            colors: [Design.Colors.Semantic.success.opacity(0.3), .clear],
                             center: .center,
                             startRadius: 20,
                             endRadius: 60
@@ -534,15 +534,15 @@ extension QRCodeScanSheet {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(red: 34/255, green: 197/255, blue: 94/255),
-                                Color(red: 22/255, green: 163/255, blue: 74/255)
+                                Design.Colors.Semantic.success,
+                                Design.Colors.Semantic.success.opacity(0.85)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 64, height: 64)
-                    .shadow(color: Color(red: 34/255, green: 197/255, blue: 94/255).opacity(0.4), radius: 12, y: 4)
+                    .shadow(color: Design.Colors.Semantic.success.opacity(0.4), radius: 12, y: 4)
 
                 // Animated checkmark path
                 AnimatedCheckmark(trimEnd: checkmarkTrimEnd)

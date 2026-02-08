@@ -22,11 +22,11 @@ struct PackageReceiveSheet: View {
 
     private var statusColor: Color {
         switch transfer.status {
-        case .draft: return .gray
-        case .approved: return .blue
-        case .inTransit: return .orange
-        case .completed: return .green
-        case .cancelled: return .red
+        case .draft: return Design.Colors.Text.disabled
+        case .approved: return Design.Colors.Semantic.accent
+        case .inTransit: return Design.Colors.Semantic.warning
+        case .completed: return Design.Colors.Semantic.success
+        case .cancelled: return Design.Colors.Semantic.error
         }
     }
 
@@ -37,11 +37,11 @@ struct PackageReceiveSheet: View {
                     // Error banner
                     if let error = errorMessage {
                         HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Design.Colors.Semantic.warning)
                             Text(error).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(Design.Colors.Text.primary)
                             Spacer()
                         }
-                        .padding(12).background(Color.red.opacity(0.3)).padding(.horizontal, 20)
+                        .padding(12).background(Design.Colors.Semantic.error.opacity(0.3)).padding(.horizontal, 20)
                     }
 
                     VStack(spacing: 12) {
@@ -57,7 +57,7 @@ struct PackageReceiveSheet: View {
                                 }
                             } else if transfer.status == .completed {
                                 HStack(spacing: 10) {
-                                    Image(systemName: "checkmark.circle.fill").font(Design.Typography.headline).foregroundStyle(.green)
+                                    Image(systemName: "checkmark.circle.fill").font(Design.Typography.headline).foregroundStyle(Design.Colors.Semantic.success)
                                     Text("Already Received").font(Design.Typography.subhead).fontWeight(.medium).foregroundStyle(Design.Colors.Text.disabled)
                                 }.padding(.vertical, 12)
                             }
@@ -99,7 +99,7 @@ struct PackageReceiveSheet: View {
                         Text("FROM").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(Design.Colors.Text.subtle)
                         Text(transfer.sourceLocationName ?? "Unknown").font(Design.Typography.footnote).fontWeight(.semibold).foregroundStyle(Design.Colors.Text.primary)
                     }
-                    Image(systemName: "arrow.right").font(Design.Typography.footnote).fontWeight(.bold).foregroundStyle(.blue)
+                    Image(systemName: "arrow.right").font(Design.Typography.footnote).fontWeight(.bold).foregroundStyle(Design.Colors.Semantic.accent)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("TO").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(Design.Colors.Text.subtle)
                         Text(transfer.destinationLocationName ?? "Unknown").font(Design.Typography.footnote).fontWeight(.semibold).foregroundStyle(Design.Colors.Text.primary)
@@ -146,7 +146,7 @@ struct PackageReceiveSheet: View {
 
     private var successContent: some View {
         VStack(spacing: 20) {
-            Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(.green).symbolEffect(.bounce, value: isReceived)
+            Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(Design.Colors.Semantic.success).symbolEffect(.bounce, value: isReceived)
             Text("Package Received!").font(Design.Typography.title3).fontWeight(.bold).foregroundStyle(Design.Colors.Text.primary)
             Text("\(items.count) items added to inventory").font(Design.Typography.footnote).foregroundStyle(Design.Colors.Text.disabled)
             Text(transfer.displayNumber).font(Design.Typography.caption1Mono).foregroundStyle(Design.Colors.Text.subtle)

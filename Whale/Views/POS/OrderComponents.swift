@@ -39,13 +39,13 @@ struct OrderListRow: View {
     /// Status color for the center line
     private var statusColor: Color {
         if order.paymentStatus == .pending {
-            return .orange
+            return Design.Colors.Semantic.warning
         } else if needsAttention {
-            return .orange
+            return Design.Colors.Semantic.warning
         } else if isComplete {
             return Design.Colors.Semantic.success
         } else {
-            return .white.opacity(0.15)
+            return Design.Colors.Glass.regular
         }
     }
 
@@ -208,7 +208,7 @@ struct OrderListStatusPill: View {
         HStack(spacing: 5) {
             if needsAction {
                 Circle()
-                    .fill(Color.orange)
+                    .fill(Design.Colors.Semantic.warning)
                     .frame(width: 6, height: 6)
                     .accessibilityHidden(true)
             } else if isComplete {
@@ -220,7 +220,7 @@ struct OrderListStatusPill: View {
 
             Text(statusText)
                 .font(Design.Typography.caption2).fontWeight(.medium)
-                .foregroundStyle(needsAction ? .orange : (isComplete ? Design.Colors.Semantic.success : Design.Colors.Text.quaternary))
+                .foregroundStyle(needsAction ? Design.Colors.Semantic.warning : (isComplete ? Design.Colors.Semantic.success : Design.Colors.Text.quaternary))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
@@ -251,12 +251,12 @@ struct OrderStatusBadge: View {
 
     private var statusColor: Color {
         switch status.color {
-        case "amber": return .yellow
-        case "blue": return .blue
-        case "green", "emerald": return .green
-        case "sky": return .cyan
-        case "red": return .red
-        default: return .gray
+        case "amber": return Design.Colors.Semantic.warning
+        case "blue": return Design.Colors.Semantic.accent
+        case "green", "emerald": return Design.Colors.Semantic.success
+        case "sky": return Design.Colors.Semantic.info
+        case "red": return Design.Colors.Semantic.error
+        default: return Design.Colors.Text.disabled
         }
     }
 }
@@ -282,10 +282,10 @@ struct PaymentStatusBadge: View {
 
     private var statusColor: Color {
         switch status.color {
-        case "green": return .green
-        case "amber", "orange": return .yellow
-        case "red": return .red
-        default: return .gray
+        case "green": return Design.Colors.Semantic.success
+        case "amber", "orange": return Design.Colors.Semantic.warning
+        case "red": return Design.Colors.Semantic.error
+        default: return Design.Colors.Text.disabled
         }
     }
 }

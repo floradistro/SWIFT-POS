@@ -16,7 +16,10 @@ struct ThemeSettingsView: View {
 
     @State private var selectedPhoto: PhotosPickerItem?
 
+    private let neutralAccent = Color(red: 0.5, green: 0.5, blue: 0.5)
+
     private let presetAccents: [(String, Color)] = [
+        ("None", Color(red: 0.5, green: 0.5, blue: 0.5)),
         ("Blue", Color(red: 59/255, green: 130/255, blue: 246/255)),
         ("Purple", Color(red: 147/255, green: 51/255, blue: 234/255)),
         ("Pink", Color(red: 236/255, green: 72/255, blue: 153/255)),
@@ -120,32 +123,43 @@ struct ThemeSettingsView: View {
                 Spacer()
             }
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 5), spacing: 10) {
                 ForEach(presetAccents, id: \.0) { name, color in
+                    let isNone = name == "None"
+                    let selected = isAccentSelected(color)
                     Button {
                         Haptics.light()
                         theme.setAccentColor(color)
                         saveToRemote()
                     } label: {
-                        Circle()
-                            .fill(color)
-                            .frame(width: 40, height: 40)
-                            .overlay(
+                        ZStack {
+                            if isNone {
                                 Circle()
-                                    .stroke(Design.Colors.Border.strong, lineWidth: isAccentSelected(color) ? 3 : 0)
-                                    .padding(-3)
-                            )
-                            .overlay {
-                                if isAccentSelected(color) {
+                                    .fill(Design.Colors.Glass.thick)
+                                    .frame(width: 40, height: 40)
+                                Image(systemName: selected ? "checkmark" : "circle.slash")
+                                    .font(Design.Typography.caption1).fontWeight(.bold)
+                                    .foregroundStyle(selected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
+                            } else {
+                                Circle()
+                                    .fill(color)
+                                    .frame(width: 40, height: 40)
+                                if selected {
                                     Image(systemName: "checkmark")
                                         .font(Design.Typography.caption1).fontWeight(.bold)
                                         .foregroundStyle(.white)
                                 }
                             }
+                        }
+                        .overlay(
+                            Circle()
+                                .stroke(Design.Colors.Border.strong, lineWidth: selected ? 3 : 0)
+                                .padding(-3)
+                        )
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(name) accent color")
-                    .accessibilityAddTraits(isAccentSelected(color) ? .isSelected : [])
+                    .accessibilityAddTraits(selected ? .isSelected : [])
                 }
             }
             .padding(.top, 8)

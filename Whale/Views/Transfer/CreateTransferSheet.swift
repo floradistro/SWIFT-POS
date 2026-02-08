@@ -358,13 +358,13 @@ private struct TransferErrorBanner: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Design.Colors.Semantic.warning)
             Text(error).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(Design.Colors.Text.primary)
             Spacer()
             Button { onDismiss() } label: { Image(systemName: "xmark").font(Design.Typography.caption1).fontWeight(.bold).foregroundStyle(Design.Colors.Text.disabled) }.buttonStyle(.plain)
         }
         .padding(12)
-        .background(Color.red.opacity(0.3))
+        .background(Design.Colors.Semantic.error.opacity(0.3))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .padding(.horizontal, 20)
     }

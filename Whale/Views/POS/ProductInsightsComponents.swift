@@ -46,8 +46,8 @@ struct ProductAnalyticsInline: View {
 
         var color: Color {
             switch self {
-            case .up: return Color(hex: "22C55E")
-            case .down: return Color(hex: "EF4444")
+            case .up: return Design.Colors.Semantic.success
+            case .down: return Design.Colors.Semantic.error
             case .flat: return Design.Colors.Text.subtle
             }
         }
@@ -67,9 +67,9 @@ struct ProductAnalyticsInline: View {
 
         var color: Color {
             switch self {
-            case .good: return Color(hex: "22C55E")
-            case .low: return Color(hex: "F59E0B")
-            case .out: return Color(hex: "EF4444")
+            case .good: return Design.Colors.Semantic.success
+            case .low: return Design.Colors.Semantic.warning
+            case .out: return Design.Colors.Semantic.error
             }
         }
     }
@@ -399,7 +399,7 @@ private enum StockHealth {
     var color: Color {
         switch self {
         case .outOfStock: return Design.Colors.Semantic.error
-        case .critical: return Color(red: 1, green: 0.4, blue: 0.3)
+        case .critical: return Design.Colors.Semantic.error
         case .low: return Design.Colors.Semantic.warning
         case .moderate: return Design.Colors.Semantic.info
         case .healthy: return Design.Colors.Semantic.success

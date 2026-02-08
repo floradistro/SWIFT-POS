@@ -332,7 +332,7 @@ extension OrderDetailContentView {
                                 if let discount = item.discountAmount, discount > 0 {
                                     Text("·")
                                     Text("-\(formatCurrency(discount))")
-                                        .foregroundStyle(.green)
+                                        .foregroundStyle(Design.Colors.Semantic.success)
                                 }
                             }
                             .font(Design.Typography.caption2).fontWeight(.medium)
@@ -385,11 +385,11 @@ extension OrderDetailContentView {
                             Text("Discount")
                         }
                         .font(Design.Typography.footnote)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Design.Colors.Semantic.success)
                         Spacer()
                         Text("-\(formatCurrency(order.discountAmount))")
                             .font(Design.Typography.footnoteRounded).fontWeight(.medium)
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Design.Colors.Semantic.success)
                     }
                 }
 
@@ -401,11 +401,11 @@ extension OrderDetailContentView {
                             Text("Points Redeemed")
                         }
                         .font(Design.Typography.footnote)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Design.Colors.Semantic.warning)
                         Spacer()
                         Text("-\(pointsRedeemed) pts")
                             .font(Design.Typography.footnoteRounded).fontWeight(.medium)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Design.Colors.Semantic.warning)
                     }
                 }
 
@@ -433,11 +433,11 @@ extension OrderDetailContentView {
                             Text("Points Earned")
                         }
                         .font(Design.Typography.footnote)
-                        .foregroundStyle(.yellow.opacity(0.8))
+                        .foregroundStyle(Design.Colors.Semantic.warning)
                         Spacer()
                         Text("+\(pointsEarned) pts")
                             .font(Design.Typography.footnoteRounded).fontWeight(.medium)
-                            .foregroundStyle(.yellow.opacity(0.8))
+                            .foregroundStyle(Design.Colors.Semantic.warning)
                     }
                 }
             }
@@ -508,7 +508,7 @@ extension OrderDetailContentView {
                                 Link(destination: trackingURL) {
                                     Image(systemName: "arrow.up.right.square")
                                         .font(Design.Typography.caption1)
-                                        .foregroundStyle(.blue)
+                                        .foregroundStyle(Design.Colors.Semantic.accent)
                                 }
                             }
                         }

@@ -258,6 +258,14 @@ final class ThemeManager: ObservableObject {
         try? FileManager.default.removeItem(at: url)
     }
 
+    // MARK: - Neutral Accent Detection
+
+    /// Whether the accent is the "None" neutral gray (no tinting).
+    var isNeutralAccent: Bool {
+        let a = palette.accent
+        return abs(a.red - 0.5) < 0.02 && abs(a.green - 0.5) < 0.02 && abs(a.blue - 0.5) < 0.02
+    }
+
     // MARK: - Color Rebuild
 
     private func rebuildColors() {
@@ -265,26 +273,35 @@ final class ThemeManager: ObservableObject {
         let text = p.textBase
         let isLight = p.baseMode == .light
         let accent = p.accent
+        let neutral = isNeutralAccent
+        let overlay = p.glassOverlay  // white for dark, black for light
 
-        // Backgrounds — subtle accent wash (visible but not overpowering)
-        let bgTint = isLight ? 0.05 : 0.06
-        backgroundPrimary = accentBlend(p.backgroundPrimary, accent: accent, amount: bgTint)
-        backgroundSecondary = accentBlend(p.backgroundSecondary, accent: accent, amount: bgTint)
-        backgroundTertiary = accentBlend(p.backgroundTertiary, accent: accent, amount: bgTint)
+        // Backgrounds — skip accent wash when neutral
+        if neutral {
+            backgroundPrimary = p.backgroundPrimary.color
+            backgroundSecondary = p.backgroundSecondary.color
+            backgroundTertiary = p.backgroundTertiary.color
+        } else {
+            let bgTint = isLight ? 0.05 : 0.06
+            backgroundPrimary = accentBlend(p.backgroundPrimary, accent: accent, amount: bgTint)
+            backgroundSecondary = accentBlend(p.backgroundSecondary, accent: accent, amount: bgTint)
+            backgroundTertiary = accentBlend(p.backgroundTertiary, accent: accent, amount: bgTint)
+        }
 
-        // Glass — accent-tinted overlays so cards/pills pick up the color
-        let glassBase = isLight ? accent : accent
+        // Glass — neutral uses white/black overlay, accent uses tinted overlay
+        let glassBase = neutral ? overlay : accent
         glassUltraThin = glassBase.withOpacity(isLight ? 0.04 : 0.03)
         glassThin = glassBase.withOpacity(isLight ? 0.06 : 0.05)
         glassRegular = glassBase.withOpacity(isLight ? 0.10 : 0.08)
         glassThick = glassBase.withOpacity(isLight ? 0.16 : 0.12)
         glassUltraThick = glassBase.withOpacity(isLight ? 0.22 : 0.16)
 
-        // Borders — accent-tinted
-        borderSubtle = accent.withOpacity(isLight ? 0.10 : 0.08)
-        borderRegular = accent.withOpacity(isLight ? 0.16 : 0.12)
-        borderEmphasis = accent.withOpacity(isLight ? 0.22 : 0.16)
-        borderStrong = accent.withOpacity(isLight ? 0.28 : 0.20)
+        // Borders — neutral uses overlay, accent uses tint
+        let borderBase = neutral ? overlay : accent
+        borderSubtle = borderBase.withOpacity(isLight ? 0.10 : 0.08)
+        borderRegular = borderBase.withOpacity(isLight ? 0.16 : 0.12)
+        borderEmphasis = borderBase.withOpacity(isLight ? 0.22 : 0.16)
+        borderStrong = borderBase.withOpacity(isLight ? 0.28 : 0.20)
 
         // Text (using text base with high contrast boost)
         textPrimary = text.color
@@ -312,11 +329,12 @@ final class ThemeManager: ObservableObject {
         semanticAccent = accent.color
         semanticAccentBackground = accent.withOpacity(0.3)
 
-        // Interactive — accent-tinted
-        interactiveDefault = accent.withOpacity(isLight ? 0.10 : 0.08)
-        interactiveHover = accent.withOpacity(isLight ? 0.16 : 0.12)
-        interactiveActive = accent.withOpacity(isLight ? 0.22 : 0.16)
-        interactiveDisabled = accent.withOpacity(isLight ? 0.04 : 0.03)
+        // Interactive — neutral uses overlay, accent uses tint
+        let interactiveBase = neutral ? overlay : accent
+        interactiveDefault = interactiveBase.withOpacity(isLight ? 0.10 : 0.08)
+        interactiveHover = interactiveBase.withOpacity(isLight ? 0.16 : 0.12)
+        interactiveActive = interactiveBase.withOpacity(isLight ? 0.22 : 0.16)
+        interactiveDisabled = interactiveBase.withOpacity(isLight ? 0.04 : 0.03)
 
         themeVersion += 1
     }
