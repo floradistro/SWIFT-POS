@@ -167,6 +167,9 @@ struct SheetContainer: View {
         case .posSettings:
             POSSettingsSheet()
 
+        case .appearance:
+            ThemeSettingsView()
+
         case .errorAlert(let title, let message):
             ErrorAlertSheet(title: title, message: message)
         }

@@ -45,6 +45,8 @@ struct POSSettingsSheet: View {
                         drawerSection
                     }
 
+                    appearanceSection
+
                     actionsSection
 
                     endSessionButton
@@ -285,6 +287,25 @@ struct POSSettingsSheet: View {
                     .font(Design.Typography.headlineRounded).fontWeight(.bold)
                     .foregroundStyle(.white)
                     .monospacedDigit()
+            }
+        }
+    }
+
+    // MARK: - Appearance
+
+    private var appearanceSection: some View {
+        settingsGroup {
+            settingsRow(
+                icon: "paintpalette.fill",
+                iconColor: .purple,
+                title: "Appearance",
+                subtitle: "Theme, colors & wallpaper"
+            ) {
+                dismiss()
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(0.3))
+                    SheetCoordinator.shared.present(.appearance)
+                }
             }
         }
     }

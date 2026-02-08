@@ -52,6 +52,7 @@ enum SheetType: Identifiable, Equatable {
 
     // MARK: - POS Settings
     case posSettings
+    case appearance
 
     // MARK: - Alerts & Errors
     case errorAlert(title: String, message: String)
@@ -83,6 +84,7 @@ enum SheetType: Identifiable, Equatable {
         case .bulkProductLabels: return "bulkProductLabels"
         case .printerSettings: return "printerSettings"
         case .posSettings: return "posSettings"
+        case .appearance: return "appearance"
         case .errorAlert(let title, _): return "errorAlert-\(title)"
         }
     }
@@ -127,6 +129,8 @@ enum SheetType: Identifiable, Equatable {
         case .printerSettings:
             return .medium
         case .posSettings:
+            return .large
+        case .appearance:
             return .large
         case .errorAlert:
             return .fitted  // Content-fitted for simple error messages
