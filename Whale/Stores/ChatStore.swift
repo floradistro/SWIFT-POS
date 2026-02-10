@@ -262,8 +262,6 @@ final class ChatStore: ObservableObject {
         let mentionedAgent = targetAgent ?? agentForMention(messageText) ?? activeAgentForChannel[conversationId]
         let isAiInvocation = mentionedAgent != nil || !attachments.isEmpty
 
-        Log.network.debug("ChatStore.sendMessage: agents.count=\(self.agents.count), mentionedAgent=\(mentionedAgent?.displayName ?? "nil"), isAiInvocation=\(isAiInvocation)")
-
         do {
             let message = try await ChatService.sendMessage(
                 conversationId: conversationId,
@@ -278,11 +276,8 @@ final class ChatStore: ObservableObject {
             // Invoke AI agent via SSE streaming
             if isAiInvocation {
                 let agent = mentionedAgent ?? defaultAgent
-                Log.network.debug("ChatStore.sendMessage: Invoking agent=\(agent?.displayName ?? "nil")")
                 if let agent {
                     invokeAgent(text: messageText, agent: agent, attachments: attachments)
-                } else {
-                    Log.network.warning("ChatStore.sendMessage: No agent found for invocation")
                 }
             }
         } catch {
@@ -297,22 +292,11 @@ final class ChatStore: ObservableObject {
     // MARK: - Agent Invocation (SSE streaming)
 
     func invokeAgent(text: String, agent: AIAgent, attachments: [ChatAttachment] = []) {
-        Log.network.debug("ChatStore.invokeAgent: Starting with agent=\(agent.displayName), text=\(text.prefix(50))")
-
         // Strip the @mention from the prompt
         let prompt = stripMention(from: text, agent: agent)
-        Log.network.debug("ChatStore.invokeAgent: Stripped prompt=\(prompt.prefix(50))")
 
-        guard !prompt.isEmpty || !attachments.isEmpty else {
-            Log.network.warning("ChatStore.invokeAgent: Empty prompt, skipping")
-            return
-        }
-        guard let conversationId = activeConversationId else {
-            Log.network.warning("ChatStore.invokeAgent: No active conversation")
-            return
-        }
-
-        Log.network.debug("ChatStore.invokeAgent: Agent ID=\(agent.id), enabled_tools=\(agent.enabledTools ?? [])")
+        guard !prompt.isEmpty || !attachments.isEmpty else { return }
+        guard let conversationId = activeConversationId else { return }
 
         // Persist agent for this channel — subsequent messages continue the session
         activeAgentForChannel[conversationId] = agent
@@ -648,16 +632,66 @@ final class ChatStore: ObservableObject {
                 Self.decodeRealtimeMessage(from: action.record)
             }.value
             guard let message = decoded else { return }
-            // Skip if this is a transient message we already have or if streaming
-            if !messages.contains(where: { $0.id == message.id }) {
-                messages.append(message)
-            }
+
+            // Skip if this is a transient message we already have
+            guard !messages.contains(where: { $0.id == message.id }) else { return }
+            guard !agentTransientIds.contains(message.id) else { return }
+
+            // Append message
+            messages.append(message)
+
+            // Resolve sender if needed
             if let senderId = message.senderId, senderCache[senderId] == nil {
                 await resolveSenders()
             }
-        default:
-            break
+
+            // Post notification if message is from someone else
+            let isFromCurrentUser = message.senderId == currentUserId
+            if !isFromCurrentUser && !message.isUser {
+                await postNotificationForMessage(message)
+            }
+
+        case .update(let action):
+            // Handle message updates (e.g., reactions, edits)
+            let decoded: ChatMessage? = await Task.detached {
+                Self.decodeRealtimeMessage(from: action.record)
+            }.value
+            guard let message = decoded else { return }
+            if let idx = messages.firstIndex(where: { $0.id == message.id }) {
+                messages[idx] = message
+            }
+
+        case .delete(let action):
+            // Handle message deletion
+            if let idString = action.oldRecord["id"] as? String,
+               let id = UUID(uuidString: idString) {
+                messages.removeAll { $0.id == id }
+            }
         }
+    }
+
+    private func postNotificationForMessage(_ message: ChatMessage) async {
+        guard let conversationId = activeConversationId else { return }
+
+        // Get sender name
+        let senderName: String
+        if message.isAssistant {
+            senderName = defaultAgent?.displayName ?? "Wilson"
+        } else if let senderId = message.senderId, let sender = senderCache[senderId] {
+            senderName = sender.displayName
+        } else {
+            senderName = "Team"
+        }
+
+        // Get conversation title
+        let conversationTitle = activeConversation?.displayTitle ?? senderName
+
+        await ChatNotificationService.shared.postMessageNotification(
+            title: conversationTitle,
+            body: "\(senderName): \(message.content)",
+            conversationId: conversationId,
+            messageId: message.id
+        )
     }
 
     private nonisolated static func decodeRealtimeMessage(from record: [String: Any]) -> ChatMessage? {

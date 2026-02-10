@@ -30,6 +30,11 @@ struct TeamChatPanel: View {
                 iPhoneChatStackView(chatStore: chatStore)
             }
         }
+        .task {
+            // Request notification permission on first launch
+            await ChatNotificationService.shared.requestPermissionIfNeeded()
+            ChatNotificationService.shared.setupNotificationCategories()
+        }
     }
 }
 
@@ -59,6 +64,8 @@ private struct iPadChatSplitView: View {
             if let conv = newValue {
                 chatStore.activeConversationId = conv.id
                 Task { await chatStore.loadMessages() }
+                // Clear notifications for this conversation
+                ChatNotificationService.shared.clearNotifications(for: conv.id)
             }
         }
         .onAppear {
@@ -111,6 +118,8 @@ private struct iPhoneChatStackView: View {
                     chatStore.activeConversationId = conversation.id
                     Task { await chatStore.loadMessages() }
                     navigationPath.append(conversation)
+                    // Clear notifications for this conversation
+                    ChatNotificationService.shared.clearNotifications(for: conversation.id)
                 }
             )
             .navigationDestination(for: ChatConversation.self) { conversation in
@@ -743,17 +752,19 @@ private extension Array {
     }
 }
 
-// MARK: - Typing Indicator (simple iMessage style)
+// MARK: - Typing Indicator (animated iMessage style)
 
 private struct TypingIndicator: View {
+    @State private var animationPhase = 0.0
+
     var body: some View {
         HStack {
-            // Simple dots bubble
             HStack(spacing: 4) {
                 ForEach(0..<3, id: \.self) { i in
                     Circle()
                         .fill(Design.Colors.Text.tertiary)
-                        .frame(width: 6, height: 6)
+                        .frame(width: 7, height: 7)
+                        .offset(y: dotOffset(for: i))
                 }
             }
             .padding(.horizontal, 14)
@@ -763,6 +774,17 @@ private struct TypingIndicator: View {
 
             Spacer()
         }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                animationPhase = 1.0
+            }
+        }
+    }
+
+    private func dotOffset(for index: Int) -> CGFloat {
+        let delay = Double(index) * 0.15
+        let adjustedPhase = (animationPhase + delay).truncatingRemainder(dividingBy: 1.0)
+        return sin(adjustedPhase * .pi) * -4
     }
 }
 
