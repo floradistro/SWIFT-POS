@@ -137,7 +137,10 @@ private struct ConversationListView: View {
     var onSelect: ((ChatConversation) -> Void)?
 
     @State private var searchText = ""
+    @State private var isSearchFocused = false
     @Environment(\.horizontalSizeClass) private var sizeClass
+
+    private var isCompact: Bool { sizeClass == .compact }
 
     private var filteredConversations: [ChatConversation] {
         if searchText.isEmpty {
@@ -149,42 +152,78 @@ private struct ConversationListView: View {
     }
 
     var body: some View {
-        List {
-            ForEach(filteredConversations) { conversation in
-                ConversationRow(
-                    conversation: conversation,
-                    chatStore: chatStore,
-                    isSelected: selectedConversation?.id == conversation.id
-                )
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .listRowBackground(
-                    selectedConversation?.id == conversation.id
-                        ? Design.Colors.Glass.regular
-                        : Color.clear
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    Haptics.selection()
-                    selectedConversation = conversation
-                    chatStore.activeConversationId = conversation.id
-                    Task { await chatStore.loadMessages() }
-                    onSelect?(conversation)
+        ZStack(alignment: .bottom) {
+            List {
+                ForEach(filteredConversations) { conversation in
+                    ConversationRow(
+                        conversation: conversation,
+                        chatStore: chatStore,
+                        isSelected: selectedConversation?.id == conversation.id
+                    )
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                    .listRowBackground(
+                        selectedConversation?.id == conversation.id
+                            ? Design.Colors.Glass.regular
+                            : Color.clear
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        Haptics.selection()
+                        selectedConversation = conversation
+                        chatStore.activeConversationId = conversation.id
+                        Task { await chatStore.loadMessages() }
+                        onSelect?(conversation)
+                    }
+                }
+
+                // Bottom padding for floating search bar on mobile
+                if isCompact {
+                    Color.clear.frame(height: 70)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
             }
+            .listStyle(.plain)
+            .searchable(text: $searchText, placement: isCompact ? .toolbar : .navigationBarDrawer(displayMode: .always), prompt: "Search")
+
+            // Floating bottom search bar (iOS 18 iMessage style) - mobile only
+            if isCompact {
+                floatingSearchBar
+            }
         }
-        .listStyle(.plain)
-        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search")
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                if isCompact {
+                    Button {
+                        Haptics.light()
+                    } label: {
+                        Text("Edit")
+                            .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    // New message action
-                    Haptics.light()
-                } label: {
-                    Image(systemName: "square.and.pencil")
-                        .font(.body)
-                        .fontWeight(.medium)
+                if isCompact {
+                    Button {
+                        Haptics.light()
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease")
+                            .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.circle)
+                } else {
+                    Button {
+                        Haptics.light()
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                            .font(.body)
+                            .fontWeight(.medium)
+                    }
                 }
             }
         }
@@ -203,6 +242,50 @@ private struct ConversationListView: View {
                 )
             }
         }
+    }
+
+    // MARK: - Floating Search Bar (iOS 18 iMessage style)
+
+    private var floatingSearchBar: some View {
+        HStack(spacing: 12) {
+            // Search field
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Design.Colors.Text.secondary)
+
+                TextField("Search", text: $searchText)
+                    .font(.system(size: 17))
+                    .foregroundStyle(Design.Colors.Text.primary)
+
+                // Microphone button
+                Button {
+                    Haptics.light()
+                } label: {
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Design.Colors.Text.secondary)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Design.Colors.Glass.thick)
+            .clipShape(Capsule())
+
+            // Compose button
+            Button {
+                Haptics.light()
+            } label: {
+                Image(systemName: "square.and.pencil")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Design.Colors.Text.primary)
+                    .frame(width: 44, height: 44)
+                    .background(Design.Colors.Glass.thick)
+                    .clipShape(Circle())
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
     }
 }
 
