@@ -184,39 +184,19 @@ private struct ConversationListView: View {
                 }
             }
             .listStyle(.plain)
-            .searchable(text: $searchText, placement: isCompact ? .toolbar : .navigationBarDrawer(displayMode: .always), prompt: "Search")
 
-            // Floating bottom search bar (iOS 18 iMessage style) - mobile only
+            // iPhone: Floating bottom search bar (iOS 18 iMessage style)
             if isCompact {
                 floatingSearchBar
             }
         }
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.large)
+        // iPad only: search at top + compose button
+        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: isCompact ? .automatic : .always), prompt: "Search")
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                if isCompact {
-                    Button {
-                        Haptics.light()
-                    } label: {
-                        Text("Edit")
-                            .font(.body)
-                    }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                if isCompact {
-                    Button {
-                        Haptics.light()
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease")
-                            .font(.body)
-                    }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.circle)
-                } else {
+            if !isCompact {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Haptics.light()
                     } label: {
@@ -267,25 +247,23 @@ private struct ConversationListView: View {
                         .foregroundStyle(Design.Colors.Text.secondary)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(Design.Colors.Glass.thick)
-            .clipShape(Capsule())
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .glassEffect(.regular.interactive(), in: .capsule)
 
             // Compose button
             Button {
                 Haptics.light()
             } label: {
                 Image(systemName: "square.and.pencil")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(Design.Colors.Text.primary)
-                    .frame(width: 44, height: 44)
-                    .background(Design.Colors.Glass.thick)
-                    .clipShape(Circle())
+                    .frame(width: 46, height: 46)
+                    .glassEffect(.regular.interactive(), in: .circle)
             }
         }
         .padding(.horizontal, 16)
-        .padding(.bottom, 8)
+        .padding(.bottom, 12)
     }
 }
 
