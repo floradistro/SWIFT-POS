@@ -192,9 +192,8 @@ private struct ConversationListView: View {
         }
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.large)
-        // iPad only: search at top + compose button
-        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: isCompact ? .automatic : .always), prompt: "Search")
         .toolbar {
+            // iPad only: compose button
             if !isCompact {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -207,6 +206,8 @@ private struct ConversationListView: View {
                 }
             }
         }
+        // iPad only: search at top in navigation bar
+        .modifier(iPadSearchModifier(searchText: $searchText, isCompact: isCompact))
         .refreshable {
             await chatStore.loadConversations()
         }
@@ -264,6 +265,23 @@ private struct ConversationListView: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
+    }
+}
+
+// MARK: - iPad Search Modifier (conditional searchable)
+
+private struct iPadSearchModifier: ViewModifier {
+    @Binding var searchText: String
+    let isCompact: Bool
+
+    func body(content: Content) -> some View {
+        if isCompact {
+            // iPhone: no system searchable, we use floating bar
+            content
+        } else {
+            // iPad: system searchable at top
+            content.searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search")
+        }
     }
 }
 
