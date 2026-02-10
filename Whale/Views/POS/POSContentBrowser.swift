@@ -17,6 +17,7 @@ struct POSContentBrowser: View {
     @Binding var searchText: String
     @ObservedObject var productStore: POSStore
     @ObservedObject var orderStore: OrderStore
+    @ObservedObject var chatStore: ChatStore
     @StateObject var multiSelect = MultiSelectManager.shared
 
     // Callbacks from POSMainView for menu actions
@@ -92,6 +93,10 @@ struct POSContentBrowser: View {
     @State private var scrollVelocity: CGFloat = 0
     private let hideThreshold: CGFloat = 50
 
+    private var showingChat: Bool {
+        selectedTab == .chat
+    }
+
     private var showingProducts: Bool {
         selectedTab == .products
     }
@@ -101,27 +106,38 @@ struct POSContentBrowser: View {
             Design.Colors.backgroundPrimary.ignoresSafeArea()
 
             TabView(selection: $selectedTab) {
+                // Chat - full screen with its own navigation (iMessage style)
+                // Don't ignore safe area so keyboard pushes content up
+                TeamChatPanel(chatStore: chatStore)
+                    .tag(POSTab.chat)
+
                 productContent
+                    .ignoresSafeArea(edges: .bottom)
                     .tag(POSTab.products)
 
                 orderContent
+                    .ignoresSafeArea(edges: .bottom)
                     .tag(POSTab.orders)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .ignoresSafeArea(edges: .bottom)
             .onChange(of: selectedTab) { _, _ in
                 Haptics.selection()
             }
 
-            VStack(spacing: 0) {
-                headerView
-                    .padding(.horizontal, 12)
-                    .padding(.top, SafeArea.top + 10)
-                    .padding(.bottom, 8)
+            // Only show header for products/orders - chat has its own nav
+            if !showingChat {
+                VStack(spacing: 0) {
+                    headerView
+                        .padding(.horizontal, 12)
+                        .padding(.top, SafeArea.top + 10)
+                        .padding(.bottom, 8)
 
-                Spacer()
+                    Spacer()
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .animation(.easeInOut(duration: 0.25), value: showingChat)
         .onChange(of: products) { _, newProducts in
             productCountTrigger = newProducts.count
             let urls = newProducts.prefix(20).compactMap { $0.iconUrl }
@@ -193,18 +209,39 @@ struct POSContentBrowser: View {
     private var headerView: some View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
-                LiquidGlassIconButton(
-                    icon: showingProducts ? "shippingbox" : "list.clipboard"
-                ) {
-                    switchProductsOrders()
-                }
+                if showingChat {
+                    // Chat header: chat icon + store/location name
+                    LiquidGlassIconButton(
+                        icon: "bubble.left.and.text.bubble.right"
+                    ) {
+                        switchProductsOrders()
+                    }
 
-                if showSearchAndFilters {
-                    LiquidGlassSearchBar(
-                        showingProducts ? "Search products..." : "Search orders...",
-                        text: $searchText
-                    )
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(session.store?.businessName ?? "Team Chat")
+                            .font(Design.Typography.headline)
+                            .foregroundStyle(Design.Colors.Text.primary)
+
+                        if let locationName = currentLocation?.name {
+                            Text(locationName)
+                                .font(Design.Typography.caption1)
+                                .foregroundStyle(Design.Colors.Text.subtle)
+                        }
+                    }
+                } else {
+                    LiquidGlassIconButton(
+                        icon: showingProducts ? "shippingbox" : "list.clipboard"
+                    ) {
+                        switchProductsOrders()
+                    }
+
+                    if showSearchAndFilters {
+                        LiquidGlassSearchBar(
+                            showingProducts ? "Search products..." : "Search orders...",
+                            text: $searchText
+                        )
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    }
                 }
 
                 Spacer(minLength: 0)
@@ -214,7 +251,9 @@ struct POSContentBrowser: View {
 
             if showSearchAndFilters {
                 Group {
-                    if showingProducts {
+                    if showingChat {
+                        chatChannelFilters
+                    } else if showingProducts {
                         productFilters
                     } else {
                         orderFilters
@@ -287,6 +326,28 @@ struct POSContentBrowser: View {
         }
 
         lastScrollY = newOffset
+    }
+
+    // MARK: - Chat Channel Filters
+
+    private var chatChannelFilters: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(chatStore.conversations, id: \.id) { conversation in
+                    let isActive = chatStore.activeConversationId == conversation.id
+
+                    FilterChip(
+                        label: conversation.chatType == .location ? (conversation.title ?? "Location") : conversation.displayTitle,
+                        icon: conversation.typeIcon,
+                        isSelected: isActive
+                    ) {
+                        chatStore.selectChannel(conversation.id)
+                    }
+                }
+            }
+            .padding(.horizontal, 4)
+            .padding(.vertical, 4)
+        }
     }
 
     // MARK: - Product Filters

@@ -283,26 +283,29 @@ final class ThemeManager: ObservableObject {
             backgroundSecondary = p.backgroundSecondary.color
             backgroundTertiary = p.backgroundTertiary.color
         } else {
-            let bgTint = isLight ? 0.05 : 0.06
-            backgroundPrimary = accentBlend(p.backgroundPrimary, accent: accent, amount: bgTint)
-            backgroundSecondary = accentBlend(p.backgroundSecondary, accent: accent, amount: bgTint)
-            backgroundTertiary = accentBlend(p.backgroundTertiary, accent: accent, amount: bgTint)
+            // More vibrant background tinting (was 5-6%, now 10-12%)
+            let bgTintPrimary = isLight ? 0.08 : 0.10
+            let bgTintSecondary = isLight ? 0.10 : 0.12
+            let bgTintTertiary = isLight ? 0.12 : 0.14
+            backgroundPrimary = accentBlend(p.backgroundPrimary, accent: accent, amount: bgTintPrimary)
+            backgroundSecondary = accentBlend(p.backgroundSecondary, accent: accent, amount: bgTintSecondary)
+            backgroundTertiary = accentBlend(p.backgroundTertiary, accent: accent, amount: bgTintTertiary)
         }
 
-        // Glass — neutral uses white/black overlay, accent uses tinted overlay
+        // Glass — neutral uses white/black overlay, accent uses vibrant tinted overlay
         let glassBase = neutral ? overlay : accent
-        glassUltraThin = glassBase.withOpacity(isLight ? 0.04 : 0.03)
-        glassThin = glassBase.withOpacity(isLight ? 0.06 : 0.05)
-        glassRegular = glassBase.withOpacity(isLight ? 0.10 : 0.08)
-        glassThick = glassBase.withOpacity(isLight ? 0.16 : 0.12)
-        glassUltraThick = glassBase.withOpacity(isLight ? 0.22 : 0.16)
+        glassUltraThin = glassBase.withOpacity(isLight ? 0.06 : 0.05)
+        glassThin = glassBase.withOpacity(isLight ? 0.10 : 0.08)
+        glassRegular = glassBase.withOpacity(isLight ? 0.16 : 0.14)
+        glassThick = glassBase.withOpacity(isLight ? 0.24 : 0.20)
+        glassUltraThick = glassBase.withOpacity(isLight ? 0.32 : 0.26)
 
-        // Borders — neutral uses overlay, accent uses tint
+        // Borders — neutral uses overlay, accent uses vibrant tint
         let borderBase = neutral ? overlay : accent
-        borderSubtle = borderBase.withOpacity(isLight ? 0.10 : 0.08)
-        borderRegular = borderBase.withOpacity(isLight ? 0.16 : 0.12)
-        borderEmphasis = borderBase.withOpacity(isLight ? 0.22 : 0.16)
-        borderStrong = borderBase.withOpacity(isLight ? 0.28 : 0.20)
+        borderSubtle = borderBase.withOpacity(isLight ? 0.14 : 0.12)
+        borderRegular = borderBase.withOpacity(isLight ? 0.22 : 0.18)
+        borderEmphasis = borderBase.withOpacity(isLight ? 0.30 : 0.24)
+        borderStrong = borderBase.withOpacity(isLight ? 0.38 : 0.30)
 
         // Text (using text base with high contrast boost)
         textPrimary = text.color
@@ -314,37 +317,37 @@ final class ThemeManager: ObservableObject {
         textGhost = text.withOpacity(boosted(0.25))
         textPlaceholder = text.withOpacity(boosted(0.3))
 
-        // Semantic
+        // Semantic — more vibrant background fills
         semanticSuccess = p.success.color
-        semanticSuccessBackground = p.success.withOpacity(0.08)
-        semanticSuccessBorder = p.success.withOpacity(0.3)
+        semanticSuccessBackground = p.success.withOpacity(0.14)
+        semanticSuccessBorder = p.success.withOpacity(0.4)
         semanticError = p.error.color
-        semanticErrorBackground = p.error.withOpacity(0.1)
-        semanticErrorBorder = p.error.withOpacity(0.3)
+        semanticErrorBackground = p.error.withOpacity(0.16)
+        semanticErrorBorder = p.error.withOpacity(0.4)
         semanticWarning = p.warning.color
-        semanticWarningBackground = p.warning.withOpacity(0.1)
-        semanticWarningBorder = p.warning.withOpacity(0.3)
+        semanticWarningBackground = p.warning.withOpacity(0.16)
+        semanticWarningBorder = p.warning.withOpacity(0.4)
         semanticInfo = p.info.color
-        semanticInfoBackground = p.info.withOpacity(0.15)
-        semanticInfoBorder = p.info.withOpacity(0.3)
+        semanticInfoBackground = p.info.withOpacity(0.20)
+        semanticInfoBorder = p.info.withOpacity(0.4)
         if neutral {
             // When no accent color: use a visible glass-like overlay so selected states
             // still read clearly (matching the original monochrome glass design).
-            semanticAccent = overlay.withOpacity(isLight ? 0.28 : 0.22)
-            semanticAccentBackground = overlay.withOpacity(isLight ? 0.10 : 0.08)
+            semanticAccent = overlay.withOpacity(isLight ? 0.32 : 0.26)
+            semanticAccentBackground = overlay.withOpacity(isLight ? 0.14 : 0.12)
             semanticAccentForeground = text.color  // Text.primary — adapts to light/dark
         } else {
             semanticAccent = accent.color
-            semanticAccentBackground = accent.withOpacity(0.3)
+            semanticAccentBackground = accent.withOpacity(0.45)  // More vibrant (was 0.3)
             semanticAccentForeground = .white      // Always white on colored accent
         }
 
-        // Interactive — neutral uses overlay, accent uses tint
+        // Interactive — neutral uses overlay, accent uses vibrant tint
         let interactiveBase = neutral ? overlay : accent
-        interactiveDefault = interactiveBase.withOpacity(isLight ? 0.10 : 0.08)
-        interactiveHover = interactiveBase.withOpacity(isLight ? 0.16 : 0.12)
-        interactiveActive = interactiveBase.withOpacity(isLight ? 0.22 : 0.16)
-        interactiveDisabled = interactiveBase.withOpacity(isLight ? 0.04 : 0.03)
+        interactiveDefault = interactiveBase.withOpacity(isLight ? 0.16 : 0.14)
+        interactiveHover = interactiveBase.withOpacity(isLight ? 0.24 : 0.20)
+        interactiveActive = interactiveBase.withOpacity(isLight ? 0.32 : 0.26)
+        interactiveDisabled = interactiveBase.withOpacity(isLight ? 0.06 : 0.05)
 
         themeVersion += 1
     }

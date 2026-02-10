@@ -12,11 +12,13 @@ import os.log
 // MARK: - POS Tab
 
 enum POSTab: String, CaseIterable {
+    case chat
     case products
     case orders
 
     var title: String {
         switch self {
+        case .chat: return "Chat"
         case .products: return "Products"
         case .orders: return "Orders"
         }
@@ -24,6 +26,7 @@ enum POSTab: String, CaseIterable {
 
     var icon: String {
         switch self {
+        case .chat: return "bubble.left.and.text.bubble.right"
         case .products: return "square.grid.2x2"
         case .orders: return "list.bullet.clipboard"
         }
@@ -38,10 +41,13 @@ struct POSMainView: View {
     @StateObject private var productStore = POSStore.shared
     @StateObject private var orderStore = OrderStore.shared
     @StateObject private var multiSelect = MultiSelectManager.shared
+    @StateObject private var chatStore = ChatStore.shared
 
     @State private var selectedTab: POSTab = .products
     @State private var searchText = ""
     @State private var showRegisterPicker = false
+
+    // (chat is a swipeable tab, no separate panel state needed)
 
     // New launcher architecture: no more global posSession/onEndSession
     // Each window has its own windowSession with location + register
@@ -282,6 +288,7 @@ struct POSMainView: View {
                 searchText: $searchText,
                 productStore: productStore,
                 orderStore: orderStore,
+                chatStore: chatStore,
                 onScanID: {
                     if let storeId = effectiveStoreId {
                         SheetCoordinator.shared.present(.idScanner(storeId: storeId))
@@ -311,8 +318,11 @@ struct POSMainView: View {
                 showRegisterPicker: $showRegisterPicker
             )
 
-            // Floating cart or bulk actions at bottom
-            if multiSelect.isMultiSelectMode && multiSelect.hasSelection {
+            // Floating bottom element (chat has its own integrated input bar)
+            if selectedTab == .chat {
+                // iMessage-style chat has its own input bar - no floating element needed
+                EmptyView()
+            } else if multiSelect.isMultiSelectMode && multiSelect.hasSelection {
                 floatingBulkActions
                     .transition(.asymmetric(
                         insertion: .opacity.combined(with: .move(edge: .bottom)),
@@ -340,7 +350,6 @@ struct POSMainView: View {
                 .onChange(of: cartError) { _, error in
                     if let error = error {
                         SheetCoordinator.shared.showError(title: "Cart Error", message: error)
-                        // Clear the error after showing
                         if isMultiWindowSession {
                             windowSession?.clearCartError()
                         } else {
@@ -379,13 +388,18 @@ struct POSMainView: View {
                     // Configure both stores - POSStore as fallback, orderStore for orders view
                     productStore.configure(storeId: storeId, locationId: locationId)
                     orderStore.configure(storeId: storeId, locationId: locationId)
+
+                    // Configure chat store
+                    chatStore.configure(storeId: storeId, locationId: locationId, userId: session.userId, userEmail: session.userEmail)
                 }
 
-                // Load products into windowSession (isolated per window)
+                // Load all data in parallel
                 async let products: () = ws.loadProducts()
                 async let orders: () = orderStore.loadOrders()
+                async let chat: () = chatStore.loadConversations()
 
-                _ = await (products, orders)
+                _ = await (products, orders, chat)
+                await chatStore.loadMessages()
             } else {
                 // LEGACY MODE: No windowSession, use global productStore (backwards compat)
                 // Get storeId from selected location or session
@@ -404,10 +418,15 @@ struct POSMainView: View {
                     productStore.configure(storeId: storeId, locationId: locationId)
                     orderStore.configure(storeId: storeId, locationId: locationId)
 
+                    // Configure chat store
+                    chatStore.configure(storeId: storeId, locationId: locationId, userId: session.userId, userEmail: session.userEmail)
+
                     async let products: () = productStore.loadProducts()
                     async let orders: () = orderStore.loadOrders()
+                    async let chat: () = chatStore.loadConversations()
 
-                    _ = await (products, orders)
+                    _ = await (products, orders, chat)
+                    await chatStore.loadMessages()
                 }
             }
         }
@@ -529,12 +548,11 @@ struct POSMainView: View {
 
             // Page indicator
             HStack(spacing: 8) {
-                Circle()
-                    .fill(selectedTab == .products ? Design.Colors.Text.secondary : Design.Colors.Text.placeholder)
-                    .frame(width: 7, height: 7)
-                Circle()
-                    .fill(selectedTab == .orders ? Design.Colors.Text.secondary : Design.Colors.Text.placeholder)
-                    .frame(width: 7, height: 7)
+                ForEach(POSTab.allCases, id: \.self) { tab in
+                    Circle()
+                        .fill(selectedTab == tab ? Design.Colors.Text.secondary : Design.Colors.Text.placeholder)
+                        .frame(width: 7, height: 7)
+                }
             }
             .padding(.top, 4)
         }

@@ -346,13 +346,11 @@ struct FloatingCart: View {
 
     private var pageIndicator: some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(selectedTab == .products ? Design.Colors.Text.primary : Design.Colors.Text.placeholder)
-                .frame(width: 7, height: 7)
-
-            Circle()
-                .fill(selectedTab == .orders ? Design.Colors.Text.primary : Design.Colors.Text.placeholder)
-                .frame(width: 7, height: 7)
+            ForEach(POSTab.allCases, id: \.self) { tab in
+                Circle()
+                    .fill(selectedTab == tab ? Design.Colors.Text.primary : Design.Colors.Text.placeholder)
+                    .frame(width: 7, height: 7)
+            }
         }
         .padding(.top, 4)
         .animation(.easeInOut(duration: 0.2), value: selectedTab)
