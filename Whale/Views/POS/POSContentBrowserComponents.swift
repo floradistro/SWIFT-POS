@@ -36,46 +36,13 @@ extension POSContentBrowser {
 
     var productGrid: some View {
         ScrollView(showsIndicators: false) {
-            let columns = gridColumnCount
-            let displayProducts = filteredProducts
-            let totalRows = (displayProducts.count + columns - 1) / columns
-
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: columns),
-                spacing: 0
-            ) {
-                ForEach(Array(displayProducts.enumerated()), id: \.element.id) { index, product in
-                    let col = index % columns
-                    let row = index / columns
-                    let isLastColumn = col == columns - 1
-                    let isLastRow = row == totalRows - 1
-
-                    ProductGridCard(
-                        product: product,
-                        isSelected: multiSelect.isProductSelected(product.id),
-                        isMultiSelectMode: multiSelect.isProductSelectMode,
-                        showRightLine: !isLastColumn,
-                        showBottomLine: !isLastRow,
-                        onTap: { handleProductTap(product) },
-                        onShowTierSelector: { handleProductTierSelector(product) },
-                        onLongPress: { handleProductLongPress(product) },
-                        onAddToCart: { addProductToCart(product) },
-                        onPrintLabels: {
-                            SheetCoordinator.shared.present(.labelTemplate(products: [product]))
-                        },
-                        onSelectMultiple: { multiSelect.startProductMultiSelect(product.id) },
-                        onShowDetail: {
-                            SheetCoordinator.shared.present(.productDetail(product: product))
-                        }
-                    )
-                }
+            if isCompactLayout {
+                // iPhone: List view
+                productListContent
+            } else {
+                // iPad: Grid view
+                productGridContent
             }
-            .background(Design.Colors.backgroundPrimary)
-            .overlay(Design.Colors.backgroundPrimary.opacity(0.15).allowsHitTesting(false))
-            .mask(RoundedRectangle(cornerRadius: 32, style: .continuous))
-            .padding(.horizontal, 12)
-            .padding(.top, showSearchAndFilters ? 140 : 80)
-            .padding(.bottom, multiSelect.isProductSelectMode ? 180 : 120)
         }
         .onScrollGeometryChange(for: CGFloat.self) { geometry in
             geometry.contentOffset.y
@@ -95,6 +62,82 @@ extension POSContentBrowser {
                 windowSessionTrigger = UUID()
             }
         }
+    }
+
+    // MARK: - Product List (iPhone)
+
+    private var productListContent: some View {
+        LazyVStack(spacing: 0) {
+            ForEach(Array(filteredProducts.enumerated()), id: \.element.id) { index, product in
+                ProductListRow(
+                    product: product,
+                    isSelected: multiSelect.isProductSelected(product.id),
+                    isMultiSelectMode: multiSelect.isProductSelectMode,
+                    isLast: index == filteredProducts.count - 1,
+                    onTap: { handleProductTap(product) },
+                    onLongPress: { handleProductLongPress(product) },
+                    onAddToCart: { addProductToCart(product) },
+                    onPrintLabels: {
+                        SheetCoordinator.shared.present(.labelTemplate(products: [product]))
+                    },
+                    onSelectMultiple: { multiSelect.startProductMultiSelect(product.id) },
+                    onShowDetail: {
+                        SheetCoordinator.shared.present(.productDetail(product: product))
+                    }
+                )
+            }
+        }
+        .padding(.top, showSearchAndFilters ? 140 : 80)
+        .padding(.bottom, multiSelect.isProductSelectMode ? 180 : 120)
+    }
+
+    // MARK: - Product Grid (iPad)
+
+    private var productGridContent: some View {
+        let columns = gridColumnCount
+        let displayProducts = filteredProducts
+        let totalRows = (displayProducts.count + columns - 1) / columns
+
+        return LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: columns),
+            spacing: 0
+        ) {
+            ForEach(Array(displayProducts.enumerated()), id: \.element.id) { index, product in
+                let col = index % columns
+                let row = index / columns
+                let isLastColumn = col == columns - 1
+                let isLastRow = row == totalRows - 1
+
+                ProductGridCard(
+                    product: product,
+                    isSelected: multiSelect.isProductSelected(product.id),
+                    isMultiSelectMode: multiSelect.isProductSelectMode,
+                    showRightLine: !isLastColumn,
+                    showBottomLine: !isLastRow,
+                    onTap: { handleProductTap(product) },
+                    onShowTierSelector: { handleProductTierSelector(product) },
+                    onLongPress: { handleProductLongPress(product) },
+                    onAddToCart: { addProductToCart(product) },
+                    onPrintLabels: {
+                        SheetCoordinator.shared.present(.labelTemplate(products: [product]))
+                    },
+                    onSelectMultiple: { multiSelect.startProductMultiSelect(product.id) },
+                    onShowDetail: {
+                        SheetCoordinator.shared.present(.productDetail(product: product))
+                    }
+                )
+            }
+        }
+        .background(Design.Colors.backgroundPrimary)
+        .overlay(Design.Colors.backgroundPrimary.opacity(0.15).allowsHitTesting(false))
+        .mask(RoundedRectangle(cornerRadius: 32, style: .continuous))
+        .padding(.horizontal, 12)
+        .padding(.top, showSearchAndFilters ? 140 : 80)
+        .padding(.bottom, multiSelect.isProductSelectMode ? 180 : 120)
+    }
+
+    var isCompactLayout: Bool {
+        sizeClass == .compact
     }
 
     var gridColumnCount: Int {

@@ -359,3 +359,144 @@ struct CategoryPill: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
+
+// MARK: - Product List Row (iPhone)
+
+/// Compact list row for products on iPhone (mobile-optimized)
+struct ProductListRow: View {
+    @EnvironmentObject private var session: SessionObserver
+
+    let product: Product
+    let isSelected: Bool
+    let isMultiSelectMode: Bool
+    let isLast: Bool
+    let onTap: () -> Void
+    let onLongPress: (() -> Void)?
+    let onAddToCart: (() -> Void)?
+    let onPrintLabels: (() -> Void)?
+    let onSelectMultiple: (() -> Void)?
+    let onShowDetail: (() -> Void)?
+
+    private var storeLogoUrl: URL? {
+        session.store?.fullLogoUrl
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button {
+                Haptics.light()
+                onTap()
+            } label: {
+                HStack(spacing: 12) {
+                    // Product image
+                    CachedAsyncImage(
+                        url: product.iconUrl,
+                        placeholderLogoUrl: storeLogoUrl,
+                        dimAmount: 0
+                    )
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Design.Colors.Glass.regular, lineWidth: 0.5)
+                    )
+
+                    // Product info
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(product.name)
+                            .font(Design.Typography.body).fontWeight(.medium)
+                            .foregroundStyle(Design.Colors.Text.primary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+
+                        HStack(spacing: 6) {
+                            if let category = product.categoryName {
+                                Text(category)
+                                    .font(Design.Typography.caption1)
+                                    .foregroundStyle(Design.Colors.Text.secondary)
+                            }
+
+                            if !product.inStock {
+                                Text("Out of stock")
+                                    .font(Design.Typography.caption2).fontWeight(.medium)
+                                    .foregroundStyle(Design.Colors.Semantic.error)
+                            }
+                        }
+                    }
+
+                    Spacer()
+
+                    // Price and multi-select
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text(formatPrice(product.displayPrice))
+                            .font(Design.Typography.headlineRounded)
+                            .foregroundStyle(Design.Colors.Text.primary)
+
+                        if product.hasTieredPricing {
+                            Text("Multiple sizes")
+                                .font(Design.Typography.caption2)
+                                .foregroundStyle(Design.Colors.Text.tertiary)
+                        }
+                    }
+
+                    if isMultiSelectMode {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(Design.Typography.title2)
+                            .foregroundStyle(isSelected ? Design.Colors.Semantic.accent : Design.Colors.Text.placeholder)
+                            .scaleEffect(isSelected ? 1.0 : 0.9)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(ListRowPressStyle())
+            .background(isSelected ? Design.Colors.Border.subtle : Color.clear)
+            .contextMenu {
+                Button {
+                    Haptics.light()
+                    onAddToCart?()
+                } label: {
+                    Label("Add to Cart", systemImage: "cart.badge.plus")
+                }
+
+                Divider()
+
+                Button {
+                    Haptics.light()
+                    onPrintLabels?()
+                } label: {
+                    Label("Print Labels", systemImage: "printer.fill")
+                }
+
+                Button {
+                    Haptics.light()
+                    onShowDetail?()
+                } label: {
+                    Label("View Details", systemImage: "info.circle")
+                }
+
+                Button {
+                    Haptics.light()
+                    onSelectMultiple?()
+                } label: {
+                    Label("Select Multiple", systemImage: "checkmark.circle")
+                }
+            }
+
+            if !isLast {
+                Rectangle()
+                    .fill(Design.Colors.Glass.regular)
+                    .frame(height: 0.5)
+                    .padding(.leading, 84) // Align with text, past the image
+            }
+        }
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isSelected)
+    }
+
+    private func formatPrice(_ value: Decimal) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        return formatter.string(from: value as NSDecimalNumber) ?? "$0.00"
+    }
+}

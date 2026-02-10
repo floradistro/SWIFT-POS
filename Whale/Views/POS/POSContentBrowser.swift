@@ -13,6 +13,7 @@ import Combine
 struct POSContentBrowser: View {
     @EnvironmentObject private var session: SessionObserver
     @Environment(\.posWindowSession) var windowSession: POSWindowSession?
+    @Environment(\.horizontalSizeClass) var sizeClass
     @Binding var selectedTab: POSTab
     @Binding var searchText: String
     @ObservedObject var productStore: POSStore
