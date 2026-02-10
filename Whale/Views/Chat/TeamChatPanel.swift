@@ -212,6 +212,11 @@ private struct ConversationRow: View {
     let conversation: ChatConversation
     @ObservedObject var chatStore: ChatStore
     var isSelected: Bool = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    // Responsive sizes for mobile vs iPad
+    private var avatarSize: CGFloat { sizeClass == .compact ? 44 : 52 }
+    private var iconSize: CGFloat { sizeClass == .compact ? 18 : 22 }
 
     private var lastMessage: ChatMessage? {
         // Get the most recent message for this conversation
@@ -224,7 +229,7 @@ private struct ConversationRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: sizeClass == .compact ? 10 : 12) {
             // Avatar
             conversationAvatar
 
@@ -232,7 +237,7 @@ private struct ConversationRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     Text(conversation.displayTitle)
-                        .font(.system(size: 17, weight: isUnread ? .semibold : .regular))
+                        .font(.system(size: sizeClass == .compact ? 16 : 17, weight: isUnread ? .semibold : .regular))
                         .foregroundStyle(Design.Colors.Text.primary)
                         .lineLimit(1)
 
@@ -240,34 +245,30 @@ private struct ConversationRow: View {
 
                     HStack(spacing: 4) {
                         Text(formatDate(conversation.updatedAt))
-                            .font(.system(size: 15))
+                            .font(.system(size: sizeClass == .compact ? 13 : 15))
                             .foregroundStyle(Design.Colors.Text.tertiary)
 
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: sizeClass == .compact ? 11 : 13, weight: .semibold))
                             .foregroundStyle(Design.Colors.Text.tertiary)
                     }
                 }
 
                 // Preview text - exactly like iMessage
                 Text(previewText)
-                    .font(.system(size: 15))
+                    .font(.system(size: sizeClass == .compact ? 14 : 15))
                     .foregroundStyle(Design.Colors.Text.secondary)
                     .lineLimit(2)
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, sizeClass == .compact ? 6 : 8)
         .contentShape(Rectangle())
     }
 
     @ViewBuilder
     private var conversationAvatar: some View {
-        let size: CGFloat = 52
-        let iconSize: CGFloat = 22
-
         switch conversation.chatType {
         case .dm:
-            // Person avatar - gradient themed
             Circle()
                 .fill(
                     LinearGradient(
@@ -276,7 +277,7 @@ private struct ConversationRow: View {
                         endPoint: .bottom
                     )
                 )
-                .frame(width: size, height: size)
+                .frame(width: avatarSize, height: avatarSize)
                 .overlay(
                     Image(systemName: "person.fill")
                         .font(.system(size: iconSize, weight: .medium))
@@ -284,7 +285,6 @@ private struct ConversationRow: View {
                 )
 
         case .team, .location:
-            // Group avatar - themed success color
             Circle()
                 .fill(
                     LinearGradient(
@@ -293,7 +293,7 @@ private struct ConversationRow: View {
                         endPoint: .bottom
                     )
                 )
-                .frame(width: size, height: size)
+                .frame(width: avatarSize, height: avatarSize)
                 .overlay(
                     Image(systemName: conversation.typeIcon)
                         .font(.system(size: iconSize, weight: .medium))
@@ -301,7 +301,6 @@ private struct ConversationRow: View {
                 )
 
         case .ai:
-            // AI avatar - themed accent gradient
             Circle()
                 .fill(
                     LinearGradient(
@@ -310,7 +309,7 @@ private struct ConversationRow: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .frame(width: size, height: size)
+                .frame(width: avatarSize, height: avatarSize)
                 .overlay(
                     Image(systemName: "sparkles")
                         .font(.system(size: iconSize, weight: .medium))
@@ -326,7 +325,7 @@ private struct ConversationRow: View {
                         endPoint: .bottom
                     )
                 )
-                .frame(width: size, height: size)
+                .frame(width: avatarSize, height: avatarSize)
                 .overlay(
                     Image(systemName: conversation.typeIcon)
                         .font(.system(size: iconSize, weight: .medium))
@@ -755,16 +754,23 @@ private extension Array {
 // MARK: - Typing Indicator (animated iMessage style)
 
 private struct TypingIndicator: View {
-    @State private var animationPhase = 0.0
+    @State private var isAnimating = false
 
     var body: some View {
         HStack {
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
                 ForEach(0..<3, id: \.self) { i in
                     Circle()
                         .fill(Design.Colors.Text.tertiary)
-                        .frame(width: 7, height: 7)
-                        .offset(y: dotOffset(for: i))
+                        .frame(width: 8, height: 8)
+                        .scaleEffect(isAnimating ? 1.0 : 0.5)
+                        .opacity(isAnimating ? 1.0 : 0.4)
+                        .animation(
+                            .easeInOut(duration: 0.5)
+                            .repeatForever(autoreverses: true)
+                            .delay(Double(i) * 0.15),
+                            value: isAnimating
+                        )
                 }
             }
             .padding(.horizontal, 14)
@@ -774,17 +780,8 @@ private struct TypingIndicator: View {
 
             Spacer()
         }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
-                animationPhase = 1.0
-            }
-        }
-    }
-
-    private func dotOffset(for index: Int) -> CGFloat {
-        let delay = Double(index) * 0.15
-        let adjustedPhase = (animationPhase + delay).truncatingRemainder(dividingBy: 1.0)
-        return sin(adjustedPhase * .pi) * -4
+        .onAppear { isAnimating = true }
+        .onDisappear { isAnimating = false }
     }
 }
 
