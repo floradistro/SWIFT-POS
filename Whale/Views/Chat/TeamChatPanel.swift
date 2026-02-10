@@ -90,11 +90,11 @@ private struct iPadChatSplitView: View {
 
             VStack(spacing: 4) {
                 Text("No Conversation Selected")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(Design.Typography.title3).fontWeight(.semibold)
                     .foregroundStyle(Design.Colors.Text.primary)
 
                 Text("Choose a conversation from the sidebar")
-                    .font(.system(size: 15))
+                    .font(Design.Typography.subhead)
                     .foregroundStyle(Design.Colors.Text.secondary)
             }
         }
@@ -107,23 +107,39 @@ private struct iPadChatSplitView: View {
 
 private struct iPhoneChatStackView: View {
     @ObservedObject var chatStore: ChatStore
-    @State private var navigationPath = NavigationPath()
+    @State private var selectedConversation: ChatConversation?
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        ZStack {
+            // Conversation list (always rendered, hidden when thread is shown)
             ConversationListView(
                 chatStore: chatStore,
-                selectedConversation: .constant(nil),
+                selectedConversation: $selectedConversation,
                 onSelect: { conversation in
                     chatStore.activeConversationId = conversation.id
                     Task { await chatStore.loadMessages() }
-                    navigationPath.append(conversation)
-                    // Clear notifications for this conversation
                     ChatNotificationService.shared.clearNotifications(for: conversation.id)
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+                        selectedConversation = conversation
+                    }
                 }
             )
-            .navigationDestination(for: ChatConversation.self) { conversation in
-                MessageThreadView(chatStore: chatStore, conversation: conversation)
+            .navigationTitle("Messages")
+            .navigationBarTitleDisplayMode(.large)
+            .opacity(selectedConversation == nil ? 1 : 0)
+
+            // Message thread (slides in from right)
+            if let conversation = selectedConversation {
+                MessageThreadView(
+                    chatStore: chatStore,
+                    conversation: conversation,
+                    onBack: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+                            selectedConversation = nil
+                        }
+                    }
+                )
+                .transition(.move(edge: .trailing))
             }
         }
     }
@@ -138,8 +154,8 @@ private struct ConversationListView: View {
 
     @State private var searchText = ""
     @State private var isSearchFocused = false
-    @Environment(\.horizontalSizeClass) private var sizeClass
 
+    @Environment(\.horizontalSizeClass) private var sizeClass
     private var isCompact: Bool { sizeClass == .compact }
 
     private var filteredConversations: [ChatConversation] {
@@ -154,36 +170,32 @@ private struct ConversationListView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             List {
-                ForEach(filteredConversations) { conversation in
-                    ConversationRow(
-                        conversation: conversation,
-                        chatStore: chatStore,
-                        isSelected: selectedConversation?.id == conversation.id
-                    )
+                ForEach(filteredConversations, id: \.id) { conversation in
+                    Button {
+                        Haptics.selection()
+                        selectedConversation = conversation
+                        chatStore.activeConversationId = conversation.id
+                        Task { await chatStore.loadMessages() }
+                        onSelect?(conversation)
+                    } label: {
+                        ConversationRow(
+                            conversation: conversation,
+                            chatStore: chatStore,
+                            isSelected: selectedConversation?.id == conversation.id
+                        )
+                    }
+                    .buttonStyle(.plain)
                     .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     .listRowBackground(
                         selectedConversation?.id == conversation.id
                             ? Design.Colors.Glass.regular
                             : Color.clear
                     )
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        Haptics.selection()
-                        selectedConversation = conversation
-                        chatStore.activeConversationId = conversation.id
-                        Task { await chatStore.loadMessages() }
-                        onSelect?(conversation)
-                    }
                 }
 
-                // Bottom padding for floating search bar on mobile
-                if isCompact {
-                    Color.clear.frame(height: 70)
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                }
             }
             .listStyle(.plain)
+            .contentMargins(.bottom, isCompact ? 80 : 0, for: .scrollContent)
 
             // iPhone: Floating bottom search bar (iOS 18 iMessage style)
             if isCompact {
@@ -232,11 +244,13 @@ private struct ConversationListView: View {
             // Search field
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(Design.Typography.callout)
+                    .fontWeight(.medium)
                     .foregroundStyle(Design.Colors.Text.secondary)
+                    .accessibilityHidden(true)
 
                 TextField("Search", text: $searchText)
-                    .font(.system(size: 17))
+                    .font(Design.Typography.body)
                     .foregroundStyle(Design.Colors.Text.primary)
 
                 // Microphone button
@@ -244,24 +258,28 @@ private struct ConversationListView: View {
                     Haptics.light()
                 } label: {
                     Image(systemName: "mic.fill")
-                        .font(.system(size: 16))
+                        .font(Design.Typography.callout)
                         .foregroundStyle(Design.Colors.Text.secondary)
+                        .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("Dictate")
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 11)
-            .glassEffect(.regular.interactive(), in: .capsule)
+            .padding(.vertical, 4)
+            .glassEffect(.regular, in: .capsule)
 
             // Compose button
             Button {
                 Haptics.light()
             } label: {
                 Image(systemName: "square.and.pencil")
-                    .font(.system(size: 17, weight: .medium))
+                    .font(Design.Typography.body)
+                    .fontWeight(.medium)
                     .foregroundStyle(Design.Colors.Text.primary)
                     .frame(width: 46, height: 46)
-                    .glassEffect(.regular.interactive(), in: .circle)
+                    .glassEffect(.regular, in: .circle)
             }
+            .accessibilityLabel("New message")
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
@@ -298,8 +316,9 @@ private struct ConversationRow: View {
     private var iconSize: CGFloat { sizeClass == .compact ? 18 : 22 }
 
     private var lastMessage: ChatMessage? {
-        // Get the most recent message for this conversation
-        chatStore.messages.last { _ in chatStore.activeConversationId == conversation.id }
+        // Only show preview for the active conversation (messages array only has active conversation's messages)
+        guard chatStore.activeConversationId == conversation.id else { return nil }
+        return chatStore.messages.last
     }
 
     private var isUnread: Bool {
@@ -311,12 +330,14 @@ private struct ConversationRow: View {
         HStack(spacing: sizeClass == .compact ? 10 : 12) {
             // Avatar
             conversationAvatar
+                .accessibilityHidden(true)
 
             // Content
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     Text(conversation.displayTitle)
-                        .font(.system(size: sizeClass == .compact ? 16 : 17, weight: isUnread ? .semibold : .regular))
+                        .font(sizeClass == .compact ? Design.Typography.callout : Design.Typography.body)
+                        .fontWeight(isUnread ? .semibold : .regular)
                         .foregroundStyle(Design.Colors.Text.primary)
                         .lineLimit(1)
 
@@ -324,24 +345,29 @@ private struct ConversationRow: View {
 
                     HStack(spacing: 4) {
                         Text(formatDate(conversation.updatedAt))
-                            .font(.system(size: sizeClass == .compact ? 13 : 15))
+                            .font(sizeClass == .compact ? Design.Typography.caption1 : Design.Typography.subhead)
                             .foregroundStyle(Design.Colors.Text.tertiary)
 
                         Image(systemName: "chevron.right")
-                            .font(.system(size: sizeClass == .compact ? 11 : 13, weight: .semibold))
+                            .font(sizeClass == .compact ? Design.Typography.caption2 : Design.Typography.caption1)
+                            .fontWeight(.semibold)
                             .foregroundStyle(Design.Colors.Text.tertiary)
+                            .accessibilityHidden(true)
                     }
                 }
 
                 // Preview text - exactly like iMessage
                 Text(previewText)
-                    .font(.system(size: sizeClass == .compact ? 14 : 15))
+                    .font(sizeClass == .compact ? Design.Typography.caption1 : Design.Typography.subhead)
                     .foregroundStyle(Design.Colors.Text.secondary)
                     .lineLimit(2)
             }
         }
         .padding(.vertical, sizeClass == .compact ? 6 : 8)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(conversation.displayTitle), \(previewText), \(formatDate(conversation.updatedAt))")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     @ViewBuilder
@@ -422,40 +448,35 @@ private struct ConversationRow: View {
         return conversation.chatType == .ai ? "AI Assistant ready to help" : "No messages yet"
     }
 
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f
+    }()
+
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEEE"
+        return f
+    }()
+
+    private static let shortDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .short
+        return f
+    }()
+
     private func formatDate(_ date: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "h:mm a"
-            return formatter.string(from: date)
+            return Self.timeFormatter.string(from: date)
         } else if calendar.isDateInYesterday(date) {
             return "Yesterday"
         } else if let daysAgo = calendar.dateComponents([.day], from: date, to: Date()).day, daysAgo < 7 {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "EEEE"
-            return formatter.string(from: date)
+            return Self.dayFormatter.string(from: date)
         } else {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "M/d/yy"
-            return formatter.string(from: date)
+            return Self.shortDateFormatter.string(from: date)
         }
-    }
-}
-
-// MARK: - Keyboard Height Publisher
-
-private extension Publishers {
-    static var keyboardHeight: AnyPublisher<CGFloat, Never> {
-        let willShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
-            .map { notification -> CGFloat in
-                (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect)?.height ?? 0
-            }
-
-        let willHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
-            .map { _ -> CGFloat in 0 }
-
-        return willShow.merge(with: willHide)
-            .eraseToAnyPublisher()
     }
 }
 
@@ -464,36 +485,79 @@ private extension Publishers {
 private struct MessageThreadView: View {
     @ObservedObject var chatStore: ChatStore
     let conversation: ChatConversation
+    var onBack: (() -> Void)?
     @EnvironmentObject private var session: SessionObserver
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @FocusState private var isInputFocused: Bool
-    @State private var keyboardHeight: CGFloat = 0
+    @State private var keyboardMinY: CGFloat = .infinity
 
     var body: some View {
-        messagesScrollView
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+        GeometryReader { geo in
+            let viewBottom = geo.frame(in: .global).maxY
+            let overlap = keyboardMinY.isFinite ? max(0, viewBottom - keyboardMinY) : 0
+
+            VStack(spacing: 0) {
+                // iPhone back bar
+                if sizeClass == .compact, let onBack {
+                    HStack(spacing: 8) {
+                        Button { onBack() } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left")
+                                    .font(Design.Typography.body).fontWeight(.semibold)
+                                Text("Back")
+                                    .font(Design.Typography.body)
+                            }
+                            .foregroundStyle(Design.Colors.Semantic.accent)
+                        }
+                        Spacer()
+                        Text(conversation.displayTitle)
+                            .font(Design.Typography.headline)
+                            .foregroundStyle(Design.Colors.Text.primary)
+                        Spacer()
+                        Color.clear.frame(width: 60)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial)
+                }
+
+                messagesScrollView
+
                 MessageInputBar(
                     chatStore: chatStore,
                     isInputFocused: $isInputFocused,
                     onSend: {}
                 )
             }
-            .padding(.bottom, keyboardHeight > 0 ? keyboardHeight - SafeArea.bottom : 0)
-            .background(Design.Colors.backgroundPrimary)
-            .ignoresSafeArea(.keyboard)
-            .animation(.easeOut(duration: 0.25), value: keyboardHeight)
-            .navigationTitle(conversation.displayTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+            .padding(.bottom, overlap)
+        }
+        .background(Design.Colors.backgroundPrimary)
+        .navigationTitle(conversation.displayTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if sizeClass == .regular {
                 ToolbarItem(placement: .principal) {
                     conversationHeader
                 }
             }
-            .onAppear {
-                Task { await chatStore.loadAgentsIfNeeded() }
+        }
+        .onAppear {
+            Task { await chatStore.loadAgentsIfNeeded() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+                withAnimation(.easeOut(duration: duration)) {
+                    keyboardMinY = frame.origin.y
+                }
             }
-            .onReceive(Publishers.keyboardHeight) { height in
-                keyboardHeight = height
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { notification in
+            let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+            withAnimation(.easeOut(duration: duration)) {
+                keyboardMinY = .infinity
             }
+        }
     }
 
     private var conversationHeader: some View {
@@ -507,12 +571,14 @@ private struct MessageThreadView: View {
                     CachedAsyncImage(url: logoUrl, placeholderLogoUrl: nil, dimAmount: 0)
                         .frame(width: 36, height: 36)
                         .clipShape(Circle())
+                        .accessibilityHidden(true)
                 }
 
                 // Title and subtitle in liquid glass pill
                 VStack(spacing: 0) {
                     Text(conversation.displayTitle)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(Design.Typography.subhead)
+                        .fontWeight(.semibold)
                         .foregroundStyle(Design.Colors.Text.primary)
 
                     HStack(spacing: 4) {
@@ -520,12 +586,13 @@ private struct MessageThreadView: View {
                             Circle()
                                 .fill(Design.Colors.Semantic.success)
                                 .frame(width: 5, height: 5)
+                                .accessibilityHidden(true)
                             Text("Active")
-                                .font(.system(size: 11))
+                                .font(Design.Typography.caption2)
                                 .foregroundStyle(Design.Colors.Text.secondary)
                         } else {
                             Text(subtitleText)
-                                .font(.system(size: 11))
+                                .font(Design.Typography.caption2)
                                 .foregroundStyle(Design.Colors.Text.secondary)
                         }
                     }
@@ -536,6 +603,8 @@ private struct MessageThreadView: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(conversation.displayTitle), \(conversation.chatType == .ai ? "Active" : subtitleText)")
     }
 
     private var subtitleText: String {
@@ -550,48 +619,67 @@ private struct MessageThreadView: View {
     }
 
     private var messagesScrollView: some View {
-        ScrollView {
-            LazyVStack(spacing: 2) {
-                // Messages grouped by date
-                ForEach(groupedMessages, id: \.date) { group in
-                    // Date header
-                    Text(formatDateHeader(group.date))
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Design.Colors.Text.secondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Design.Colors.Glass.regular.opacity(0.6), in: Capsule())
-                        .padding(.vertical, 12)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 2) {
+                    // Messages grouped by date
+                    ForEach(groupedMessages, id: \.date) { group in
+                        // Date header
+                        Text(formatDateHeader(group.date))
+                            .font(Design.Typography.caption2)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Design.Colors.Text.secondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Design.Colors.Glass.regular.opacity(0.6), in: Capsule())
+                            .padding(.vertical, 12)
 
-                    // Messages
-                    ForEach(group.messages) { message in
-                        messageBubbleView(message: message, group: group)
+                        // Messages
+                        ForEach(group.messages) { message in
+                            messageBubbleView(message: message, group: group)
+                        }
+                    }
+
+                    // Thinking indicator
+                    if chatStore.agentThinkingVisible {
+                        TypingIndicator()
+                            .padding(.top, 4)
+                            .id("thinking")
+                    }
+
+                    // Streaming message
+                    if !chatStore.agentStreamingBuffer.text.isEmpty {
+                        StreamingBubble(buffer: chatStore.agentStreamingBuffer)
+                            .id("streaming")
+                    }
+
+                    // Bottom anchor
+                    Color.clear
+                        .frame(height: 1)
+                        .id("bottom")
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
+            }
+            .defaultScrollAnchor(.bottom)
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: chatStore.messages.count) { _, _ in
+                withAnimation(.easeOut(duration: 0.2)) {
+                    proxy.scrollTo("bottom")
+                }
+            }
+            .onChange(of: chatStore.agentThinkingVisible) { _, visible in
+                if visible {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo("thinking")
                     }
                 }
-
-                // Thinking indicator
-                if chatStore.agentThinkingVisible {
-                    TypingIndicator()
-                        .padding(.top, 4)
-                }
-
-                // Streaming message - use id to prevent re-renders
-                if !chatStore.agentStreamingBuffer.text.isEmpty {
-                    StreamingBubble(buffer: chatStore.agentStreamingBuffer)
-                        .id("streaming")
-                }
-
-                // Bottom anchor
-                Color.clear
-                    .frame(height: 1)
-                    .id("bottom")
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
+            .onChange(of: chatStore.agentStreamingBuffer.text) { _, _ in
+                proxy.scrollTo("bottom")
+            }
         }
-        .defaultScrollAnchor(.bottom)
-        .scrollDismissesKeyboard(.interactively)
     }
 
     private func messageBubbleView(message: ChatMessage, group: MessageGroup) -> some View {
@@ -683,7 +771,7 @@ private struct iMessageBubble: View {
         VStack(alignment: .leading, spacing: 4) {
             if showTimestamp {
                 Text(formatTime(message.createdAt))
-                    .font(.system(size: 11))
+                    .font(Design.Typography.caption2)
                     .foregroundStyle(Design.Colors.Text.secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.top, 8)
@@ -698,10 +786,14 @@ private struct iMessageBubble: View {
                     messageBubble(isUser: true)
                         .contextMenu { messageContextMenu }
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("You: \(message.displayContent)")
             } else {
                 // AI/other message - full width with context menu
                 messageBubble(isUser: false)
                     .contextMenu { messageContextMenu }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(senderName): \(message.displayContent)")
             }
         }
     }
@@ -714,9 +806,11 @@ private struct iMessageBubble: View {
                 .padding(.vertical, 10)
                 .background(Design.Colors.Semantic.accent)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .accessibilityHidden(true)
         } else {
             MarkdownContentView(message.displayContent, isFromCurrentUser: false)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityHidden(true)
         }
     }
 
@@ -772,10 +866,14 @@ private struct iMessageBubble: View {
         Haptics.selection()
     }
 
+    private static let bubbleTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f
+    }()
+
     private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-        return formatter.string(from: date)
+        Self.bubbleTimeFormatter.string(from: date)
     }
 }
 
@@ -800,16 +898,18 @@ private struct ToolCallBubble: View {
         HStack(spacing: 10) {
             // Simple icon
             Image(systemName: isComplete ? (success ? "checkmark.circle.fill" : "xmark.circle.fill") : "gear")
-                .font(.system(size: 16))
+                .font(Design.Typography.callout)
                 .foregroundStyle(isComplete ? (success ? Design.Colors.Semantic.success : Design.Colors.Semantic.error) : Design.Colors.Text.secondary)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(displayName)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(Design.Typography.caption1)
+                    .fontWeight(.medium)
                     .foregroundStyle(Design.Colors.Text.primary)
 
                 Text(isComplete ? summary : "Running...")
-                    .font(.system(size: 12))
+                    .font(Design.Typography.caption2)
                     .foregroundStyle(Design.Colors.Text.secondary)
                     .lineLimit(1)
             }
@@ -820,6 +920,8 @@ private struct ToolCallBubble: View {
         .padding(.vertical, 10)
         .background(Design.Colors.Glass.thin)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(displayName), \(isComplete ? (success ? "completed: \(summary)" : "failed: \(summary)") : "running")")
     }
 }
 
@@ -861,6 +963,8 @@ private struct TypingIndicator: View {
         }
         .onAppear { isAnimating = true }
         .onDisappear { isAnimating = false }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Agent is thinking")
     }
 }
 
@@ -957,18 +1061,20 @@ private struct MessageInputBar: View {
                     }
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 20, weight: .medium))
+                        .font(Design.Typography.title3)
+                        .fontWeight(.medium)
                         .foregroundStyle(isStreaming ? Design.Colors.Text.tertiary : Design.Colors.Text.primary)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
                 .glassEffect(.regular.interactive(), in: .circle)
                 .disabled(isStreaming)
+                .accessibilityLabel("Add attachment or mention agent")
 
                 // Text input
                 HStack(alignment: .center, spacing: 0) {
                     TextField("Message", text: $chatStore.composerText, axis: .vertical)
-                        .font(.system(size: 17))
+                        .font(Design.Typography.body)
                         .lineLimit(1...6)
                         .focused($isInputFocused)
                         .disabled(isStreaming)
@@ -991,6 +1097,7 @@ private struct MessageInputBar: View {
                         .buttonStyle(.plain)
                         .transition(.scale.combined(with: .opacity))
                         .padding(.leading, 8)
+                        .accessibilityLabel("Send message")
                     }
                 }
                 .padding(.leading, 16)
@@ -1029,10 +1136,12 @@ private struct MessageInputBar: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: agent.displayIcon)
-                                .font(.system(size: 12))
+                                .font(Design.Typography.caption2)
                                 .foregroundStyle(Design.Colors.Semantic.accent)
+                                .accessibilityHidden(true)
                             Text(agent.displayName)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(Design.Typography.caption1)
+                                .fontWeight(.medium)
                                 .foregroundStyle(Design.Colors.Text.primary)
                         }
                         .padding(.horizontal, 12)

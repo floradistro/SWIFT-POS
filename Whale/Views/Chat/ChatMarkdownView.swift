@@ -32,10 +32,12 @@ struct ChatMarkdownParser {
 
     // Block cache keyed by message UUID — only parsed once
     private static var blockCache: [UUID: [ChatMarkdownBlock]] = [:]
+    private static let maxBlockCacheSize = 200
 
     static func blocks(for messageId: UUID, content: String) -> [ChatMarkdownBlock] {
         if let cached = blockCache[messageId] { return cached }
         let parsed = parse(content)
+        if blockCache.count >= maxBlockCacheSize { blockCache.removeAll(keepingCapacity: true) }
         blockCache[messageId] = parsed
         return parsed
     }
@@ -184,13 +186,17 @@ struct SyntaxHighlighter {
 
     // Cache keyed by code+language hash — only touched from @MainActor views
     private static var cache: [Int: AttributedString] = [:]
+    private static let maxCacheSize = 100
 
     static func cacheKey(_ code: String, language: String?) -> Int {
         code.hashValue &+ (language?.hashValue ?? 0)
     }
 
     static func cached(key: Int) -> AttributedString? { cache[key] }
-    static func store(key: Int, value: AttributedString) { cache[key] = value }
+    static func store(key: Int, value: AttributedString) {
+        if cache.count >= maxCacheSize { cache.removeAll(keepingCapacity: true) }
+        cache[key] = value
+    }
 
     /// Pure computation — no shared mutable state. Safe from any thread.
     static func compute(_ code: String, language: String?) -> AttributedString {
@@ -256,6 +262,7 @@ struct ChatMarkdownText: View {
     let content: String
 
     private static var cache: [Int: AttributedString] = [:]
+    private static let maxCacheSize = 200
 
     private var formatted: AttributedString {
         let key = content.hashValue
@@ -266,6 +273,7 @@ struct ChatMarkdownText: View {
             markdown: content,
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         )) ?? AttributedString(content)
+        if Self.cache.count >= Self.maxCacheSize { Self.cache.removeAll(keepingCapacity: true) }
         Self.cache[key] = result
         return result
     }
@@ -326,6 +334,7 @@ struct ChatRichTableView: View {
             .clipShape(shape)
             .overlay(shape.strokeBorder(Design.Colors.Border.subtle, lineWidth: 0.5))
         }
+        .accessibilityElement(children: .combine)
     }
 
     /// Calculate minimum column width based on content
@@ -473,7 +482,7 @@ struct ChatSyntaxCodeBlock: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                        .font(.system(size: 11))
+                        .font(Design.Typography.caption2)
                     if copied {
                         Text("Copied")
                             .font(Design.Typography.caption2)
@@ -481,6 +490,7 @@ struct ChatSyntaxCodeBlock: View {
                 }
                 .foregroundStyle(copied ? Design.Colors.Semantic.success : Design.Colors.Text.ghost)
             }
+            .accessibilityLabel("Copy code")
             .buttonStyle(.plain)
             .animation(.easeInOut(duration: 0.2), value: copied)
         }
@@ -499,6 +509,7 @@ struct ChatSyntaxCodeBlock: View {
                     .frame(height: 18)
             }
         }
+        .accessibilityHidden(true)
         .padding(.leading, 12)
         .padding(.trailing, 10)
         .padding(.vertical, 12)
@@ -637,7 +648,7 @@ struct ChatMessageDetailSheet: View {
         return f
     }()
 
-    nonisolated private static func formatTimestamp(_ date: Date) -> String {
+    private static func formatTimestamp(_ date: Date) -> String {
         timeFormatter.string(from: date)
     }
 }

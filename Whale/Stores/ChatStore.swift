@@ -258,9 +258,20 @@ final class ChatStore: ObservableObject {
             await loadAgentsIfNeeded()
         }
 
-        // Use locked agent, detect @mention, or continue active agent session
-        let mentionedAgent = targetAgent ?? agentForMention(messageText) ?? activeAgentForChannel[conversationId]
-        let isAiInvocation = mentionedAgent != nil || !attachments.isEmpty
+        // Determine agent: explicit lock or @mention always wins.
+        // Only auto-continue agent sessions in AI channels — team/location channels require explicit @mention.
+        let isAIChannel = activeConversation?.chatType == .ai
+        let mentionedAgent: AIAgent?
+        if let target = targetAgent {
+            mentionedAgent = target
+        } else if let mentioned = agentForMention(messageText) {
+            mentionedAgent = mentioned
+        } else if isAIChannel {
+            mentionedAgent = activeAgentForChannel[conversationId] ?? defaultAgent
+        } else {
+            mentionedAgent = nil
+        }
+        let isAiInvocation = mentionedAgent != nil
 
         do {
             let message = try await ChatService.sendMessage(
@@ -298,8 +309,10 @@ final class ChatStore: ObservableObject {
         guard !prompt.isEmpty || !attachments.isEmpty else { return }
         guard let conversationId = activeConversationId else { return }
 
-        // Persist agent for this channel — subsequent messages continue the session
-        activeAgentForChannel[conversationId] = agent
+        // Only persist agent session in AI channels — team channels require explicit @mention each time
+        if activeConversation?.chatType == .ai {
+            activeAgentForChannel[conversationId] = agent
+        }
 
         // TODO: Pass attachments to AgentSSEStream for vision support
         _ = attachments // Will be used when SSE endpoint supports multimodal
@@ -340,17 +353,10 @@ final class ChatStore: ObservableObject {
                 guard let self else { return }
 
                 if self.agentStreamingActiveId == nil {
-                    // First text chunk — replace thinking with streaming bubble
-                    let msgId = UUID()
-                    self.agentStreamingActiveId = msgId
-                    self.agentTransientIds.insert(msgId)
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    // First text chunk — hide thinking, StreamingBubble handles display
+                    self.agentStreamingActiveId = UUID()
+                    withAnimation(.easeInOut(duration: 0.1)) {
                         self.agentThinkingVisible = false
-                        self.messages.append(ChatMessage(
-                            id: msgId, conversationId: conversationId,
-                            role: "assistant", content: "",
-                            isAiInvocation: true
-                        ))
                     }
                 }
                 self.agentStreamingBuffer.append(newText)
@@ -377,18 +383,19 @@ final class ChatStore: ObservableObject {
                 guard let self else { return }
                 self.agentCurrentTool = nil
 
-                // Update tool message status
+                // Update tool message status (with bounds check)
                 let toolPrefix = "tool:\(tool)"
                 if let idx = self.messages.lastIndex(where: {
                     $0.content.hasPrefix(toolPrefix) && self.agentTransientIds.contains($0.id)
-                }) {
+                }), idx < self.messages.count {
                     let summary = self.toolResultSummary(tool: tool, success: success, error: errorMsg)
+                    let existingMessage = self.messages[idx]
                     self.messages[idx] = ChatMessage(
-                        id: self.messages[idx].id, conversationId: conversationId,
+                        id: existingMessage.id, conversationId: conversationId,
                         role: "assistant",
                         content: "tool_done:\(success ? "1" : "0"):\(tool):\(summary)",
                         isAiInvocation: true,
-                        createdAt: self.messages[idx].createdAt
+                        createdAt: existingMessage.createdAt
                     )
                 }
 
@@ -501,20 +508,17 @@ final class ChatStore: ObservableObject {
     }
 
     private func finalizeStreamingMessage(channelId: UUID) {
-        guard let msgId = agentStreamingActiveId else { return }
+        guard agentStreamingActiveId != nil else { return }
         agentStreamingBuffer.flush()
         let finalText = agentStreamingBuffer.text
-        if let idx = messages.firstIndex(where: { $0.id == msgId }) {
-            if !finalText.isEmpty {
-                messages[idx] = ChatMessage(
-                    id: msgId, conversationId: channelId,
-                    role: "assistant", content: finalText,
-                    isAiInvocation: true, createdAt: messages[idx].createdAt
-                )
-            } else {
-                messages.remove(at: idx)
-                agentTransientIds.remove(msgId)
-            }
+        if !finalText.isEmpty {
+            let msgId = UUID()
+            agentTransientIds.insert(msgId)
+            messages.append(ChatMessage(
+                id: msgId, conversationId: channelId,
+                role: "assistant", content: finalText,
+                isAiInvocation: true
+            ))
         }
         agentStreamingActiveId = nil
         agentStreamingBuffer.clear()
@@ -573,7 +577,8 @@ final class ChatStore: ObservableObject {
     /// Resolve which AI agent responded by scanning backwards for the triggering @mention.
     func resolvedAgent(forMessageAt index: Int) -> AIAgent? {
         var i = index - 1
-        while i >= 0 {
+        // Bounds check to prevent crash if messages modified during iteration
+        while i >= 0 && i < messages.count {
             let prev = messages[i]
             if prev.isAiInvocation {
                 if let agent = agentForMention(prev.content) {

@@ -167,17 +167,17 @@ struct TextBlockView: View, Equatable {
             EmptyView()
         } else if trimmed.hasPrefix("### ") {
             Text(String(trimmed.dropFirst(4)))
-                .font(.system(size: 15, weight: .semibold))
+                .font(Design.Typography.subhead).fontWeight(.semibold)
                 .foregroundStyle(textColor)
                 .padding(.top, 4)
         } else if trimmed.hasPrefix("## ") {
             Text(String(trimmed.dropFirst(3)))
-                .font(.system(size: 17, weight: .semibold))
+                .font(Design.Typography.headline)
                 .foregroundStyle(textColor)
                 .padding(.top, 6)
         } else if trimmed.hasPrefix("# ") {
             Text(String(trimmed.dropFirst(2)))
-                .font(.system(size: 20, weight: .bold))
+                .font(Design.Typography.title3).fontWeight(.bold)
                 .foregroundStyle(textColor)
                 .padding(.top, 8)
         } else if trimmed.hasPrefix("> ") {
@@ -186,28 +186,28 @@ struct TextBlockView: View, Equatable {
                     .fill(Design.Colors.Text.tertiary)
                     .frame(width: 3)
                 Text(renderInlineText(String(trimmed.dropFirst(2))))
-                    .font(.system(size: 15).italic())
+                    .font(Design.Typography.subhead).italic()
                     .foregroundStyle(Design.Colors.Text.secondary)
             }
             .padding(.leading, 8)
         } else if let listContent = parseUnorderedListItem(trimmed) {
             HStack(alignment: .top, spacing: 8) {
                 Text("•")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(Design.Typography.subhead).fontWeight(.bold)
                     .foregroundStyle(isFromCurrentUser ? Design.Colors.Semantic.accentForeground : Design.Colors.Semantic.accent)
                 Text(renderInlineText(listContent))
-                    .font(.system(size: 15))
+                    .font(Design.Typography.subhead)
                     .foregroundStyle(textColor)
             }
             .padding(.leading, 8)
         } else if let (num, listContent) = parseOrderedListItem(trimmed) {
             HStack(alignment: .top, spacing: 8) {
                 Text("\(num).")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(Design.Typography.subhead).fontWeight(.medium)
                     .foregroundStyle(Design.Colors.Text.secondary)
                     .frame(minWidth: 20, alignment: .trailing)
                 Text(renderInlineText(listContent))
-                    .font(.system(size: 15))
+                    .font(Design.Typography.subhead)
                     .foregroundStyle(textColor)
             }
             .padding(.leading, 8)
@@ -218,7 +218,7 @@ struct TextBlockView: View, Equatable {
                 .padding(.vertical, 8)
         } else {
             Text(renderInlineText(trimmed))
-                .font(.system(size: 15))
+                .font(Design.Typography.subhead)
                 .foregroundStyle(textColor)
         }
     }
@@ -318,7 +318,7 @@ struct CodeBlockView: View {
                 }
                 if incomplete {
                     Text("streaming...")
-                        .font(.system(size: 10))
+                        .font(Design.Typography.caption2)
                         .foregroundStyle(Design.Colors.Semantic.warning)
                 }
                 Spacer()
@@ -329,10 +329,12 @@ struct CodeBlockView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
                 } label: {
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                        .font(.system(size: 10))
+                        .font(Design.Typography.caption2)
                         .foregroundStyle(copied ? Design.Colors.Semantic.success : Design.Colors.Text.tertiary)
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Copy code")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -346,6 +348,7 @@ struct CodeBlockView: View {
                             .font(.system(size: 11, design: .monospaced))
                             .foregroundStyle(Design.Colors.Text.tertiary)
                             .frame(width: 32)
+                            .accessibilityHidden(true)
 
                         Text(line.isEmpty ? " " : line)
                             .font(.system(size: 12, design: .monospaced))
@@ -378,7 +381,7 @@ struct TableBlockView: View {
             HStack(spacing: 0) {
                 ForEach(Array(headers.enumerated()), id: \.offset) { idx, header in
                     Text(header.uppercased())
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(Design.Typography.caption2).fontWeight(.semibold)
                         .foregroundStyle(Design.Colors.Text.secondary)
                         .frame(maxWidth: .infinity, alignment: alignment(for: idx))
                         .padding(.horizontal, 10)
@@ -404,7 +407,7 @@ struct TableBlockView: View {
 
             if rows.count > 20 {
                 Text("\(rows.count - 20) more rows")
-                    .font(.system(size: 10))
+                    .font(Design.Typography.caption2)
                     .foregroundStyle(Design.Colors.Text.tertiary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
@@ -417,6 +420,7 @@ struct TableBlockView: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Design.Colors.Border.subtle, lineWidth: 0.5)
         )
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
@@ -431,14 +435,14 @@ struct TableBlockView: View {
                 .foregroundStyle(Design.Colors.Text.primary)
         } else if isStatusBadge(text) {
             Text(text)
-                .font(.system(size: 10, weight: .medium))
+                .font(Design.Typography.caption2).fontWeight(.medium)
                 .foregroundStyle(statusColor(text))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(Capsule().fill(statusColor(text).opacity(0.12)))
         } else {
             Text(text)
-                .font(.system(size: 12))
+                .font(Design.Typography.caption2)
                 .foregroundStyle(column == 0 ? Design.Colors.Text.primary : Design.Colors.Text.secondary)
                 .lineLimit(2)
         }

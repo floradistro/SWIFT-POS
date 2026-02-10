@@ -26,7 +26,12 @@ enum ChatService {
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return (try? decoder.decode([ChatConversation].self, from: response.data)) ?? []
+        do {
+            return try decoder.decode([ChatConversation].self, from: response.data)
+        } catch {
+            Log.network.error("ChatService: Failed to decode conversations: \(error)")
+            return []
+        }
     }
 
     // MARK: - Messages
@@ -43,7 +48,13 @@ enum ChatService {
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let messages = (try? decoder.decode([ChatMessage].self, from: response.data)) ?? []
+        let messages: [ChatMessage]
+        do {
+            messages = try decoder.decode([ChatMessage].self, from: response.data)
+        } catch {
+            Log.network.error("ChatService: Failed to decode messages: \(error)")
+            messages = []
+        }
         return messages.reversed() // Oldest first for display
     }
 
@@ -129,7 +140,12 @@ enum ChatService {
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return (try? decoder.decode([AIAgent].self, from: response.data)) ?? []
+        do {
+            return try decoder.decode([AIAgent].self, from: response.data)
+        } catch {
+            Log.network.error("ChatService: Failed to decode agents: \(error)")
+            return []
+        }
     }
 
     // MARK: - Sender Resolution
@@ -145,7 +161,13 @@ enum ChatService {
             .in("auth_user_id", values: ids)
             .execute()
 
-        let senders = (try? JSONDecoder().decode([ChatSender].self, from: response.data)) ?? []
+        let senders: [ChatSender]
+        do {
+            senders = try JSONDecoder().decode([ChatSender].self, from: response.data)
+        } catch {
+            Log.network.error("ChatService: Failed to decode senders: \(error)")
+            senders = []
+        }
         var result: [UUID: ChatSender] = [:]
         for s in senders { result[s.id] = s }
         return result

@@ -107,8 +107,6 @@ struct POSContentBrowser: View {
             Design.Colors.backgroundPrimary.ignoresSafeArea()
 
             TabView(selection: $selectedTab) {
-                // Chat - full screen with its own navigation (iMessage style)
-                // Don't ignore safe area so keyboard pushes content up
                 TeamChatPanel(chatStore: chatStore)
                     .tag(POSTab.chat)
 
@@ -121,9 +119,6 @@ struct POSContentBrowser: View {
                     .tag(POSTab.orders)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .onChange(of: selectedTab) { _, _ in
-                Haptics.selection()
-            }
 
             // Only show header for products/orders - chat has its own nav
             if !showingChat {
@@ -139,6 +134,9 @@ struct POSContentBrowser: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: showingChat)
+        .onChange(of: selectedTab) { _, _ in
+            Haptics.selection()
+        }
         .onChange(of: products) { _, newProducts in
             productCountTrigger = newProducts.count
             let urls = newProducts.prefix(20).compactMap { $0.iconUrl }
