@@ -61,8 +61,8 @@ struct Store: Codable, Identifiable, Sendable {
             return URL(string: logoUrl)
         }
 
-        // Otherwise, construct Supabase storage URL
-        let baseUrl = "https://pprlgipabjoxxbfhkuxj.supabase.co/storage/v1/object/public"
+        // Otherwise, construct Supabase storage URL using the correct project ref
+        let baseUrl = "\(SupabaseConfig.baseURL)/storage/v1/object/public"
         return URL(string: "\(baseUrl)/\(logoUrl)")
     }
 }

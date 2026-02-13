@@ -264,8 +264,11 @@ extension QRCodeScanSheet {
 
             for _ in 0..<selected.count {
                 printProducts.append(product)
-                let (_, code) = QRTrackingService.saleTrackingURL()
-                saleCodes.append(code)
+                if let (_, code) = QRTrackingService.saleTrackingURL() {
+                    saleCodes.append(code)
+                } else {
+                    saleCodes.append(UUID().uuidString.lowercased())
+                }
                 tierLabels.append(selected.tier.label)
             }
 

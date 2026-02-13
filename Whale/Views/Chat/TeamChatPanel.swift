@@ -152,6 +152,7 @@ private struct ConversationListView: View {
     @Binding var selectedConversation: ChatConversation?
     var onSelect: ((ChatConversation) -> Void)?
 
+    @EnvironmentObject private var session: SessionObserver
     @State private var searchText = ""
     @State private var isSearchFocused = false
 
@@ -181,7 +182,8 @@ private struct ConversationListView: View {
                         ConversationRow(
                             conversation: conversation,
                             chatStore: chatStore,
-                            isSelected: selectedConversation?.id == conversation.id
+                            isSelected: selectedConversation?.id == conversation.id,
+                            storeLogoUrl: session.store?.fullLogoUrl
                         )
                     }
                     .buttonStyle(.plain)
@@ -309,6 +311,7 @@ private struct ConversationRow: View {
     let conversation: ChatConversation
     @ObservedObject var chatStore: ChatStore
     var isSelected: Bool = false
+    var storeLogoUrl: URL?
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     // Responsive sizes for mobile vs iPad
@@ -326,11 +329,19 @@ private struct ConversationRow: View {
         false
     }
 
+    private var isPinned: Bool { chatStore.isPinned(conversation.id) }
+    private var isMuted: Bool { chatStore.isMuted(conversation.id) }
+
     var body: some View {
         HStack(spacing: sizeClass == .compact ? 10 : 12) {
-            // Avatar
-            conversationAvatar
-                .accessibilityHidden(true)
+            // Avatar — store logo for team chats, colored icon for AI/alerts/bugs
+            ConversationAvatar(
+                conversation: conversation,
+                size: avatarSize,
+                iconSize: iconSize,
+                logoUrl: storeLogoUrl
+            )
+            .accessibilityHidden(true)
 
             // Content
             VStack(alignment: .leading, spacing: 2) {
@@ -340,6 +351,20 @@ private struct ConversationRow: View {
                         .fontWeight(isUnread ? .semibold : .regular)
                         .foregroundStyle(Design.Colors.Text.primary)
                         .lineLimit(1)
+
+                    if isPinned {
+                        Image(systemName: "pin.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Design.Colors.Text.tertiary)
+                            .accessibilityLabel("Pinned")
+                    }
+
+                    if isMuted {
+                        Image(systemName: "bell.slash.fill")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(Design.Colors.Text.tertiary)
+                            .accessibilityLabel("Muted")
+                    }
 
                     Spacer()
 
@@ -366,77 +391,8 @@ private struct ConversationRow: View {
         .padding(.vertical, sizeClass == .compact ? 6 : 8)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(conversation.displayTitle), \(previewText), \(formatDate(conversation.updatedAt))")
+        .accessibilityLabel("\(conversation.displayTitle)\(isPinned ? ", Pinned" : "")\(isMuted ? ", Muted" : ""), \(previewText), \(formatDate(conversation.updatedAt))")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    @ViewBuilder
-    private var conversationAvatar: some View {
-        switch conversation.chatType {
-        case .dm:
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [Design.Colors.Glass.thick, Design.Colors.Glass.ultraThick],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .frame(width: avatarSize, height: avatarSize)
-                .overlay(
-                    Image(systemName: "person.fill")
-                        .font(.system(size: iconSize, weight: .medium))
-                        .foregroundStyle(Design.Colors.Text.primary)
-                )
-
-        case .team, .location:
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [Design.Colors.Semantic.success.opacity(0.8), Design.Colors.Semantic.success],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .frame(width: avatarSize, height: avatarSize)
-                .overlay(
-                    Image(systemName: conversation.typeIcon)
-                        .font(.system(size: iconSize, weight: .medium))
-                        .foregroundStyle(.white)
-                )
-
-        case .ai:
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [Design.Colors.Semantic.accent.opacity(0.8), Design.Colors.Semantic.accent],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: avatarSize, height: avatarSize)
-                .overlay(
-                    Image(systemName: "sparkles")
-                        .font(.system(size: iconSize, weight: .medium))
-                        .foregroundStyle(Design.Colors.Semantic.accentForeground)
-                )
-
-        case .alerts, .bugs:
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [Design.Colors.Semantic.warning.opacity(0.8), Design.Colors.Semantic.warning],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .frame(width: avatarSize, height: avatarSize)
-                .overlay(
-                    Image(systemName: conversation.typeIcon)
-                        .font(.system(size: iconSize, weight: .medium))
-                        .foregroundStyle(.white)
-                )
-        }
     }
 
     private var previewText: String {
@@ -489,48 +445,96 @@ private struct MessageThreadView: View {
     @EnvironmentObject private var session: SessionObserver
     @Environment(\.horizontalSizeClass) private var sizeClass
     @FocusState private var isInputFocused: Bool
-    @State private var keyboardMinY: CGFloat = .infinity
+    @State private var showSettings = false
+    @State private var showMessageSearch = false
+    @State private var messageSearchText = ""
+    @State private var keyboardHeight: CGFloat = 0
+    @State private var isFollowingBottom = true
 
     var body: some View {
-        GeometryReader { geo in
-            let viewBottom = geo.frame(in: .global).maxY
-            let overlap = keyboardMinY.isFinite ? max(0, viewBottom - keyboardMinY) : 0
-
-            VStack(spacing: 0) {
-                // iPhone back bar
-                if sizeClass == .compact, let onBack {
-                    HStack(spacing: 8) {
-                        Button { onBack() } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "chevron.left")
-                                    .font(Design.Typography.body).fontWeight(.semibold)
-                                Text("Back")
-                                    .font(Design.Typography.body)
-                            }
-                            .foregroundStyle(Design.Colors.Semantic.accent)
+        VStack(spacing: 0) {
+            // iPhone back bar — padded below status bar / Dynamic Island
+            if sizeClass == .compact, let onBack {
+                HStack(spacing: 8) {
+                    Button { onBack() } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(Design.Typography.body).fontWeight(.semibold)
+                            Text("Back")
+                                .font(Design.Typography.body)
                         }
-                        Spacer()
+                        .foregroundStyle(Design.Colors.Semantic.accent)
+                    }
+                    Spacer()
+                    Button {
+                        Haptics.light()
+                        showSettings = true
+                    } label: {
                         Text(conversation.displayTitle)
                             .font(Design.Typography.headline)
                             .foregroundStyle(Design.Colors.Text.primary)
-                        Spacer()
-                        Color.clear.frame(width: 60)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(.ultraThinMaterial)
+                    .buttonStyle(.plain)
+                    Spacer()
+                    Color.clear.frame(width: 60)
                 }
-
-                messagesScrollView
-
-                MessageInputBar(
-                    chatStore: chatStore,
-                    isInputFocused: $isInputFocused,
-                    onSend: {}
-                )
+                .padding(.horizontal, 16)
+                .padding(.top, SafeArea.top + 6)
+                .padding(.bottom, 10)
+                .background(.ultraThinMaterial)
             }
-            .padding(.bottom, overlap)
+
+            // In-thread search bar
+            if showMessageSearch {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(Design.Typography.callout)
+                        .foregroundStyle(Design.Colors.Text.secondary)
+                        .accessibilityHidden(true)
+
+                    TextField("Search messages...", text: $messageSearchText)
+                        .font(Design.Typography.body)
+                        .textFieldStyle(.plain)
+
+                    if !messageSearchText.isEmpty {
+                        Button {
+                            messageSearchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(Design.Typography.callout)
+                                .foregroundStyle(Design.Colors.Text.tertiary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                            showMessageSearch = false
+                            messageSearchText = ""
+                        }
+                    } label: {
+                        Text("Cancel")
+                            .font(Design.Typography.callout)
+                            .foregroundStyle(Design.Colors.Semantic.accent)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Design.Colors.Glass.thin)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            messagesScrollView
+
+            MessageInputBar(
+                chatStore: chatStore,
+                isInputFocused: $isInputFocused,
+                onSend: {}
+            )
         }
+        .padding(.bottom, adjustedKeyboardHeight)
+        .ignoresSafeArea(.keyboard)
         .background(Design.Colors.backgroundPrimary)
         .navigationTitle(conversation.displayTitle)
         .navigationBarTitleDisplayMode(.inline)
@@ -545,34 +549,51 @@ private struct MessageThreadView: View {
             Task { await chatStore.loadAgentsIfNeeded() }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
-            if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
-                withAnimation(.easeOut(duration: duration)) {
-                    keyboardMinY = frame.origin.y
-                }
+            guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+            // Only adjust for docked keyboard (not iPad floating keyboard)
+            guard frame.maxY >= UIScreen.main.bounds.height - 1 else { return }
+            let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+            withAnimation(.easeOut(duration: duration)) {
+                keyboardHeight = frame.height
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { notification in
             let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
             withAnimation(.easeOut(duration: duration)) {
-                keyboardMinY = .infinity
+                keyboardHeight = 0
             }
         }
+        .sheet(isPresented: $showSettings) {
+            ChatSettingsSheet(conversation: conversation, chatStore: chatStore, onSearch: {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                    showMessageSearch = true
+                }
+            })
+        }
+    }
+
+    private var adjustedKeyboardHeight: CGFloat {
+        guard keyboardHeight > 0 else { return 0 }
+        let bottomSafeArea = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.windows.first(where: \.isKeyWindow)?.safeAreaInsets.bottom ?? 0
+        return max(keyboardHeight - bottomSafeArea, 0)
     }
 
     private var conversationHeader: some View {
         Button {
-            // Tappable header - could show conversation details
             Haptics.light()
+            showSettings = true
         } label: {
             VStack(spacing: 4) {
-                // Store logo above text
-                if let logoUrl = session.store?.fullLogoUrl {
-                    CachedAsyncImage(url: logoUrl, placeholderLogoUrl: nil, dimAmount: 0)
-                        .frame(width: 36, height: 36)
-                        .clipShape(Circle())
-                        .accessibilityHidden(true)
-                }
+                ConversationAvatar(
+                    conversation: conversation,
+                    size: 36,
+                    iconSize: 16,
+                    logoUrl: session.store?.fullLogoUrl
+                )
+                .accessibilityHidden(true)
+                .padding(.top, 8)
 
                 // Title and subtitle in liquid glass pill
                 VStack(spacing: 0) {
@@ -581,8 +602,8 @@ private struct MessageThreadView: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(Design.Colors.Text.primary)
 
-                    HStack(spacing: 4) {
-                        if conversation.chatType == .ai {
+                    if conversation.chatType == .ai {
+                        HStack(spacing: 4) {
                             Circle()
                                 .fill(Design.Colors.Semantic.success)
                                 .frame(width: 5, height: 5)
@@ -590,11 +611,11 @@ private struct MessageThreadView: View {
                             Text("Active")
                                 .font(Design.Typography.caption2)
                                 .foregroundStyle(Design.Colors.Text.secondary)
-                        } else {
-                            Text(subtitleText)
-                                .font(Design.Typography.caption2)
-                                .foregroundStyle(Design.Colors.Text.secondary)
                         }
+                    } else if !subtitleText.isEmpty {
+                        Text(subtitleText)
+                            .font(Design.Typography.caption2)
+                            .foregroundStyle(Design.Colors.Text.secondary)
                     }
                 }
                 .padding(.horizontal, 12)
@@ -610,7 +631,7 @@ private struct MessageThreadView: View {
     private var subtitleText: String {
         switch conversation.chatType {
         case .team: return "Team"
-        case .location: return "Location"
+        case .location: return ""
         case .dm: return "Direct Message"
         case .ai: return "AI Assistant"
         case .alerts: return "Alerts"
@@ -620,65 +641,105 @@ private struct MessageThreadView: View {
 
     private var messagesScrollView: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 2) {
-                    // Messages grouped by date
-                    ForEach(groupedMessages, id: \.date) { group in
-                        // Date header
-                        Text(formatDateHeader(group.date))
-                            .font(Design.Typography.caption2)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Design.Colors.Text.secondary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Design.Colors.Glass.regular.opacity(0.6), in: Capsule())
-                            .padding(.vertical, 12)
+            ZStack(alignment: .bottomTrailing) {
+                ScrollView {
+                    LazyVStack(spacing: 2) {
+                        ForEach(groupedMessages, id: \.date) { group in
+                            Text(formatDateHeader(group.date))
+                                .font(Design.Typography.caption2)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(Design.Colors.Text.secondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Design.Colors.Glass.regular.opacity(0.6), in: Capsule())
+                                .padding(.vertical, 12)
 
-                        // Messages
-                        ForEach(group.messages) { message in
-                            messageBubbleView(message: message, group: group)
+                            ForEach(group.messages) { message in
+                                let isStreaming = chatStore.streamingMessageId == message.id
+                                if !message.displayContent.isEmpty || isStreaming {
+                                    messageBubbleView(message: message, group: group)
+                                }
+                            }
+                        }
+
+                        // WhaleChat GeneratingBar — always visible during streaming
+                        if chatStore.isAgentStreaming {
+                            GeneratingBar(toolName: chatStore.agentCurrentTool)
+                        }
+
+                        Color.clear.frame(height: 1).id("bottom")
+                            .onAppear { isFollowingBottom = true }
+                            .onDisappear { /* user scrolled away — DragGesture handles this */ }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+                }
+                .defaultScrollAnchor(.bottom)
+                .scrollDismissesKeyboard(.interactively)
+                // Detect user scroll-up to disable auto-follow
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 10)
+                        .onChanged { value in
+                            // Only vertical-dominant drags (avoid horizontal code block scrolls)
+                            if abs(value.translation.height) > abs(value.translation.width) {
+                                if value.translation.height > 0 {
+                                    // Scrolling up (finger dragging down) — stop following
+                                    isFollowingBottom = false
+                                }
+                            }
+                        }
+                )
+                // Streaming scroll: observe cheap UInt version counter, not String content
+                .onReceive(
+                    chatStore.agentStreamingBuffer.$version
+                        .throttle(for: .milliseconds(80), scheduler: DispatchQueue.main, latest: true)
+                ) { _ in
+                    guard isFollowingBottom && chatStore.isAgentStreaming else { return }
+                    // Defer scroll to after SwiftUI layout pass
+                    DispatchQueue.main.async {
+                        proxy.scrollTo("bottom", anchor: .bottom)
+                    }
+                }
+                // New message: always scroll with animation
+                .onChange(of: chatStore.messages.count) { _, _ in
+                    isFollowingBottom = true
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo("bottom", anchor: .bottom)
+                    }
+                }
+                // Keyboard: smooth scroll
+                .onChange(of: keyboardHeight) { _, newHeight in
+                    if newHeight > 0 {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            proxy.scrollTo("bottom", anchor: .bottom)
                         }
                     }
-
-                    // Thinking indicator
-                    if chatStore.agentThinkingVisible {
-                        TypingIndicator()
-                            .padding(.top, 4)
-                            .id("thinking")
-                    }
-
-                    // Streaming message
-                    if !chatStore.agentStreamingBuffer.text.isEmpty {
-                        StreamingBubble(buffer: chatStore.agentStreamingBuffer)
-                            .id("streaming")
-                    }
-
-                    // Bottom anchor
-                    Color.clear
-                        .frame(height: 1)
-                        .id("bottom")
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
-            }
-            .defaultScrollAnchor(.bottom)
-            .scrollDismissesKeyboard(.interactively)
-            .onChange(of: chatStore.messages.count) { _, _ in
-                withAnimation(.easeOut(duration: 0.2)) {
-                    proxy.scrollTo("bottom")
+
+                // Scroll-to-bottom FAB
+                if !isFollowingBottom {
+                    Button {
+                        Haptics.light()
+                        isFollowingBottom = true
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            proxy.scrollTo("bottom", anchor: .bottom)
+                        }
+                    } label: {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Design.Colors.Text.secondary)
+                            .frame(width: 36, height: 36)
+                            .background(.ultraThinMaterial, in: Circle())
+                            .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+                    }
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 12)
+                    .transition(.scale.combined(with: .opacity))
+                    .accessibilityLabel("Scroll to bottom")
                 }
             }
-            .onChange(of: chatStore.agentThinkingVisible) { _, visible in
-                if visible {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        proxy.scrollTo("thinking")
-                    }
-                }
-            }
-            .onChange(of: chatStore.agentStreamingBuffer.text) { _, _ in
-                proxy.scrollTo("bottom")
-            }
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isFollowingBottom)
         }
     }
 
@@ -703,7 +764,15 @@ private struct MessageThreadView: View {
         let calendar = Calendar.current
         var groups: [Date: [ChatMessage]] = [:]
 
-        for message in chatStore.messages {
+        let source: [ChatMessage]
+        if showMessageSearch && !messageSearchText.isEmpty {
+            let query = messageSearchText.lowercased()
+            source = chatStore.messages.filter { $0.content.localizedCaseInsensitiveContains(query) }
+        } else {
+            source = chatStore.messages
+        }
+
+        for message in source {
             let startOfDay = calendar.startOfDay(for: message.createdAt)
             groups[startOfDay, default: []].append(message)
         }
@@ -733,6 +802,14 @@ private struct iMessageBubble: View {
     let previousMessage: ChatMessage?
     let isFromCurrentUser: Bool
     @ObservedObject var chatStore: ChatStore
+
+    private var isCompleted: Bool {
+        chatStore.completedMessageIds.contains(message.id)
+    }
+
+    private var completedTask: ChatTask? {
+        chatStore.completedTasks.first { $0.messageId == message.id }
+    }
 
     private var showTimestamp: Bool {
         guard let prev = previousMessage else { return false }
@@ -781,21 +858,69 @@ private struct iMessageBubble: View {
                 ToolCallBubble(toolName: tool.name, isComplete: tool.done, success: tool.success, summary: tool.summary)
             } else if isFromCurrentUser {
                 // User message - right aligned bubble with context menu
-                HStack {
-                    Spacer(minLength: 60)
-                    messageBubble(isUser: true)
-                        .contextMenu { messageContextMenu }
+                VStack(alignment: .trailing, spacing: 4) {
+                    HStack {
+                        Spacer(minLength: 60)
+                        messageBubble(isUser: true)
+                            .opacity(isCompleted ? 0.5 : 1.0)
+                            .contextMenu { messageContextMenu }
+                    }
+                    if isCompleted {
+                        completionCaption
+                    }
                 }
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isCompleted)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel("You: \(message.displayContent)")
+                .accessibilityLabel("You: \(message.displayContent)\(isCompleted ? ", Done" : "")")
             } else {
                 // AI/other message - full width with context menu
-                messageBubble(isUser: false)
-                    .contextMenu { messageContextMenu }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(senderName): \(message.displayContent)")
+                VStack(alignment: .leading, spacing: 4) {
+                    messageBubble(isUser: false)
+                        .opacity(isCompleted ? 0.5 : 1.0)
+                        .contextMenu { messageContextMenu }
+
+                    if isCompleted {
+                        completionCaption
+                    }
+                }
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isCompleted)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(isStreamingMessage ? "\(senderName): streaming response" : "\(senderName): \(message.displayContent)\(isCompleted ? ", Done" : "")")
             }
         }
+    }
+
+    @ViewBuilder
+    private var completionCaption: some View {
+        if let task = completedTask {
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 9, weight: .bold))
+                Text("Done")
+                    .fontWeight(.medium)
+                if let name = task.completedByName {
+                    Text("·")
+                    Text(name)
+                }
+                Text("·")
+                Text(completionRelativeTime(task.createdAt))
+            }
+            .font(Design.Typography.caption2)
+            .foregroundStyle(Design.Colors.Text.secondary)
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
+        }
+    }
+
+    private func completionRelativeTime(_ date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        if interval < 60 { return "Just now" }
+        if interval < 3600 { return "\(Int(interval / 60))m ago" }
+        if interval < 86400 { return "\(Int(interval / 3600))h ago" }
+        return "\(Int(interval / 86400))d ago"
+    }
+
+    private var isStreamingMessage: Bool {
+        chatStore.streamingMessageId == message.id
     }
 
     @ViewBuilder
@@ -807,9 +932,12 @@ private struct iMessageBubble: View {
                 .background(Design.Colors.Semantic.accent)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .accessibilityHidden(true)
+        } else if isStreamingMessage {
+            // WhaleChat pattern: direct buffer rendering, no phase state machine
+            StreamingTextView(buffer: chatStore.agentStreamingBuffer)
+                .accessibilityHidden(true)
         } else {
             MarkdownContentView(message.displayContent, isFromCurrentUser: false)
-                .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityHidden(true)
         }
     }
@@ -829,6 +957,23 @@ private struct iMessageBubble: View {
             Haptics.light()
         } label: {
             Label("Copy", systemImage: "doc.on.doc")
+        }
+
+        // Done / Undo (only for non-streaming messages)
+        if !isStreamingMessage {
+            if isCompleted {
+                Button {
+                    chatStore.undoComplete(messageId: message.id)
+                } label: {
+                    Label("Undo", systemImage: "arrow.uturn.backward")
+                }
+            } else {
+                Button {
+                    chatStore.completeTask(message: message)
+                } label: {
+                    Label("Done", systemImage: "checkmark.circle")
+                }
+            }
         }
 
         Divider()
@@ -932,51 +1077,48 @@ private extension Array {
     }
 }
 
-// MARK: - Typing Indicator (animated iMessage style)
+// MARK: - Generating Bar (WhaleChat exact port)
 
-private struct TypingIndicator: View {
-    @State private var isAnimating = false
+private struct GeneratingBar: View {
+    var toolName: String?
+    @State private var active = false
 
     var body: some View {
-        HStack {
-            HStack(spacing: 5) {
-                ForEach(0..<3, id: \.self) { i in
-                    Circle()
-                        .fill(Design.Colors.Text.tertiary)
-                        .frame(width: 8, height: 8)
-                        .scaleEffect(isAnimating ? 1.0 : 0.5)
-                        .opacity(isAnimating ? 1.0 : 0.4)
-                        .animation(
-                            .easeInOut(duration: 0.5)
-                            .repeatForever(autoreverses: true)
-                            .delay(Double(i) * 0.15),
-                            value: isAnimating
-                        )
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(Design.Colors.Glass.thin)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
+        HStack(spacing: 6) {
+            GeneratingDots(active: active)
+            Text(toolName.map { $0.replacingOccurrences(of: "_", with: " ").capitalized } ?? "Generating\u{2026}")
+                .font(Design.Typography.caption1)
+                .fontWeight(.medium)
+                .foregroundStyle(Design.Colors.Text.tertiary)
             Spacer()
         }
-        .onAppear { isAnimating = true }
-        .onDisappear { isAnimating = false }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .onAppear { active = true }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Agent is thinking")
+        .accessibilityLabel(toolName.map { "Running \($0)" } ?? "Generating response")
     }
 }
 
-// MARK: - Streaming Bubble
-
-private struct StreamingBubble: View {
-    @ObservedObject var buffer: StreamingTextBuffer
+private struct GeneratingDots: View {
+    var active: Bool
 
     var body: some View {
-        MarkdownContentView(buffer.text, isFromCurrentUser: false)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+        HStack(spacing: 2.5) {
+            ForEach(0..<3, id: \.self) { i in
+                Circle()
+                    .fill(Design.Colors.Text.tertiary)
+                    .frame(width: 4, height: 4)
+                    .scaleEffect(active ? 1.0 : 0.5)
+                    .opacity(active ? 1.0 : 0.4)
+                    .animation(
+                        .easeInOut(duration: 0.5)
+                            .repeatForever(autoreverses: true)
+                            .delay(Double(i) * 0.15),
+                        value: active
+                    )
+            }
+        }
     }
 }
 
@@ -1210,7 +1352,6 @@ private struct MessageInputBar: View {
     }
 
     private func send() {
-        isInputFocused = false
         Haptics.medium()
         Task {
             await chatStore.sendMessage()

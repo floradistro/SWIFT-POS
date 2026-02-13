@@ -262,6 +262,10 @@ struct ContextConfig: Codable, Hashable, Sendable {
     var locationIds: [String]?
     var includeCustomers: Bool?
     var customerSegments: [String]?
+    // Context window management (chars, ~4 chars per token)
+    var maxHistoryChars: Int?       // total history budget (default 400K ~100K tokens)
+    var maxToolResultChars: Int?    // per tool result (default 40K ~10K tokens)
+    var maxMessageChars: Int?       // per history message (default 20K ~5K tokens)
 }
 
 // MARK: - Token Usage
@@ -327,11 +331,69 @@ struct ChatAttachment: Identifiable, Hashable, Sendable {
     }
 }
 
+// MARK: - Chat Completed Task
+
+struct ChatTask: Identifiable, Codable, Sendable {
+    let id: UUID
+    let messageId: UUID
+    let conversationId: UUID
+    let storeId: UUID?
+    let completedBy: UUID?
+    let completedByName: String?
+    let originalContent: String
+    let originalRole: String
+    let senderName: String?
+    let createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case messageId = "message_id"
+        case conversationId = "conversation_id"
+        case storeId = "store_id"
+        case completedBy = "completed_by"
+        case completedByName = "completed_by_name"
+        case originalContent = "original_content"
+        case originalRole = "original_role"
+        case senderName = "sender_name"
+        case createdAt = "created_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        messageId = try c.decode(UUID.self, forKey: .messageId)
+        conversationId = try c.decode(UUID.self, forKey: .conversationId)
+        storeId = try c.decodeIfPresent(UUID.self, forKey: .storeId)
+        completedBy = try c.decodeIfPresent(UUID.self, forKey: .completedBy)
+        completedByName = try c.decodeIfPresent(String.self, forKey: .completedByName)
+        originalContent = try c.decode(String.self, forKey: .originalContent)
+        originalRole = (try? c.decode(String.self, forKey: .originalRole)) ?? "assistant"
+        senderName = try c.decodeIfPresent(String.self, forKey: .senderName)
+
+        // Date parsing with fractional seconds fallback
+        if let d = try? c.decode(Date.self, forKey: .createdAt) {
+            createdAt = d
+        } else if let s = try? c.decode(String.self, forKey: .createdAt) {
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let d = f.date(from: s) {
+                createdAt = d
+            } else {
+                f.formatOptions = [.withInternetDateTime]
+                createdAt = f.date(from: s) ?? Date()
+            }
+        } else {
+            createdAt = Date()
+        }
+    }
+}
+
 // MARK: - Streaming Text Buffer
 
 @MainActor
 final class StreamingTextBuffer: ObservableObject {
     @Published private(set) var text: String = ""
+    @Published private(set) var version: UInt = 0
     private var pendingText: String = ""
     private var updateTask: Task<Void, Never>?
     private var lastUpdate: Date = .distantPast
@@ -354,6 +416,7 @@ final class StreamingTextBuffer: ObservableObject {
         guard !pendingText.isEmpty else { return }
         text += pendingText
         pendingText = ""
+        version &+= 1
         lastUpdate = Date()
         updateTask = nil
     }
@@ -363,6 +426,7 @@ final class StreamingTextBuffer: ObservableObject {
         updateTask = nil
         pendingText = ""
         text = ""
+        version = 0
         lastUpdate = .distantPast
     }
 

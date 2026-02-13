@@ -51,28 +51,61 @@ final class InMemoryLocalStorage: AuthLocalStorage, @unchecked Sendable {
 // MARK: - Configuration
 
 enum SupabaseConfig: Sendable {
-    // Production: floradistro.com
-    nonisolated(unsafe) static let projectRef = "uaednwpxursknmwdeejn"
+    // Read from Info.plist (populated by .xcconfig at build time)
+    // Fallback values are for safety only — xcconfig should always provide real values
+    private static let infoPlist = Bundle.main.infoDictionary ?? [:]
+
+    nonisolated(unsafe) static let projectRef: String = {
+        guard let ref = infoPlist["SUPABASE_PROJECT_REF"] as? String, !ref.isEmpty else {
+            fatalError("SUPABASE_PROJECT_REF not set in xcconfig / Info.plist")
+        }
+        return ref
+    }()
+
     nonisolated(unsafe) static let baseURL = "https://\(projectRef).supabase.co"
     nonisolated(unsafe) static let functionsBaseURL = "https://\(projectRef).functions.supabase.co"
-    nonisolated(unsafe) static let url = URL(string: baseURL)!
+
+    nonisolated(unsafe) static let url: URL = {
+        guard let url = URL(string: "https://\(projectRef).supabase.co") else {
+            fatalError("Invalid Supabase URL for project ref: \(projectRef)")
+        }
+        return url
+    }()
 
     // Anon key - safe for client-side use (RLS protects data)
-    nonisolated(unsafe) static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhZWRud3B4dXJza25td2RlZWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5OTcyMzMsImV4cCI6MjA3NjU3MzIzM30.N8jPwlyCBB5KJB5I-XaK6m-mq88rSR445AWFJJmwRCg"
+    nonisolated(unsafe) static let anonKey: String = {
+        guard let key = infoPlist["SUPABASE_ANON_KEY"] as? String, !key.isEmpty else {
+            fatalError("SUPABASE_ANON_KEY not set in xcconfig / Info.plist")
+        }
+        return key
+    }()
 
-    // Service role key for edge functions (build-runner)
-    nonisolated(unsafe) static let serviceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhZWRud3B4dXJza25td2RlZWpuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDk5NzIzMywiZXhwIjoyMDc2NTczMjMzfQ.l0NvBbS2JQWPObtWeVD2M2LD866A2tgLmModARYNnbI"
+    // SERVICE ROLE KEY REMOVED — must never be in client code.
+    // Use edge functions or server-side calls for privileged operations.
 }
 
 // MARK: - Build Server Configuration
 
 enum BuildServerConfig: Sendable {
-    // Build server URL via Cloudflare Tunnel (permanent)
-    static let url = "https://build.wh4le.net"
-    static let wsURL = "wss://build.wh4le.net"
+    private static let infoPlist = Bundle.main.infoDictionary ?? [:]
 
-    // Build server secret - must match BUILD_SECRET in build-server/.env
-    static let secret = "e650624a9b009c2b41619ae50620f0d9952f436e83efec92a428effd90343351"
+    static let url: String = {
+        guard let u = infoPlist["BUILD_SERVER_URL"] as? String, !u.isEmpty else {
+            fatalError("BUILD_SERVER_URL not set in xcconfig / Info.plist")
+        }
+        return u
+    }()
+
+    static var wsURL: String {
+        url.replacingOccurrences(of: "https://", with: "wss://")
+    }
+
+    static let secret: String = {
+        guard let s = infoPlist["BUILD_SERVER_SECRET"] as? String, !s.isEmpty else {
+            fatalError("BUILD_SERVER_SECRET not set in xcconfig / Info.plist")
+        }
+        return s
+    }()
 }
 
 // MARK: - Client Instance
@@ -110,7 +143,8 @@ actor SupabaseClientWrapper {
                 options: .init(
                     auth: .init(
                         flowType: .implicit,
-                        autoRefreshToken: true
+                        autoRefreshToken: true,
+                        emitLocalSessionAsInitialSession: true
                     )
                 )
             )

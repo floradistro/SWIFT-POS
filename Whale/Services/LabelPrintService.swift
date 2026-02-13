@@ -189,8 +189,11 @@ enum LabelPrintService {
             for _ in 0..<item.quantity {
                 printProducts.append(product)
                 // Generate unique sale code for each unit
-                let (_, code) = QRTrackingService.saleTrackingURL()
-                saleCodes.append(code)
+                if let (_, code) = QRTrackingService.saleTrackingURL() {
+                    saleCodes.append(code)
+                } else {
+                    saleCodes.append(UUID().uuidString.lowercased())
+                }
                 tierLabels.append(item.tierLabel)
             }
         }

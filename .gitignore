@@ -55,6 +55,11 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
+
+# Xcode build configuration (contains secrets)
+Configuration/*.xcconfig
+!Configuration/*.xcconfig.example
 
 # vercel
 .vercel

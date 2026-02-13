@@ -32,29 +32,29 @@ enum QRTrackingService {
 
     /// Generate a tracked QR URL for a product
     /// Returns: floradistro.com/qr/PROD{productId}
-    static func trackingURL(for product: Product) -> URL {
+    static func trackingURL(for product: Product) -> URL? {
         let code = generateCode(type: .product, id: product.id.uuidString)
-        return URL(string: "\(trackingBaseURL)/\(code)")!
+        return URL(string: "\(trackingBaseURL)/\(code)")
     }
 
     /// Generate a tracked QR URL for an order
     /// Returns: floradistro.com/qr/ORD{orderId}
-    static func trackingURL(for order: Order) -> URL {
+    static func trackingURL(for order: Order) -> URL? {
         let code = generateCode(type: .order, id: order.id.uuidString)
-        return URL(string: "\(trackingBaseURL)/\(code)")!
+        return URL(string: "\(trackingBaseURL)/\(code)")
     }
 
     /// Generate a tracked QR URL with a custom code
-    static func trackingURL(code: String) -> URL {
-        return URL(string: "\(trackingBaseURL)/\(code)")!
+    static func trackingURL(code: String) -> URL? {
+        return URL(string: "\(trackingBaseURL)/\(code)")
     }
 
     /// Generate a sale-level tracked QR URL (unique per unit)
     /// Returns a new unique URL for each call
-    static func saleTrackingURL() -> (url: URL, code: String) {
+    static func saleTrackingURL() -> (url: URL, code: String)? {
         let saleItemId = UUID().uuidString.lowercased()
         let code = "S\(saleItemId)"
-        let url = URL(string: "\(trackingBaseURL)/\(code)")!
+        guard let url = URL(string: "\(trackingBaseURL)/\(code)") else { return nil }
         return (url, code)
     }
 
@@ -86,7 +86,7 @@ enum QRTrackingService {
     /// If tracking disabled: returns original COA URL
     static func labelQRURL(for product: Product) -> URL? {
         if isTrackingEnabled {
-            return trackingURL(for: product)
+            return trackingURL(for: product) // already optional
         } else {
             return product.coaUrl
         }

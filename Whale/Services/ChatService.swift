@@ -148,6 +148,80 @@ enum ChatService {
         }
     }
 
+    // MARK: - Task Completion
+
+    static func completeTask(
+        messageId: UUID,
+        conversationId: UUID,
+        storeId: UUID?,
+        completedBy: UUID?,
+        completedByName: String?,
+        content: String,
+        role: String,
+        senderName: String?
+    ) async throws -> ChatTask {
+        let client = await supabaseAsync()
+
+        struct Payload: Encodable {
+            let message_id: String
+            let conversation_id: String
+            let store_id: String?
+            let completed_by: String?
+            let completed_by_name: String?
+            let original_content: String
+            let original_role: String
+            let sender_name: String?
+        }
+
+        let response = try await client
+            .from("chat_completed_tasks")
+            .insert(Payload(
+                message_id: messageId.uuidString,
+                conversation_id: conversationId.uuidString,
+                store_id: storeId?.uuidString,
+                completed_by: completedBy?.uuidString,
+                completed_by_name: completedByName,
+                original_content: content,
+                original_role: role,
+                sender_name: senderName
+            ))
+            .select()
+            .single()
+            .execute()
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(ChatTask.self, from: response.data)
+    }
+
+    static func fetchCompletedTasks(conversationId: UUID) async throws -> [ChatTask] {
+        let client = await supabaseAsync()
+        let response = try await client
+            .from("chat_completed_tasks")
+            .select()
+            .eq("conversation_id", value: conversationId.uuidString)
+            .order("created_at", ascending: false)
+            .execute()
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        do {
+            return try decoder.decode([ChatTask].self, from: response.data)
+        } catch {
+            Log.network.error("ChatService: Failed to decode completed tasks: \(error)")
+            return []
+        }
+    }
+
+    static func restoreTask(_ task: ChatTask) async throws {
+        let client = await supabaseAsync()
+        try await client
+            .from("chat_completed_tasks")
+            .delete()
+            .eq("id", value: task.id.uuidString)
+            .execute()
+    }
+
     // MARK: - Sender Resolution
 
     static func fetchSenders(authUserIds: Set<UUID>) async throws -> [UUID: ChatSender] {

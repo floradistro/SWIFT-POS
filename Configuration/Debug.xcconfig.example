@@ -1,0 +1,11 @@
+// Configuration/Debug.xcconfig.example
+// Copy this to Debug.xcconfig and fill in your credentials.
+// Debug.xcconfig is gitignored -- never commit real credentials.
+
+// Supabase
+SUPABASE_PROJECT_REF = your-project-ref-here
+SUPABASE_ANON_KEY = your-anon-key-here
+
+// Build Server
+BUILD_SERVER_URL = https:/$()/build.example.com
+BUILD_SERVER_SECRET = your-build-secret-here

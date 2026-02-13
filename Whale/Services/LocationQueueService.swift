@@ -88,7 +88,10 @@ actor LocationQueueService {
     private let session: URLSession
 
     private init() {
-        self.baseURL = URL(string: SupabaseConfig.functionsBaseURL)!
+        guard let url = URL(string: SupabaseConfig.functionsBaseURL) else {
+            fatalError("Invalid Supabase functions URL: \(SupabaseConfig.functionsBaseURL)")
+        }
+        self.baseURL = url
         self.session = URLSession.shared
     }
 

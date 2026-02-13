@@ -101,7 +101,9 @@ actor DejavooClient: PaymentTerminal {
     /// Lightweight ping to verify API connectivity (does NOT touch terminal)
     func ping() async throws -> Bool {
         let base = config.environment.baseURL
-        let url = URL(string: "\(base)/v2/Payment/Sale")!
+        guard let url = URL(string: "\(base)/v2/Payment/Sale") else {
+            throw DejavooError.networkError("Invalid ping URL")
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "OPTIONS"
@@ -156,7 +158,9 @@ actor DejavooClient: PaymentTerminal {
 
     private func makeRequest(endpoint: String, payload: [String: Any]) async throws -> DejavooTransactionResponse {
         let base = config.environment.baseURL
-        let url = URL(string: "\(base)/\(endpoint)")!
+        guard let url = URL(string: "\(base)/\(endpoint)") else {
+            throw DejavooError.networkError("Invalid request URL: \(endpoint)")
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -223,9 +227,17 @@ actor DejavooClient: PaymentTerminal {
             )
         }
 
-        // Parse successful response
-        let amountValue = json["Amount"] as? Double
-        let tipValue = json["TipAmount"] as? Double
+        // Amounts may be nested in "Amounts" object (v2) or top-level (v1)
+        let amounts = json["Amounts"] as? [String: Any]
+        let amountValue = amounts?["Amount"] as? Double ?? json["Amount"] as? Double
+        let tipValue = amounts?["TipAmount"] as? Double ?? json["TipAmount"] as? Double
+
+        // Card data is nested in "CardData" object
+        let cardData = json["CardData"] as? [String: Any]
+
+        // Receipts may be nested
+        let receipts = json["Receipts"] as? [String: Any]
+        let receiptText = receipts?["Customer"] as? String ?? json["ReceiptData"] as? String
 
         return DejavooTransactionResponse(
             resultCode: resultCode,
@@ -237,11 +249,11 @@ actor DejavooClient: PaymentTerminal {
             paymentType: json["PaymentType"] as? String,
             amount: amountValue.map { Decimal($0) },
             tipAmount: tipValue.map { Decimal($0) },
-            cardType: json["CardType"] as? String,
-            cardLast4: json["CardLast4"] as? String,
-            cardBin: json["CardBin"] as? String,
-            cardholderName: json["CardholderName"] as? String,
-            receiptData: json["ReceiptData"] as? String
+            cardType: cardData?["CardType"] as? String,
+            cardLast4: cardData?["Last4"] as? String,
+            cardBin: cardData?["BIN"] as? String,
+            cardholderName: cardData?["Name"] as? String,
+            receiptData: receiptText
         )
     }
 }

@@ -40,6 +40,15 @@ final class ChatStore: ObservableObject {
 
     static let maxAttachments = 10
 
+    // MARK: - Completed Tasks
+
+    @Published private(set) var completedTasks: [ChatTask] = [] {
+        didSet {
+            completedMessageIds = Set(completedTasks.map(\.messageId))
+        }
+    }
+    private(set) var completedMessageIds: Set<UUID> = []
+
     // MARK: - AI Agents (from ai_agent_config)
 
     @Published private(set) var agents: [AIAgent] = []
@@ -47,18 +56,87 @@ final class ChatStore: ObservableObject {
 
     // MARK: - Agent Streaming State
 
+    enum StreamingPhase: Equatable { case thinking, streaming, complete }
+
+    struct StreamingToolCall: Equatable {
+        let name: String
+        var isDone: Bool = false
+        var success: Bool = false
+        var summary: String = ""
+    }
+
     @Published private(set) var isAgentStreaming = false
-    @Published private(set) var agentThinkingVisible = false
+    @Published private(set) var streamingMessageId: UUID?
+    @Published private(set) var streamingPhase: StreamingPhase?
     @Published private(set) var agentCurrentTool: String?
+    @Published private(set) var streamingToolCalls: [StreamingToolCall] = []
 
     let agentStreamingBuffer = StreamingTextBuffer()
     private let agentSSEStream = AgentSSEStream()
-    private var agentTransientIds: Set<UUID> = []
-    private var agentStreamingActiveId: UUID?
     /// Tracks ai_conversations ID per agent (separate from team chat lisa_conversations)
     private var agentConversationIds: [UUID: UUID] = [:]
     /// Agent active in the current team chat channel (persists after first @mention)
     private var activeAgentForChannel: [UUID: AIAgent] = [:]
+
+    // MARK: - Mute & Pin (UserDefaults-persisted)
+
+    private static let mutedKey = "chat_muted_ids"
+    private static let pinnedKey = "chat_pinned_ids"
+
+    private(set) var mutedIds: Set<UUID> = [] {
+        didSet { Self.persistUUIDs(mutedIds, key: Self.mutedKey) }
+    }
+    private(set) var pinnedIds: Set<UUID> = [] {
+        didSet {
+            Self.persistUUIDs(pinnedIds, key: Self.pinnedKey)
+            objectWillChange.send()
+        }
+    }
+
+    func isMuted(_ conversationId: UUID) -> Bool { mutedIds.contains(conversationId) }
+    func isPinned(_ conversationId: UUID) -> Bool { pinnedIds.contains(conversationId) }
+
+    func toggleMute(_ conversationId: UUID) {
+        if mutedIds.contains(conversationId) {
+            mutedIds.remove(conversationId)
+        } else {
+            mutedIds.insert(conversationId)
+        }
+    }
+
+    func togglePin(_ conversationId: UUID) {
+        if pinnedIds.contains(conversationId) {
+            pinnedIds.remove(conversationId)
+        } else {
+            pinnedIds.insert(conversationId)
+        }
+        // Re-sort conversations to move pinned to top
+        resortConversations()
+    }
+
+    private func resortConversations() {
+        let locId = self.locationId
+        let pinned = self.pinnedIds
+        conversations.sort { a, b in
+            let aPinned = pinned.contains(a.id)
+            let bPinned = pinned.contains(b.id)
+            if aPinned != bPinned { return aPinned }
+            let aOrder = Self.channelSortOrder(a, locationId: locId)
+            let bOrder = Self.channelSortOrder(b, locationId: locId)
+            if aOrder != bOrder { return aOrder < bOrder }
+            return a.updatedAt > b.updatedAt
+        }
+    }
+
+    private nonisolated static func persistUUIDs(_ ids: Set<UUID>, key: String) {
+        let strings = ids.map(\.uuidString)
+        UserDefaults.standard.set(strings, forKey: key)
+    }
+
+    private nonisolated static func loadUUIDs(key: String) -> Set<UUID> {
+        guard let strings = UserDefaults.standard.stringArray(forKey: key) else { return [] }
+        return Set(strings.compactMap { UUID(uuidString: $0) })
+    }
 
     // MARK: - Sender Cache
 
@@ -76,7 +154,10 @@ final class ChatStore: ObservableObject {
 
     // MARK: - Init
 
-    private init() {}
+    private init() {
+        mutedIds = Self.loadUUIDs(key: Self.mutedKey)
+        pinnedIds = Self.loadUUIDs(key: Self.pinnedKey)
+    }
 
     // MARK: - Configuration
 
@@ -176,7 +257,11 @@ final class ChatStore: ObservableObject {
             _ = await agentsFetch
             let locId = self.locationId
 
+            let pinned = self.pinnedIds
             let sorted = all.sorted { a, b in
+                let aPinned = pinned.contains(a.id)
+                let bPinned = pinned.contains(b.id)
+                if aPinned != bPinned { return aPinned }
                 let aOrder = Self.channelSortOrder(a, locationId: locId)
                 let bOrder = Self.channelSortOrder(b, locationId: locId)
                 if aOrder != bOrder { return aOrder < bOrder }
@@ -223,7 +308,11 @@ final class ChatStore: ObservableObject {
         isLoadingMessages = true
 
         do {
-            let fetched = try await ChatService.fetchMessages(conversationId: conversationId)
+            async let messagesFetch = ChatService.fetchMessages(conversationId: conversationId)
+            async let tasksFetch: () = loadCompletedTasks()
+
+            let fetched = try await messagesFetch
+            _ = await tasksFetch
             messages = fetched
             isLoadingMessages = false
 
@@ -322,19 +411,27 @@ final class ChatStore: ObservableObject {
         // Abort any stale stream
         agentSSEStream.abort()
 
-        // Reset transient state
-        withAnimation(.easeOut(duration: 0.15)) {
-            messages.removeAll { agentTransientIds.contains($0.id) }
+        // Reset transient state — remove previous streaming message if any
+        if let oldId = streamingMessageId {
+            withAnimation(.easeOut(duration: 0.15)) {
+                messages.removeAll { $0.id == oldId }
+            }
         }
-        agentTransientIds.removeAll()
-        agentStreamingActiveId = nil
         agentStreamingBuffer.clear()
+        streamingToolCalls = []
         isAgentStreaming = true
         agentCurrentTool = nil
 
-        // Show thinking dots immediately
+        // Insert transient streaming message immediately (thinking phase)
+        let streamingId = UUID()
+        streamingMessageId = streamingId
         withAnimation(.easeOut(duration: 0.15)) {
-            agentThinkingVisible = true
+            streamingPhase = .thinking
+            messages.append(ChatMessage(
+                id: streamingId, conversationId: conversationId,
+                role: "assistant", content: "",
+                isAiInvocation: true
+            ))
         }
 
         // Use the AI conversation ID for this agent (not the team chat conversation)
@@ -352,11 +449,9 @@ final class ChatStore: ObservableObject {
             onText: { [weak self] newText in
                 guard let self else { return }
 
-                if self.agentStreamingActiveId == nil {
-                    // First text chunk — hide thinking, StreamingBubble handles display
-                    self.agentStreamingActiveId = UUID()
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        self.agentThinkingVisible = false
+                if self.streamingPhase != .streaming {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        self.streamingPhase = .streaming
                     }
                 }
                 self.agentStreamingBuffer.append(newText)
@@ -365,17 +460,9 @@ final class ChatStore: ObservableObject {
             onToolStart: { [weak self] tool in
                 guard let self else { return }
                 self.agentCurrentTool = tool
-                self.finalizeStreamingMessage(channelId: conversationId)
-
-                let toolMsgId = UUID()
-                self.agentTransientIds.insert(toolMsgId)
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    self.agentThinkingVisible = false
-                    self.messages.append(ChatMessage(
-                        id: toolMsgId, conversationId: conversationId,
-                        role: "assistant", content: "tool:\(tool)",
-                        isAiInvocation: true
-                    ))
+                    self.streamingToolCalls.append(StreamingToolCall(name: tool))
+                    self.streamingPhase = .thinking
                 }
             },
 
@@ -383,25 +470,12 @@ final class ChatStore: ObservableObject {
                 guard let self else { return }
                 self.agentCurrentTool = nil
 
-                // Update tool message status (with bounds check)
-                let toolPrefix = "tool:\(tool)"
-                if let idx = self.messages.lastIndex(where: {
-                    $0.content.hasPrefix(toolPrefix) && self.agentTransientIds.contains($0.id)
-                }), idx < self.messages.count {
+                // Update the matching tool call entry
+                if let idx = self.streamingToolCalls.lastIndex(where: { $0.name == tool && !$0.isDone }) {
                     let summary = self.toolResultSummary(tool: tool, success: success, error: errorMsg)
-                    let existingMessage = self.messages[idx]
-                    self.messages[idx] = ChatMessage(
-                        id: existingMessage.id, conversationId: conversationId,
-                        role: "assistant",
-                        content: "tool_done:\(success ? "1" : "0"):\(tool):\(summary)",
-                        isAiInvocation: true,
-                        createdAt: existingMessage.createdAt
-                    )
-                }
-
-                // Show thinking again while agent processes
-                withAnimation(.easeOut(duration: 0.15)) {
-                    self.agentThinkingVisible = true
+                    self.streamingToolCalls[idx].isDone = true
+                    self.streamingToolCalls[idx].success = success
+                    self.streamingToolCalls[idx].summary = summary
                 }
             },
 
@@ -411,58 +485,61 @@ final class ChatStore: ObservableObject {
                 if let aiConvUUID = UUID(uuidString: returnedConvId) {
                     self.agentConversationIds[agent.id] = aiConvUUID
                 }
-                self.finalizeStreamingMessage(channelId: conversationId)
-                self.agentSSEStream.abort()
 
-                self.agentThinkingVisible = false
+                // Flush buffer — it has ALL text across the entire response
+                self.agentStreamingBuffer.flush()
+                let finalText = self.agentStreamingBuffer.text
+
+                self.agentSSEStream.abort()
                 self.isAgentStreaming = false
                 self.agentCurrentTool = nil
+                self.streamingToolCalls = []
 
-                // Collect final text from transient text messages
-                let finalParts = self.messages
-                    .filter { self.agentTransientIds.contains($0.id) && !$0.content.hasPrefix("tool:") && !$0.content.hasPrefix("tool_done:") }
-                    .map(\.content)
-                let finalText = finalParts.joined(separator: "\n\n")
-
-                // Find the last text message to replace in-place
-                let lastTextMsgIndex = self.messages.lastIndex {
-                    self.agentTransientIds.contains($0.id) &&
-                    !$0.content.hasPrefix("tool:") &&
-                    !$0.content.hasPrefix("tool_done:")
-                }
-
-                // Remove tool call messages only (keep the text message for now)
-                self.messages.removeAll {
-                    self.agentTransientIds.contains($0.id) &&
-                    ($0.content.hasPrefix("tool:") || $0.content.hasPrefix("tool_done:"))
-                }
-
-                guard !finalText.isEmpty else {
-                    // No text - remove remaining transient
-                    self.messages.removeAll { self.agentTransientIds.contains($0.id) }
-                    self.agentTransientIds.removeAll()
+                guard !finalText.isEmpty, let smId = self.streamingMessageId else {
+                    // No text — remove streaming message
+                    if let smId = self.streamingMessageId {
+                        self.messages.removeAll { $0.id == smId }
+                    }
+                    self.streamingMessageId = nil
+                    self.streamingPhase = nil
+                    self.agentStreamingBuffer.clear()
                     return
                 }
 
-                // Save final response to DB, then swap in-place
+                // Update streaming message content in-place, mark complete
+                if let idx = self.messages.firstIndex(where: { $0.id == smId }) {
+                    self.messages[idx] = ChatMessage(
+                        id: smId, conversationId: conversationId,
+                        role: "assistant", content: finalText,
+                        isAiInvocation: true,
+                        createdAt: self.messages[idx].createdAt
+                    )
+                }
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    self.streamingPhase = .complete
+                }
+
+                // Save to DB, then swap transient for saved message
+                let capturedSmId = smId
                 Task {
+                    defer {
+                        self.streamingMessageId = nil
+                        self.streamingPhase = nil
+                        self.agentStreamingBuffer.clear()
+                    }
                     do {
                         let saved = try await ChatService.saveAssistantMessage(
                             conversationId: conversationId,
                             content: finalText
                         )
-                        // Replace transient message with saved one at same position (no flicker)
-                        if let idx = lastTextMsgIndex, idx < self.messages.count,
-                           self.agentTransientIds.contains(self.messages[idx].id) {
+                        if let idx = self.messages.firstIndex(where: { $0.id == capturedSmId }) {
                             self.messages[idx] = saved
                         } else if !self.messages.contains(where: { $0.id == saved.id }) {
                             self.messages.append(saved)
                         }
                     } catch {
                         Log.network.error("ChatStore: Failed to save AI response: \(error)")
-                        // Keep transient message as-is (already showing the text)
                     }
-                    self.agentTransientIds.removeAll()
                 }
             },
 
@@ -471,17 +548,18 @@ final class ChatStore: ObservableObject {
                 self.agentSSEStream.abort()
                 self.isAgentStreaming = false
                 self.agentCurrentTool = nil
+                self.streamingToolCalls = []
                 withAnimation(.easeOut(duration: 0.15)) {
-                    self.agentThinkingVisible = false
-                    self.messages.removeAll { self.agentTransientIds.contains($0.id) }
+                    self.streamingPhase = nil
+                    if let smId = self.streamingMessageId {
+                        self.messages.removeAll { $0.id == smId }
+                    }
                 }
-                self.agentTransientIds.removeAll()
-                self.agentStreamingActiveId = nil
+                self.streamingMessageId = nil
                 self.agentStreamingBuffer.clear()
                 self.error = errorMessage
                 Log.network.error("ChatStore: Agent error: \(errorMessage)")
 
-                // Show error as visible message in chat
                 self.messages.append(ChatMessage(
                     conversationId: conversationId,
                     role: "assistant",
@@ -493,34 +571,16 @@ final class ChatStore: ObservableObject {
 
     func abortAgent() {
         agentSSEStream.abort()
-        if let channelId = activeConversationId {
-            finalizeStreamingMessage(channelId: channelId)
-        }
         isAgentStreaming = false
         agentCurrentTool = nil
+        streamingToolCalls = []
         withAnimation(.easeOut(duration: 0.2)) {
-            agentThinkingVisible = false
-            messages.removeAll { agentTransientIds.contains($0.id) }
+            streamingPhase = nil
+            if let smId = streamingMessageId {
+                messages.removeAll { $0.id == smId }
+            }
         }
-        agentTransientIds.removeAll()
-        agentStreamingActiveId = nil
-        agentStreamingBuffer.clear()
-    }
-
-    private func finalizeStreamingMessage(channelId: UUID) {
-        guard agentStreamingActiveId != nil else { return }
-        agentStreamingBuffer.flush()
-        let finalText = agentStreamingBuffer.text
-        if !finalText.isEmpty {
-            let msgId = UUID()
-            agentTransientIds.insert(msgId)
-            messages.append(ChatMessage(
-                id: msgId, conversationId: channelId,
-                role: "assistant", content: finalText,
-                isAiInvocation: true
-            ))
-        }
-        agentStreamingActiveId = nil
+        streamingMessageId = nil
         agentStreamingBuffer.clear()
     }
 
@@ -534,10 +594,32 @@ final class ChatStore: ObservableObject {
     }
 
     private func buildConversationHistory() -> [(role: String, content: String)] {
-        // Send last 20 non-transient messages as context
-        let realMessages = messages.filter { !agentTransientIds.contains($0.id) }
-        let recent = realMessages.suffix(20)
-        return recent.map { (role: $0.role, content: $0.content) }
+        // Only include messages from the active conversation (scoped per channel)
+        guard let convId = activeConversationId else { return [] }
+        let realMessages = messages.filter {
+            $0.id != streamingMessageId && $0.conversationId == convId
+        }
+
+        // Work backwards, keep messages that fit within ~80K chars (~20K tokens)
+        let maxTotalChars = 80_000
+        let maxPerMessage = 8_000
+        var totalChars = 0
+        var result: [(role: String, content: String)] = []
+
+        for msg in realMessages.reversed() {
+            let content = msg.content.count > maxPerMessage
+                ? String(msg.content.prefix(maxPerMessage)) + "\n...[earlier content trimmed]"
+                : msg.content
+            if totalChars + content.count > maxTotalChars { break }
+            totalChars += content.count
+            result.insert((role: msg.role, content: content), at: 0)
+        }
+
+        // Ensure history starts with "user" role (API requirement)
+        while let first = result.first, first.role != "user" {
+            result.removeFirst()
+        }
+        return result
     }
 
     private func toolResultSummary(tool: String, success: Bool, error: String?) -> String {
@@ -592,6 +674,79 @@ final class ChatStore: ObservableObject {
         return defaultAgent
     }
 
+    // MARK: - Task Completion
+
+    func completeTask(message: ChatMessage) {
+        guard !completedMessageIds.contains(message.id) else { return }
+        let conversationId = message.conversationId
+
+        // Determine sender name
+        let msgSenderName: String?
+        if message.isAssistant {
+            msgSenderName = defaultAgent?.displayName ?? "Wilson"
+        } else if let sid = message.senderId {
+            msgSenderName = senderName(for: sid)
+        } else {
+            msgSenderName = nil
+        }
+
+        // Determine who is completing
+        let completedById = currentUserId
+        let completedByName: String?
+        if let uid = currentUserId {
+            completedByName = senderName(for: uid)
+        } else {
+            completedByName = nil
+        }
+
+        Task {
+            do {
+                let task = try await ChatService.completeTask(
+                    messageId: message.id,
+                    conversationId: conversationId,
+                    storeId: storeId,
+                    completedBy: completedById,
+                    completedByName: completedByName,
+                    content: message.content,
+                    role: message.role,
+                    senderName: msgSenderName
+                )
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    completedTasks.insert(task, at: 0)
+                }
+                Haptics.success()
+            } catch {
+                Log.network.error("ChatStore: Failed to complete task: \(error)")
+                self.error = error.localizedDescription
+            }
+        }
+    }
+
+    func undoComplete(messageId: UUID) {
+        guard let task = completedTasks.first(where: { $0.messageId == messageId }) else { return }
+        Task {
+            do {
+                try await ChatService.restoreTask(task)
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    completedTasks.removeAll { $0.id == task.id }
+                }
+                Haptics.success()
+            } catch {
+                Log.network.error("ChatStore: Failed to undo complete: \(error)")
+                self.error = error.localizedDescription
+            }
+        }
+    }
+
+    func loadCompletedTasks() async {
+        guard let conversationId = activeConversationId else { return }
+        do {
+            completedTasks = try await ChatService.fetchCompletedTasks(conversationId: conversationId)
+        } catch {
+            Log.network.error("ChatStore: Failed to load completed tasks: \(error)")
+        }
+    }
+
     // MARK: - Realtime Subscription
 
     private func subscribeToMessages(conversationId: UUID) async {
@@ -640,7 +795,7 @@ final class ChatStore: ObservableObject {
 
             // Skip if this is a transient message we already have
             guard !messages.contains(where: { $0.id == message.id }) else { return }
-            guard !agentTransientIds.contains(message.id) else { return }
+            guard message.id != streamingMessageId else { return }
 
             // Append message
             messages.append(message)
@@ -690,6 +845,9 @@ final class ChatStore: ObservableObject {
 
         // Get conversation title
         let conversationTitle = activeConversation?.displayTitle ?? senderName
+
+        // Skip notification if conversation is muted
+        guard !mutedIds.contains(conversationId) else { return }
 
         await ChatNotificationService.shared.postMessageNotification(
             title: conversationTitle,
@@ -745,6 +903,7 @@ final class ChatStore: ObservableObject {
         abortAgent()
         activeConversationId = conversationId
         messages = []
+        completedTasks = []
         error = nil
         Task { await loadMessages() }
     }

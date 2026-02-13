@@ -15,7 +15,12 @@ import os.log
 enum InvoiceService {
 
     private static let logger = Logger(subsystem: "com.whale.pos", category: "InvoiceService")
-    private static var edgeFunctionURL: URL { URL(string: "\(SupabaseConfig.baseURL)/functions/v1/send-invoice")! }
+    private static var edgeFunctionURL: URL {
+        guard let url = URL(string: "\(SupabaseConfig.baseURL)/functions/v1/send-invoice") else {
+            fatalError("Invalid send-invoice edge function URL")
+        }
+        return url
+    }
 
     /// Create and send an invoice
     /// - Parameters:
@@ -237,7 +242,12 @@ enum InvoiceService {
 
     // MARK: - Resend Invoice
 
-    private static var resendFunctionURL: URL { URL(string: "\(SupabaseConfig.baseURL)/functions/v1/resend-invoice")! }
+    private static var resendFunctionURL: URL {
+        guard let url = URL(string: "\(SupabaseConfig.baseURL)/functions/v1/resend-invoice") else {
+            fatalError("Invalid resend-invoice edge function URL")
+        }
+        return url
+    }
 
     /// Resend an invoice email
     static func resendInvoice(invoiceId: UUID) async throws -> Bool {
@@ -283,7 +293,12 @@ enum InvoiceService {
 
     // MARK: - Send Reminder
 
-    private static var reminderFunctionURL: URL { URL(string: "\(SupabaseConfig.baseURL)/functions/v1/send-invoice-reminder")! }
+    private static var reminderFunctionURL: URL {
+        guard let url = URL(string: "\(SupabaseConfig.baseURL)/functions/v1/send-invoice-reminder") else {
+            fatalError("Invalid send-invoice-reminder edge function URL")
+        }
+        return url
+    }
 
     /// Send a payment reminder for an unpaid invoice
     static func sendReminder(invoiceId: UUID) async throws -> Bool {

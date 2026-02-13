@@ -8,6 +8,8 @@
 //
 
 import Foundation
+import Supabase
+import Auth
 import os.log
 
 // MARK: - Request Payload (Encodable — avoids __SwiftValue JSON crash)
@@ -118,7 +120,13 @@ final class AgentSSEStream {
         request.httpMethod = "POST"
         request.timeoutInterval = 3600  // 1 hour — long tool chains can run 10-30+ min
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(SupabaseConfig.serviceKey)", forHTTPHeaderField: "Authorization")
+        // Use user's session token if available, fall back to service key
+        var authToken = SupabaseConfig.serviceKey
+        if let client = try? await SupabaseClientWrapper.shared.client(),
+           let session = try? await client.auth.session {
+            authToken = session.accessToken
+        }
+        request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         request.httpBody = bodyData
 
