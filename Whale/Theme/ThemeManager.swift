@@ -84,8 +84,12 @@ final class ThemeManager: ObservableObject {
     // MARK: - Init
 
     private init() {
-        self.palette = Self.loadLocal() ?? .defaultDark
+        var loaded = Self.loadLocal() ?? .defaultDark
+        // Strip any legacy wallpaper data
+        loaded.wallpaperImageName = nil
+        self.palette = loaded
         rebuildColors()
+        removeWallpaperFile()
     }
 
     // MARK: - Public API
@@ -95,17 +99,11 @@ final class ThemeManager: ObservableObject {
         case .dark:
             var p = ThemePalette.defaultDark
             p.accent = palette.accent
-            p.wallpaperImageName = palette.wallpaperImageName
-            p.wallpaperOpacity = palette.wallpaperOpacity
-            p.wallpaperBlur = palette.wallpaperBlur
             p.highContrast = palette.highContrast
             palette = p
         case .light:
             var p = ThemePalette.defaultLight
             p.accent = palette.accent
-            p.wallpaperImageName = palette.wallpaperImageName
-            p.wallpaperOpacity = palette.wallpaperOpacity
-            p.wallpaperBlur = palette.wallpaperBlur
             p.highContrast = palette.highContrast
             palette = p
         }
@@ -122,38 +120,7 @@ final class ThemeManager: ObservableObject {
         saveLocal()
     }
 
-    func setWallpaper(imageData: Data?) {
-        guard let data = imageData else {
-            removeWallpaperFile()
-            palette.wallpaperImageName = nil
-            saveLocal()
-            return
-        }
-
-        let fileName = "theme_wallpaper.jpg"
-        let url = Self.documentsDirectory.appendingPathComponent(fileName)
-        do {
-            try data.write(to: url)
-            palette.wallpaperImageName = fileName
-            saveLocal()
-            Log.ui.info("Wallpaper saved: \(fileName)")
-        } catch {
-            Log.ui.error("Failed to save wallpaper: \(error.localizedDescription)")
-        }
-    }
-
-    func setWallpaperOpacity(_ opacity: Double) {
-        palette.wallpaperOpacity = opacity
-        saveLocal()
-    }
-
-    func setWallpaperBlur(_ blur: Double) {
-        palette.wallpaperBlur = blur
-        saveLocal()
-    }
-
     func resetToDefault() {
-        removeWallpaperFile()
         palette = .defaultDark
         saveLocal()
     }
@@ -161,15 +128,6 @@ final class ThemeManager: ObservableObject {
     func applyPalette(_ newPalette: ThemePalette) {
         palette = newPalette
         saveLocal()
-    }
-
-    // MARK: - Wallpaper Image
-
-    var wallpaperImage: UIImage? {
-        guard let name = palette.wallpaperImageName else { return nil }
-        let url = Self.documentsDirectory.appendingPathComponent(name)
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return UIImage(data: data)
     }
 
     // MARK: - High Contrast Boost

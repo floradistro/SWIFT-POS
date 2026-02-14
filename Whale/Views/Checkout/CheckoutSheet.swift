@@ -204,35 +204,13 @@ struct CheckoutSheet: View {
 
                 Spacer()
 
-                // Total and customer
-                VStack(spacing: 8) {
-                    // Customer chip
-                    if let customer = selectedCustomer {
-                        HStack(spacing: 6) {
-                            Text(customer.initials)
-                                .font(Design.Typography.caption1).fontWeight(.bold)
-                                .foregroundStyle(Design.Colors.Text.primary)
-                                .frame(width: 28, height: 28)
-                                .background(Circle().fill(Design.Colors.Semantic.accent))
-
-                            Text(customer.firstName ?? "Customer")
-                                .font(Design.Typography.footnote).fontWeight(.medium)
-                                .foregroundStyle(Design.Colors.Text.disabled)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .glassEffect(.regular, in: .capsule)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("Customer: \(customer.displayName)")
-                    }
-
-                    // Total
+                // Total
+                VStack(spacing: 4) {
                     Text(CurrencyFormatter.format(displayTotal))
                         .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundStyle(Design.Colors.Text.primary)
                         .contentTransition(.numericText())
 
-                    // Item count
                     Text("\(cartItems.count) item\(cartItems.count == 1 ? "" : "s")")
                         .font(Design.Typography.footnote).fontWeight(.medium)
                         .foregroundStyle(Design.Colors.Text.subtle)
@@ -240,8 +218,27 @@ struct CheckoutSheet: View {
 
                 Spacer()
 
-                // Placeholder for symmetry
-                Color.clear.frame(width: 44, height: 44)
+                // Customer pill (top right)
+                if let customer = selectedCustomer {
+                    HStack(spacing: 6) {
+                        Text(customer.initials)
+                            .font(Design.Typography.caption1).fontWeight(.bold)
+                            .foregroundStyle(Design.Colors.Text.primary)
+                            .frame(width: 28, height: 28)
+                            .background(Circle().fill(Design.Colors.Semantic.accent))
+
+                        Text(customer.firstName ?? "Customer")
+                            .font(Design.Typography.footnote).fontWeight(.medium)
+                            .foregroundStyle(Design.Colors.Text.disabled)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .glassEffect(.regular, in: .capsule)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Customer: \(customer.displayName)")
+                } else {
+                    Color.clear.frame(width: 44, height: 44)
+                }
             }
         }
         .padding(.horizontal, 20)

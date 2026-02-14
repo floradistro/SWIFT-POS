@@ -220,7 +220,7 @@ final class DealStore: ObservableObject {
             availableDeals = manual
             couponDeals = all.filter { $0.applicationMethod == .code && $0.couponCode != nil }
             isLoading = false
-            Log.deals.info("Loaded \(manual.count) manual deals, \(couponDeals.count) coupon deals")
+            Log.deals.info("Loaded \(manual.count) manual deals, \(self.couponDeals.count) coupon deals")
         } catch {
             self.error = error.localizedDescription
             isLoading = false

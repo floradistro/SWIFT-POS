@@ -7,14 +7,11 @@
 //
 
 import SwiftUI
-import PhotosUI
 
 struct ThemeSettingsView: View {
     @ObservedObject private var theme = ThemeManager.shared
     @EnvironmentObject private var session: SessionObserver
     @Environment(\.dismiss) private var dismiss
-
-    @State private var selectedPhoto: PhotosPickerItem?
 
     private let neutralAccent = Color(red: 0.5, green: 0.5, blue: 0.5)
 
@@ -36,7 +33,6 @@ struct ThemeSettingsView: View {
                 VStack(spacing: 24) {
                     baseModeSection
                     accentColorSection
-                    wallpaperSection
                     accessibilitySection
                     presetsSection
                     resetButton
@@ -54,9 +50,6 @@ struct ThemeSettingsView: View {
                         .fontWeight(.semibold)
                 }
             }
-        }
-        .onChange(of: selectedPhoto) { _, newItem in
-            loadWallpaperPhoto(newItem)
         }
     }
 
@@ -229,100 +222,6 @@ struct ThemeSettingsView: View {
         return abs(tc.red - pa.red) < 0.02 && abs(tc.green - pa.green) < 0.02 && abs(tc.blue - pa.blue) < 0.02
     }
 
-    // MARK: - Wallpaper
-
-    private var wallpaperSection: some View {
-        settingsGroup {
-            HStack(spacing: 14) {
-                settingsIcon("photo.fill")
-
-                Text("Wallpaper")
-                    .font(Design.Typography.subhead).fontWeight(.medium)
-                    .foregroundStyle(Design.Colors.Text.primary)
-
-                Spacer()
-            }
-
-            if let image = theme.wallpaperImage {
-                // Preview
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 120)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .opacity(theme.palette.wallpaperOpacity)
-                    .blur(radius: theme.palette.wallpaperBlur / 5)
-                    .padding(.top, 8)
-
-                // Opacity slider
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Opacity: \(Int(theme.palette.wallpaperOpacity * 100))%")
-                        .font(Design.Typography.caption1)
-                        .foregroundStyle(Design.Colors.Text.subtle)
-                    Slider(value: Binding(
-                        get: { theme.palette.wallpaperOpacity },
-                        set: { theme.setWallpaperOpacity($0) }
-                    ), in: 0.05...0.8)
-                    .tint(Design.Colors.Semantic.accent)
-                }
-                .padding(.top, 4)
-
-                // Blur slider
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Blur: \(Int(theme.palette.wallpaperBlur))")
-                        .font(Design.Typography.caption1)
-                        .foregroundStyle(Design.Colors.Text.subtle)
-                    Slider(value: Binding(
-                        get: { theme.palette.wallpaperBlur },
-                        set: { theme.setWallpaperBlur($0) }
-                    ), in: 0...50)
-                    .tint(Design.Colors.Semantic.accent)
-                }
-
-                // Remove button
-                Button {
-                    Haptics.light()
-                    theme.setWallpaper(imageData: nil)
-                    saveToRemote()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "trash")
-                            .font(Design.Typography.caption1)
-                        Text("Remove Wallpaper")
-                            .font(Design.Typography.subhead).fontWeight(.medium)
-                    }
-                    .foregroundStyle(Design.Colors.Semantic.error)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 36)
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 4)
-            }
-
-            PhotosPicker(
-                selection: $selectedPhoto,
-                matching: .images,
-                photoLibrary: .shared()
-            ) {
-                HStack(spacing: 8) {
-                    Image(systemName: "photo.on.rectangle.angled")
-                        .font(Design.Typography.footnote)
-                    Text(theme.wallpaperImage != nil ? "Change Wallpaper" : "Choose Image")
-                        .font(Design.Typography.subhead).fontWeight(.medium)
-                }
-                .foregroundStyle(Design.Colors.Text.tertiary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 40)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Design.Colors.Glass.regular)
-                )
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 8)
-        }
-    }
-
     // MARK: - Accessibility
 
     private var accessibilitySection: some View {
@@ -454,16 +353,6 @@ struct ThemeSettingsView: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(Design.Colors.Border.regular, lineWidth: 1)
             )
-    }
-
-    private func loadWallpaperPhoto(_ item: PhotosPickerItem?) {
-        guard let item else { return }
-        Task {
-            if let data = try? await item.loadTransferable(type: Data.self) {
-                theme.setWallpaper(imageData: data)
-                saveToRemote()
-            }
-        }
     }
 
     private func saveToRemote() {

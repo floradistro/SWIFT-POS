@@ -98,7 +98,7 @@ final class PaymentStore: ObservableObject {
     ) async throws -> SaleCompletion {
 
         // Calculate adjusted total and change
-        let adjustedTotal = totals.total - loyaltyDiscountAmount - affiliateDiscountAmount
+        let adjustedTotal = totals.total - loyaltyDiscountAmount - campaignDiscountAmount - affiliateDiscountAmount
         let change = (cashTendered - adjustedTotal).rounded()
         guard change >= 0 else {
             throw PaymentError.insufficientCash
@@ -155,8 +155,8 @@ final class PaymentStore: ObservableObject {
         affiliateId: UUID? = nil, affiliateCode: String? = nil, affiliateDiscountAmount: Decimal = 0
     ) async throws -> SaleCompletion {
 
-        // Calculate adjusted total after loyalty + affiliate discount
-        let adjustedTotal = totals.total - loyaltyDiscountAmount - affiliateDiscountAmount
+        // Calculate adjusted total after loyalty + campaign + affiliate discount
+        let adjustedTotal = totals.total - loyaltyDiscountAmount - campaignDiscountAmount - affiliateDiscountAmount
         guard (cashAmount + cardAmount) == adjustedTotal else {
             throw PaymentError.invalidAmount
         }
@@ -194,8 +194,8 @@ final class PaymentStore: ObservableObject {
         affiliateId: UUID? = nil, affiliateCode: String? = nil, affiliateDiscountAmount: Decimal = 0
     ) async throws -> MultiCardResult {
 
-        // Calculate adjusted total after loyalty + affiliate discount
-        let adjustedTotal = totals.total - loyaltyDiscountAmount - affiliateDiscountAmount
+        // Calculate adjusted total after loyalty + campaign + affiliate discount
+        let adjustedTotal = totals.total - loyaltyDiscountAmount - campaignDiscountAmount - affiliateDiscountAmount
         guard (card1Amount + card2Amount) == adjustedTotal else {
             throw PaymentError.invalidAmount
         }
