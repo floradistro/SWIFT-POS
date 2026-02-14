@@ -122,6 +122,30 @@ enum DealService {
         return response.discount
     }
 
+    // MARK: - Affiliate Code Validation
+
+    /// Validate an affiliate referral code and get discount info
+    static func validateAffiliateCode(_ code: String, storeId: UUID) async throws -> AffiliateCodeResult? {
+        let result: [AffiliateCodeResult] = try await supabase
+            .rpc("validate_affiliate_code", params: [
+                "p_store_id": storeId.uuidString,
+                "p_code": code.uppercased()
+            ])
+            .execute()
+            .value
+
+        return result.first
+    }
+
+    /// Calculate affiliate discount amount
+    static func calculateAffiliateDiscount(subtotal: Decimal, rate: Decimal, type: String) -> Decimal {
+        if type == "percentage" {
+            return (subtotal * rate / 100).rounded(scale: 2)
+        } else {
+            return min(rate, subtotal)
+        }
+    }
+
     // MARK: - Record Usage
 
     /// Record that a deal was used in an order
@@ -164,6 +188,7 @@ final class DealStore: ObservableObject {
     static let shared = DealStore()
 
     @Published private(set) var availableDeals: [Deal] = []
+    @Published private(set) var couponDeals: [Deal] = []
     @Published private(set) var isLoading = false
     @Published private(set) var error: String?
 
@@ -174,24 +199,28 @@ final class DealStore: ObservableObject {
     /// Currently selected deal
     var selectedDeal: Deal? {
         guard let id = selectedDealId else { return nil }
-        return availableDeals.first { $0.id == id }
+        return availableDeals.first { $0.id == id } ?? couponDeals.first { $0.id == id }
     }
 
-    /// Load available deals for checkout
+    /// Load available deals for checkout (manual + coupon code deals)
     func loadDeals(storeId: UUID, locationId: UUID?) async {
         isLoading = true
         error = nil
-        availableDeals = []  // Clear stale data before loading
-        selectedDealId = nil  // Clear selection when reloading
+        availableDeals = []
+        couponDeals = []
+        selectedDealId = nil
 
         do {
-            let deals = try await DealService.getManualDeals(
-                storeId: storeId,
-                locationId: locationId
-            )
-            availableDeals = deals
+            async let manualDeals = DealService.getManualDeals(storeId: storeId, locationId: locationId)
+            async let codeDeals = DealService.getActivePOSDeals(storeId: storeId)
+
+            let manual = try await manualDeals
+            let all = try await codeDeals
+
+            availableDeals = manual
+            couponDeals = all.filter { $0.applicationMethod == .code && $0.couponCode != nil }
             isLoading = false
-            Log.deals.info("Loaded \(deals.count) available deals")
+            Log.deals.info("Loaded \(manual.count) manual deals, \(couponDeals.count) coupon deals")
         } catch {
             self.error = error.localizedDescription
             isLoading = false

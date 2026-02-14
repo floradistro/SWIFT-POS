@@ -14,6 +14,7 @@ import os.log
 struct BootEndSessionSheet: View {
     @EnvironmentObject private var session: SessionObserver
     @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     let posSession: POSSession
     let onDismiss: () -> Void
@@ -97,7 +98,7 @@ struct BootEndSessionSheet: View {
                     }
                     .opacity(contentOpacity)
                 }
-                .frame(maxWidth: 380)
+                .frame(maxWidth: sizeClass == .compact ? .infinity : 380)
                 .background(modalBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
                 .shadow(color: .black.opacity(0.8), radius: 50, y: 20)
@@ -467,6 +468,7 @@ struct BootEndSessionSheet: View {
 struct BootSafeDropSheet: View {
     @EnvironmentObject private var session: SessionObserver
     @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     let posSession: POSSession
     @Binding var isPresented: Bool
@@ -521,7 +523,7 @@ struct BootSafeDropSheet: View {
                         dropContent
                     }
                 }
-                .frame(maxWidth: 380)
+                .frame(maxWidth: sizeClass == .compact ? .infinity : 380)
                 .background(modalBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
                 .shadow(color: .black.opacity(0.8), radius: 50, y: 20)

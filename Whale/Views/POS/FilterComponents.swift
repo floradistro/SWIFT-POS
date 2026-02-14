@@ -40,8 +40,8 @@ struct FilterChip: View {
                 }
             }
             .foregroundStyle(isSelected ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.disabled)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .background(
                 isSelected ? Design.Colors.Semantic.accent : Color.clear,
                 in: .capsule
@@ -110,8 +110,8 @@ struct DateFilterChip: View {
                 }
             }
             .foregroundStyle(Design.Colors.Text.primary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
         .tint(Design.Colors.Text.primary)
         .glassEffect(.regular.interactive(), in: .capsule)
@@ -174,7 +174,7 @@ struct DateRangePickerSheet: View {
                                     Haptics.light()
                                 } label: {
                                     Text(preset.rawValue)
-                                        .font(Design.Typography.footnote).fontWeight(selectedPreset == preset ? .semibold : .medium)
+                                        .font(Design.Typography.caption1).fontWeight(selectedPreset == preset ? .semibold : .medium)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
                                         .background(selectedPreset == preset ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular)
@@ -184,6 +184,7 @@ struct DateRangePickerSheet: View {
                             }
                         }
                         .padding(.horizontal, 16)
+                        .padding(.vertical, 4)
                     }
 
                     // Date range tabs

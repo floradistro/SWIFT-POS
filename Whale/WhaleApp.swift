@@ -222,6 +222,8 @@ struct RootView: View {
             .environmentObject(themeManager)
             .preferredColorScheme(themeManager.preferredColorScheme)
             .task {
+                // Set up notification delegate early so foreground banners work
+                ChatNotificationService.shared.setup()
                 // CRITICAL: Run startup ONLY after first frame renders
                 // This prevents state mutations during view creation
                 await session.start()

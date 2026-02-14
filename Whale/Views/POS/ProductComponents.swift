@@ -346,8 +346,8 @@ struct CategoryPill: View {
             Text(name)
                 .font(Design.Typography.caption1).fontWeight(isSelected ? .semibold : .medium)
                 .foregroundStyle(isSelected ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.disabled)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .background(
                     isSelected ? Design.Colors.Semantic.accent : Color.clear,
                     in: .capsule

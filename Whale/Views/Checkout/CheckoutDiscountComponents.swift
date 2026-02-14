@@ -18,6 +18,8 @@ struct LineItemDiscountOverlay: View {
     let posStore: POSStore
     let onRemoveItem: (CartItem) async -> Void
 
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
     var body: some View {
         ZStack {
             // Dimmed background
@@ -146,7 +148,7 @@ struct LineItemDiscountOverlay: View {
             }
             .buttonStyle(.plain)
         }
-        .frame(width: 280)
+        .frame(width: sizeClass == .compact ? min(280, UIScreen.main.bounds.width - 48) : 280)
         .glassEffect(.regular, in: .rect(cornerRadius: 16))
         .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
     }

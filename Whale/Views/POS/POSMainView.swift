@@ -38,6 +38,7 @@ enum POSTab: String, CaseIterable {
 struct POSMainView: View {
     @EnvironmentObject private var session: SessionObserver
     @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @StateObject private var productStore = POSStore.shared
     @StateObject private var orderStore = OrderStore.shared
     @StateObject private var multiSelect = MultiSelectManager.shared
@@ -124,7 +125,7 @@ struct POSMainView: View {
                 Spacer(minLength: 24)
 
                 locationCardGrid
-                    .frame(maxWidth: 720)
+                    .frame(maxWidth: sizeClass == .compact ? .infinity : 720)
 
                 Spacer(minLength: 24)
             }
@@ -393,6 +394,9 @@ struct POSMainView: View {
                     chatStore.configure(storeId: storeId, locationId: locationId, userId: session.userId, userEmail: session.userEmail)
                 }
 
+                // Request notification permission before global subscription starts
+                await ChatNotificationService.shared.requestPermissionIfNeeded()
+
                 // Load all data in parallel
                 async let products: () = ws.loadProducts()
                 async let orders: () = orderStore.loadOrders()
@@ -420,6 +424,9 @@ struct POSMainView: View {
 
                     // Configure chat store
                     chatStore.configure(storeId: storeId, locationId: locationId, userId: session.userId, userEmail: session.userEmail)
+
+                    // Request notification permission before global subscription starts
+                    await ChatNotificationService.shared.requestPermissionIfNeeded()
 
                     async let products: () = productStore.loadProducts()
                     async let orders: () = orderStore.loadOrders()
@@ -535,14 +542,14 @@ struct POSMainView: View {
                     Image(systemName: "xmark")
                         .font(Design.Typography.footnote).fontWeight(.bold)
                         .foregroundStyle(Design.Colors.Text.quaternary)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(LiquidPressStyle())
                 .glassEffect(.regular.interactive(), in: .circle)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .frame(maxWidth: 500)
+            .frame(maxWidth: sizeClass == .compact ? .infinity : 500)
             .glassEffect(.regular, in: .capsule)
             .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
 

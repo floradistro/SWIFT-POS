@@ -43,7 +43,7 @@ struct ChatConversation: Identifiable, Hashable, Sendable {
     let chatType: ChatType
     let locationId: UUID?
     let createdAt: Date
-    let updatedAt: Date
+    var updatedAt: Date
 
     var displayTitle: String { title ?? chatType.rawValue.capitalized }
     var typeIcon: String { chatType.icon }

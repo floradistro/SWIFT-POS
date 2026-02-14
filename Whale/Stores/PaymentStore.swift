@@ -93,11 +93,12 @@ final class PaymentStore: ObservableObject {
         cart: [CartItem], totals: CheckoutTotals, cashTendered: Decimal,
         sessionInfo: SessionInfo, customer: Customer?,
         loyaltyPointsRedeemed: Int = 0, loyaltyDiscountAmount: Decimal = 0,
-        campaignDiscountAmount: Decimal = 0, campaignId: UUID? = nil
+        campaignDiscountAmount: Decimal = 0, campaignId: UUID? = nil,
+        affiliateId: UUID? = nil, affiliateCode: String? = nil, affiliateDiscountAmount: Decimal = 0
     ) async throws -> SaleCompletion {
 
         // Calculate adjusted total and change
-        let adjustedTotal = totals.total - loyaltyDiscountAmount
+        let adjustedTotal = totals.total - loyaltyDiscountAmount - affiliateDiscountAmount
         let change = (cashTendered - adjustedTotal).rounded()
         guard change >= 0 else {
             throw PaymentError.insufficientCash
@@ -114,7 +115,10 @@ final class PaymentStore: ObservableObject {
             loyaltyPointsRedeemed: loyaltyPointsRedeemed,
             loyaltyDiscountAmount: loyaltyDiscountAmount,
             campaignDiscountAmount: campaignDiscountAmount,
-            campaignId: campaignId
+            campaignId: campaignId,
+            affiliateId: affiliateId,
+            affiliateCode: affiliateCode,
+            affiliateDiscountAmount: affiliateDiscountAmount
         )
     }
 
@@ -122,7 +126,8 @@ final class PaymentStore: ObservableObject {
         cart: [CartItem], totals: CheckoutTotals,
         sessionInfo: SessionInfo, customer: Customer?,
         loyaltyPointsRedeemed: Int = 0, loyaltyDiscountAmount: Decimal = 0,
-        campaignDiscountAmount: Decimal = 0, campaignId: UUID? = nil
+        campaignDiscountAmount: Decimal = 0, campaignId: UUID? = nil,
+        affiliateId: UUID? = nil, affiliateCode: String? = nil, affiliateDiscountAmount: Decimal = 0
     ) async throws -> SaleCompletion {
 
         return try await createAndProcessIntent(
@@ -134,7 +139,10 @@ final class PaymentStore: ObservableObject {
             loyaltyPointsRedeemed: loyaltyPointsRedeemed,
             loyaltyDiscountAmount: loyaltyDiscountAmount,
             campaignDiscountAmount: campaignDiscountAmount,
-            campaignId: campaignId
+            campaignId: campaignId,
+            affiliateId: affiliateId,
+            affiliateCode: affiliateCode,
+            affiliateDiscountAmount: affiliateDiscountAmount
         )
     }
 
@@ -143,11 +151,12 @@ final class PaymentStore: ObservableObject {
         cashAmount: Decimal, cardAmount: Decimal,
         sessionInfo: SessionInfo, customer: Customer?,
         loyaltyPointsRedeemed: Int = 0, loyaltyDiscountAmount: Decimal = 0,
-        campaignDiscountAmount: Decimal = 0, campaignId: UUID? = nil
+        campaignDiscountAmount: Decimal = 0, campaignId: UUID? = nil,
+        affiliateId: UUID? = nil, affiliateCode: String? = nil, affiliateDiscountAmount: Decimal = 0
     ) async throws -> SaleCompletion {
 
-        // Calculate adjusted total after loyalty discount
-        let adjustedTotal = totals.total - loyaltyDiscountAmount
+        // Calculate adjusted total after loyalty + affiliate discount
+        let adjustedTotal = totals.total - loyaltyDiscountAmount - affiliateDiscountAmount
         guard (cashAmount + cardAmount) == adjustedTotal else {
             throw PaymentError.invalidAmount
         }
@@ -169,7 +178,10 @@ final class PaymentStore: ObservableObject {
             loyaltyPointsRedeemed: loyaltyPointsRedeemed,
             loyaltyDiscountAmount: loyaltyDiscountAmount,
             campaignDiscountAmount: campaignDiscountAmount,
-            campaignId: campaignId
+            campaignId: campaignId,
+            affiliateId: affiliateId,
+            affiliateCode: affiliateCode,
+            affiliateDiscountAmount: affiliateDiscountAmount
         )
     }
 
@@ -178,11 +190,12 @@ final class PaymentStore: ObservableObject {
         card1Amount: Decimal, card2Amount: Decimal,
         sessionInfo: SessionInfo, customer: Customer?,
         loyaltyPointsRedeemed: Int = 0, loyaltyDiscountAmount: Decimal = 0,
-        campaignDiscountAmount: Decimal = 0, campaignId: UUID? = nil
+        campaignDiscountAmount: Decimal = 0, campaignId: UUID? = nil,
+        affiliateId: UUID? = nil, affiliateCode: String? = nil, affiliateDiscountAmount: Decimal = 0
     ) async throws -> MultiCardResult {
 
-        // Calculate adjusted total after loyalty discount
-        let adjustedTotal = totals.total - loyaltyDiscountAmount
+        // Calculate adjusted total after loyalty + affiliate discount
+        let adjustedTotal = totals.total - loyaltyDiscountAmount - affiliateDiscountAmount
         guard (card1Amount + card2Amount) == adjustedTotal else {
             throw PaymentError.invalidAmount
         }
@@ -203,7 +216,10 @@ final class PaymentStore: ObservableObject {
                 loyaltyPointsRedeemed: loyaltyPointsRedeemed,
                 loyaltyDiscountAmount: loyaltyDiscountAmount,
                 campaignDiscountAmount: campaignDiscountAmount,
-                campaignId: campaignId
+                campaignId: campaignId,
+                affiliateId: affiliateId,
+                affiliateCode: affiliateCode,
+                affiliateDiscountAmount: affiliateDiscountAmount
             )
 
             return MultiCardResult(
@@ -446,14 +462,17 @@ final class PaymentStore: ObservableObject {
         loyaltyPointsRedeemed: Int = 0,
         loyaltyDiscountAmount: Decimal = 0,
         campaignDiscountAmount: Decimal = 0,
-        campaignId: UUID? = nil
+        campaignId: UUID? = nil,
+        affiliateId: UUID? = nil,
+        affiliateCode: String? = nil,
+        affiliateDiscountAmount: Decimal = 0
     ) async throws -> SaleCompletion {
 
         guard canStartPayment else { throw PaymentError.paymentInProgress }
         guard !cart.isEmpty else { throw PaymentError.emptyCart }
 
-        // Calculate effective total after loyalty + campaign discounts
-        let effectiveTotal = totals.total - loyaltyDiscountAmount - campaignDiscountAmount
+        // Calculate effective total after loyalty + campaign + affiliate discounts
+        let effectiveTotal = totals.total - loyaltyDiscountAmount - campaignDiscountAmount - affiliateDiscountAmount
 
         // Show processing state
         uiState = .processing(message: "Creating payment...", amount: effectiveTotal, label: nil)
@@ -492,6 +511,9 @@ final class PaymentStore: ObservableObject {
             loyaltyDiscountAmount: NSDecimalNumber(decimal: loyaltyDiscountAmount).doubleValue,
             campaignDiscountAmount: NSDecimalNumber(decimal: campaignDiscountAmount).doubleValue,
             campaignId: campaignId?.uuidString.lowercased(),
+            affiliateId: affiliateId?.uuidString.lowercased(),
+            affiliateCode: affiliateCode,
+            affiliateDiscountAmount: NSDecimalNumber(decimal: affiliateDiscountAmount).doubleValue,
             idempotencyKey: idempotencyKey
         )
 

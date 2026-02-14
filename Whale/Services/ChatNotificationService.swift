@@ -3,7 +3,8 @@
 //  Whale
 //
 //  Handles local notifications for chat messages.
-//  Requests permission and posts notifications when app is backgrounded.
+//  Posts notifications for non-active conversations (including in foreground).
+//  Acts as UNUserNotificationCenterDelegate for banner display + tap handling.
 //
 
 import Foundation
@@ -13,14 +14,21 @@ import Combine
 import os.log
 
 @MainActor
-final class ChatNotificationService: ObservableObject {
+final class ChatNotificationService: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
 
     static let shared = ChatNotificationService()
 
     @Published private(set) var isAuthorized = false
     private var hasRequestedPermission = false
 
-    private init() {}
+    private override init() { super.init() }
+
+    // MARK: - Setup
+
+    func setup() {
+        UNUserNotificationCenter.current().delegate = self
+        setupNotificationCategories()
+    }
 
     // MARK: - Permission
 
@@ -56,32 +64,27 @@ final class ChatNotificationService: ObservableObject {
         conversationId: UUID,
         messageId: UUID
     ) async {
-        // Only notify when app is not active
-        guard UIApplication.shared.applicationState != .active else { return }
         guard isAuthorized else { return }
 
         let content = UNMutableNotificationContent()
         content.title = title
-        content.body = body.prefix(200).description
+        content.body = String(body.prefix(200))
         content.sound = .default
         content.threadIdentifier = conversationId.uuidString
         content.userInfo = [
             "conversationId": conversationId.uuidString,
             "messageId": messageId.uuidString
         ]
-
-        // Category for actions
         content.categoryIdentifier = "CHAT_MESSAGE"
 
         let request = UNNotificationRequest(
             identifier: messageId.uuidString,
             content: content,
-            trigger: nil // Deliver immediately
+            trigger: nil
         )
 
         do {
             try await UNUserNotificationCenter.current().add(request)
-            Log.network.debug("ChatNotificationService: Posted notification for message \(messageId)")
         } catch {
             Log.network.error("ChatNotificationService: Failed to post notification: \(error)")
         }
@@ -95,9 +98,10 @@ final class ChatNotificationService: ObservableObject {
         }
     }
 
-    func incrementBadge() async {
-        let current = await UNUserNotificationCenter.current().deliveredNotifications().count
-        try? await UNUserNotificationCenter.current().setBadgeCount(current + 1)
+    func updateBadge(_ count: Int) {
+        Task {
+            try? await UNUserNotificationCenter.current().setBadgeCount(count)
+        }
     }
 
     // MARK: - Clear Notifications for Conversation
@@ -137,5 +141,30 @@ final class ChatNotificationService: ObservableObject {
         )
 
         UNUserNotificationCenter.current().setNotificationCategories([category])
+    }
+
+    // MARK: - UNUserNotificationCenterDelegate
+
+    /// Show banner even when app is in foreground (for messages in non-active conversations)
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .sound, .badge]
+    }
+
+    /// Handle notification tap — post internal notification for navigation
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        let userInfo = response.notification.request.content.userInfo
+        guard let conversationIdString = userInfo["conversationId"] as? String,
+              let conversationId = UUID(uuidString: conversationIdString) else { return }
+
+        await MainActor.run {
+            // Navigate to the tapped conversation
+            ChatStore.shared.selectChannel(conversationId)
+        }
     }
 }

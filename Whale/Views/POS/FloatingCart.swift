@@ -13,6 +13,7 @@ import Combine
 struct FloatingCart: View {
     @ObservedObject var posStore: POSStore
     @Environment(\.posWindowSession) private var windowSession: POSWindowSession?
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @EnvironmentObject private var session: SessionObserver
 
     @StateObject private var paymentStore = PaymentStore()
@@ -176,8 +177,9 @@ struct FloatingCart: View {
                 .accessibilityLabel("Add customer to queue")
             }
             .padding(.horizontal, 4)
+            .padding(.vertical, 4)
         }
-        .frame(maxWidth: 500)
+        .frame(maxWidth: sizeClass == .compact ? .infinity : 500)
     }
 
     private func customerTab(for entry: QueueEntry) -> some View {
@@ -192,10 +194,10 @@ struct FloatingCart: View {
                 // Customer initials
                 Text(entry.customerInitials)
                     .font(Design.Typography.caption2).fontWeight(.bold)
-                    .foregroundStyle(Design.Colors.Text.primary)
+                    .foregroundStyle(.white)
                     .frame(width: 24, height: 24)
                     .background(
-                        Circle().fill(Design.Colors.Semantic.accent.opacity(isActive ? 1.0 : 0.5))
+                        Circle().fill(Design.Colors.Profile.color(for: entry.customerName).opacity(isActive ? 1.0 : 0.6))
                             .background(Circle().fill(Design.Colors.Glass.thick))
                     )
 
@@ -213,9 +215,9 @@ struct FloatingCart: View {
                     Image(systemName: "xmark")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(Design.Colors.Text.tertiary)
-                        .frame(width: 22, height: 22)
+                        .frame(width: 24, height: 24)
                         .background(Circle().fill(Design.Colors.Glass.thin))
-                        .padding(8)
+                        .padding(10)
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -254,10 +256,10 @@ struct FloatingCart: View {
                 } label: {
                     Text(entry.customerInitials)
                         .font(Design.Typography.footnote).fontWeight(.bold)
-                        .foregroundStyle(Design.Colors.Text.primary)
-                        .frame(width: 36, height: 36)
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 44)
                         .background(
-                            Circle().fill(Design.Colors.Semantic.accent)
+                            Circle().fill(Design.Colors.Profile.color(for: entry.customerName))
                                 .background(Circle().fill(Design.Colors.Glass.thick))
                         )
                 }
@@ -265,7 +267,7 @@ struct FloatingCart: View {
                 Image(systemName: "cart.fill")
                     .font(Design.Typography.headline).fontWeight(.medium)
                     .foregroundStyle(Design.Colors.Text.disabled)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 44, height: 44)
                     .accessibilityHidden(true)
             }
 
@@ -337,7 +339,7 @@ struct FloatingCart: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .frame(maxWidth: 500)
+        .frame(maxWidth: sizeClass == .compact ? .infinity : 500)
         .glassEffect(.regular, in: .capsule)
         .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
     }

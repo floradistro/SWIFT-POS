@@ -31,6 +31,9 @@ struct CreateIntentPayload: Encodable {
     let loyaltyDiscountAmount: Double
     let campaignDiscountAmount: Double
     let campaignId: String?
+    let affiliateId: String?
+    let affiliateCode: String?
+    let affiliateDiscountAmount: Double
     let idempotencyKey: String
 }
 

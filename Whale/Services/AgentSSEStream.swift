@@ -32,6 +32,8 @@ private struct AgentChatPayload: Encodable {
 
 @MainActor
 final class AgentSSEStream {
+    static let agentBaseURL = URL(string: "https://whale-agent.fly.dev/functions/v1/agent-chat")!
+
     private(set) var isRunning = false
     private(set) var currentTool: String?
     private var currentTask: Task<Void, Never>?
@@ -94,7 +96,7 @@ final class AgentSSEStream {
         onDone: @escaping @MainActor (String, TokenUsage) -> Void,
         onError: @escaping @MainActor (String) -> Void
     ) async {
-        let url = SupabaseConfig.url.appendingPathComponent("functions/v1/agent-chat")
+        let url = Self.agentBaseURL
 
         var payload = AgentChatPayload(
             message: prompt,
@@ -120,8 +122,8 @@ final class AgentSSEStream {
         request.httpMethod = "POST"
         request.timeoutInterval = 3600  // 1 hour — long tool chains can run 10-30+ min
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        // Use user's session token if available, fall back to service key
-        var authToken = SupabaseConfig.serviceKey
+        // Use user's session token if available, fall back to anon key
+        var authToken = SupabaseConfig.anonKey
         if let client = try? await SupabaseClientWrapper.shared.client(),
            let session = try? await client.auth.session {
             authToken = session.accessToken

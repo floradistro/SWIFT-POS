@@ -168,7 +168,7 @@ struct QRCodeScanSheet: View {
                 Image(systemName: currentScreen == .main || currentScreen == .success ? "xmark" : "chevron.left")
                     .font(Design.Typography.footnote).fontWeight(.semibold)
                     .foregroundStyle(Design.Colors.Text.disabled)
-                    .frame(width: 40, height: 40)
+                    .frame(width: 44, height: 44)
                     .background(Circle().fill(.ultraThinMaterial))
             }
             .buttonStyle(ScaleButtonStyle())
@@ -494,7 +494,7 @@ struct QRCodeScanSheet: View {
                 Image(systemName: "xmark")
                     .font(Design.Typography.caption1).fontWeight(.bold)
                     .foregroundStyle(Design.Colors.Text.disabled)
-                    .frame(width: 28, height: 28)
+                    .frame(width: 44, height: 44)
                     .contentShape(Circle())
                     .background(Circle().fill(.ultraThinMaterial))
             }

@@ -23,6 +23,7 @@ enum BootStep: Equatable {
 struct BootSheet: View {
     @EnvironmentObject private var session: SessionObserver
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     // Animation states
     @State private var contentOpacity: CGFloat = 0
@@ -102,7 +103,7 @@ struct BootSheet: View {
                         .opacity(contentOpacity)
                 }
             }
-            .frame(maxWidth: 400)
+            .frame(maxWidth: sizeClass == .compact ? .infinity : 400)
             .background(modalBackground)
             .clipShape(RoundedRectangle(cornerRadius: 36, style: .continuous))
             .shadow(color: .black.opacity(0.8), radius: 60, y: 25)

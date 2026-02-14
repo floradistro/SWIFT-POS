@@ -30,14 +30,29 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		33CONFIG00000000000001 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Configuration/Debug.xcconfig; sourceTree = "<group>"; };
+		33CONFIG00000000000002 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Configuration/Release.xcconfig; sourceTree = "<group>"; };
 		33ED364D2EEFA76B00B1DD3F /* Whale.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Whale.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		33ED365A2EEFA76C00B1DD3F /* WhaleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WhaleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		33ED36642EEFA76C00B1DD3F /* WhaleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WhaleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		33INFOPLIST0000000000001 /* Exceptions for "Whale" folder in "Whale" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 33ED364C2EEFA76B00B1DD3F /* Whale */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		33ED364F2EEFA76B00B1DD3F /* Whale */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				33INFOPLIST0000000000001 /* Exceptions for "Whale" folder in "Whale" target */,
+			);
 			path = Whale;
 			sourceTree = "<group>";
 		};
@@ -81,9 +96,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		33CONFIG00000000000003 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				33CONFIG00000000000001 /* Debug.xcconfig */,
+				33CONFIG00000000000002 /* Release.xcconfig */,
+			);
+			name = Configuration;
+			sourceTree = "<group>";
+		};
 		33ED36442EEFA76B00B1DD3F = {
 			isa = PBXGroup;
 			children = (
+				33CONFIG00000000000003 /* Configuration */,
 				33ED364F2EEFA76B00B1DD3F /* Whale */,
 				33ED365D2EEFA76C00B1DD3F /* WhaleTests */,
 				33ED36672EEFA76C00B1DD3F /* WhaleUITests */,
@@ -296,6 +321,7 @@
 /* Begin XCBuildConfiguration section */
 		33ED366C2EEFA76C00B1DD3F /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 33CONFIG00000000000001 /* Debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -360,6 +386,7 @@
 		};
 		33ED366D2EEFA76C00B1DD3F /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 33CONFIG00000000000002 /* Release.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -425,6 +452,7 @@
 				DEVELOPMENT_TEAM = Y9Q7L7SGR3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Whale/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WHALE2;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan driver's licenses and ID cards for age verification and customer lookup.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Whale POS uses Face ID to securely unlock the app and protect your business data.";
@@ -466,6 +494,7 @@
 				DEVELOPMENT_TEAM = Y9Q7L7SGR3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Whale/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WHALE2;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan driver's licenses and ID cards for age verification and customer lookup.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Whale POS uses Face ID to securely unlock the app and protect your business data.";

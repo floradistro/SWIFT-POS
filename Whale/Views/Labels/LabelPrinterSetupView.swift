@@ -11,6 +11,7 @@ struct LabelPrinterSetupView: View {
     @Binding var isPresented: Bool
     @StateObject private var settings = LabelPrinterSettings.shared
     @State private var isSelectingPrinter = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
         ZStack {
@@ -225,8 +226,8 @@ struct LabelPrinterSetupView: View {
                 RoundedRectangle(cornerRadius: 20)
                     .stroke(Design.Colors.Border.strong, lineWidth: 0.5)
             )
-            .frame(maxWidth: 380)
-            .padding(40)
+            .frame(maxWidth: sizeClass == .compact ? .infinity : 380)
+            .padding(sizeClass == .compact ? 20 : 40)
         }
         .onChange(of: isSelectingPrinter) { _, selecting in
             if selecting {

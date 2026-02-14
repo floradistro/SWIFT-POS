@@ -258,16 +258,16 @@ struct TierSelectorSheet: View {
                             auditReason = reason
                         } label: {
                             Text(reason.displayName)
-                                .font(Design.Typography.footnote).fontWeight(auditReason == reason ? .semibold : .medium)
+                                .font(Design.Typography.caption1).fontWeight(auditReason == reason ? .semibold : .medium)
                                 .foregroundStyle(auditReason == reason ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.disabled)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .frame(minHeight: 44)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
                                 .background(Capsule().fill(auditReason == reason ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular))
                         }
                         .buttonStyle(.plain)
                     }
                 }
+                .padding(.vertical, 4)
             }
 
             if let error = auditError {
@@ -307,17 +307,17 @@ struct TierSelectorSheet: View {
                     }
                 }
             }
+            .padding(.vertical, 4)
         }
     }
 
     private func variantChip(name: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(name)
-                .font(Design.Typography.subhead).fontWeight(isSelected ? .semibold : .medium)
+                .font(Design.Typography.caption1).fontWeight(isSelected ? .semibold : .medium)
                 .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 12)
-                .frame(minHeight: 44)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .contentShape(Capsule())
         }
         .buttonStyle(ScaleButtonStyle())

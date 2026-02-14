@@ -56,7 +56,13 @@ final class ChatStore: ObservableObject {
 
     // MARK: - Agent Streaming State
 
-    enum StreamingPhase: Equatable { case thinking, streaming, complete }
+    enum StreamingState: Equatable {
+        case idle
+        case thinking(messageId: UUID)
+        case streaming(messageId: UUID)
+        case toolRunning(messageId: UUID, toolName: String)
+        case complete(messageId: UUID)
+    }
 
     struct StreamingToolCall: Equatable {
         let name: String
@@ -65,11 +71,28 @@ final class ChatStore: ObservableObject {
         var summary: String = ""
     }
 
-    @Published private(set) var isAgentStreaming = false
-    @Published private(set) var streamingMessageId: UUID?
-    @Published private(set) var streamingPhase: StreamingPhase?
-    @Published private(set) var agentCurrentTool: String?
+    @Published private(set) var streamingState: StreamingState = .idle
     @Published private(set) var streamingToolCalls: [StreamingToolCall] = []
+
+    // Backward-compatible computed properties
+    var isAgentStreaming: Bool {
+        switch streamingState {
+        case .idle, .complete: return false
+        default: return true
+        }
+    }
+
+    var streamingMessageId: UUID? {
+        switch streamingState {
+        case .thinking(let id), .streaming(let id), .toolRunning(let id, _), .complete(let id): return id
+        case .idle: return nil
+        }
+    }
+
+    var agentCurrentTool: String? {
+        if case .toolRunning(_, let tool) = streamingState { return tool }
+        return nil
+    }
 
     let agentStreamingBuffer = StreamingTextBuffer()
     private let agentSSEStream = AgentSSEStream()
@@ -142,11 +165,20 @@ final class ChatStore: ObservableObject {
 
     private(set) var senderCache: [UUID: ChatSender] = [:]
 
+    // MARK: - Unread Counts & Previews
+
+    @Published private(set) var unreadCounts: [UUID: Int] = [:]
+    @Published private(set) var lastMessagePreviews: [UUID: String] = [:]
+
+    var totalUnreadCount: Int { unreadCounts.values.reduce(0, +) }
+
     // MARK: - Realtime
 
     private var realtimeChannel: RealtimeChannelV2?
     private var realtimeTask: Task<Void, Never>?
     private var isSubscribed = false
+    private var globalChannel: RealtimeChannelV2?
+    private var globalTask: Task<Void, Never>?
     private(set) var storeId: UUID?
     private var locationId: UUID?
     private var currentUserId: UUID?
@@ -273,6 +305,9 @@ final class ChatStore: ObservableObject {
             if activeConversationId == nil {
                 activeConversationId = locationConversation?.id ?? conversations.first?.id
             }
+
+            // Start global subscription for notifications on non-active conversations
+            Task { await subscribeGlobalNotifications() }
         } catch {
             Log.network.error("ChatStore: Failed to load conversations: \(error)")
             self.error = error.localizedDescription
@@ -315,6 +350,19 @@ final class ChatStore: ObservableObject {
             _ = await tasksFetch
             messages = fetched
             isLoadingMessages = false
+
+            // Set preview from latest message
+            if let last = fetched.last {
+                let label: String
+                if last.isAssistant {
+                    label = defaultAgent?.displayName ?? "Wilson"
+                } else if let sid = last.senderId, let sender = senderCache[sid] {
+                    label = sender.displayName
+                } else {
+                    label = "Team"
+                }
+                lastMessagePreviews[conversationId] = "\(label): \(String(last.content.prefix(100)))"
+            }
 
             Task { await resolveSenders() }
             Task { await subscribeToMessages(conversationId: conversationId) }
@@ -406,7 +454,7 @@ final class ChatStore: ObservableObject {
         // TODO: Pass attachments to AgentSSEStream for vision support
         _ = attachments // Will be used when SSE endpoint supports multimodal
 
-        let history = buildConversationHistory()
+        let history = buildConversationHistory(agent: agent)
 
         // Abort any stale stream
         agentSSEStream.abort()
@@ -419,14 +467,11 @@ final class ChatStore: ObservableObject {
         }
         agentStreamingBuffer.clear()
         streamingToolCalls = []
-        isAgentStreaming = true
-        agentCurrentTool = nil
 
         // Insert transient streaming message immediately (thinking phase)
         let streamingId = UUID()
-        streamingMessageId = streamingId
         withAnimation(.easeOut(duration: 0.15)) {
-            streamingPhase = .thinking
+            streamingState = .thinking(messageId: streamingId)
             messages.append(ChatMessage(
                 id: streamingId, conversationId: conversationId,
                 role: "assistant", content: "",
@@ -449,9 +494,9 @@ final class ChatStore: ObservableObject {
             onText: { [weak self] newText in
                 guard let self else { return }
 
-                if self.streamingPhase != .streaming {
+                if case .streaming = self.streamingState {} else {
                     withAnimation(.easeInOut(duration: 0.15)) {
-                        self.streamingPhase = .streaming
+                        self.streamingState = .streaming(messageId: streamingId)
                     }
                 }
                 self.agentStreamingBuffer.append(newText)
@@ -459,16 +504,15 @@ final class ChatStore: ObservableObject {
 
             onToolStart: { [weak self] tool in
                 guard let self else { return }
-                self.agentCurrentTool = tool
                 withAnimation(.easeInOut(duration: 0.2)) {
                     self.streamingToolCalls.append(StreamingToolCall(name: tool))
-                    self.streamingPhase = .thinking
+                    self.streamingState = .toolRunning(messageId: streamingId, toolName: tool)
                 }
             },
 
             onToolResult: { [weak self] tool, success, errorMsg in
                 guard let self else { return }
-                self.agentCurrentTool = nil
+                self.streamingState = .thinking(messageId: streamingId)
 
                 // Update the matching tool call entry
                 if let idx = self.streamingToolCalls.lastIndex(where: { $0.name == tool && !$0.isDone }) {
@@ -491,40 +535,35 @@ final class ChatStore: ObservableObject {
                 let finalText = self.agentStreamingBuffer.text
 
                 self.agentSSEStream.abort()
-                self.isAgentStreaming = false
-                self.agentCurrentTool = nil
                 self.streamingToolCalls = []
 
-                guard !finalText.isEmpty, let smId = self.streamingMessageId else {
+                guard !finalText.isEmpty else {
                     // No text — remove streaming message
-                    if let smId = self.streamingMessageId {
-                        self.messages.removeAll { $0.id == smId }
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        self.messages.removeAll { $0.id == streamingId }
                     }
-                    self.streamingMessageId = nil
-                    self.streamingPhase = nil
+                    self.streamingState = .idle
                     self.agentStreamingBuffer.clear()
                     return
                 }
 
                 // Update streaming message content in-place, mark complete
-                if let idx = self.messages.firstIndex(where: { $0.id == smId }) {
+                if let idx = self.messages.firstIndex(where: { $0.id == streamingId }) {
                     self.messages[idx] = ChatMessage(
-                        id: smId, conversationId: conversationId,
+                        id: streamingId, conversationId: conversationId,
                         role: "assistant", content: finalText,
                         isAiInvocation: true,
                         createdAt: self.messages[idx].createdAt
                     )
                 }
                 withAnimation(.easeInOut(duration: 0.15)) {
-                    self.streamingPhase = .complete
+                    self.streamingState = .complete(messageId: streamingId)
                 }
 
                 // Save to DB, then swap transient for saved message
-                let capturedSmId = smId
                 Task {
                     defer {
-                        self.streamingMessageId = nil
-                        self.streamingPhase = nil
+                        self.streamingState = .idle
                         self.agentStreamingBuffer.clear()
                     }
                     do {
@@ -532,7 +571,7 @@ final class ChatStore: ObservableObject {
                             conversationId: conversationId,
                             content: finalText
                         )
-                        if let idx = self.messages.firstIndex(where: { $0.id == capturedSmId }) {
+                        if let idx = self.messages.firstIndex(where: { $0.id == streamingId }) {
                             self.messages[idx] = saved
                         } else if !self.messages.contains(where: { $0.id == saved.id }) {
                             self.messages.append(saved)
@@ -546,16 +585,11 @@ final class ChatStore: ObservableObject {
             onError: { [weak self] errorMessage in
                 guard let self else { return }
                 self.agentSSEStream.abort()
-                self.isAgentStreaming = false
-                self.agentCurrentTool = nil
                 self.streamingToolCalls = []
                 withAnimation(.easeOut(duration: 0.15)) {
-                    self.streamingPhase = nil
-                    if let smId = self.streamingMessageId {
-                        self.messages.removeAll { $0.id == smId }
-                    }
+                    self.messages.removeAll { $0.id == streamingId }
                 }
-                self.streamingMessageId = nil
+                self.streamingState = .idle
                 self.agentStreamingBuffer.clear()
                 self.error = errorMessage
                 Log.network.error("ChatStore: Agent error: \(errorMessage)")
@@ -571,16 +605,14 @@ final class ChatStore: ObservableObject {
 
     func abortAgent() {
         agentSSEStream.abort()
-        isAgentStreaming = false
-        agentCurrentTool = nil
+        let smId = streamingMessageId
         streamingToolCalls = []
         withAnimation(.easeOut(duration: 0.2)) {
-            streamingPhase = nil
-            if let smId = streamingMessageId {
+            if let smId {
                 messages.removeAll { $0.id == smId }
             }
         }
-        streamingMessageId = nil
+        streamingState = .idle
         agentStreamingBuffer.clear()
     }
 
@@ -593,16 +625,16 @@ final class ChatStore: ObservableObject {
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func buildConversationHistory() -> [(role: String, content: String)] {
+    private func buildConversationHistory(agent: AIAgent? = nil) -> [(role: String, content: String)] {
         // Only include messages from the active conversation (scoped per channel)
         guard let convId = activeConversationId else { return [] }
         let realMessages = messages.filter {
             $0.id != streamingMessageId && $0.conversationId == convId
         }
 
-        // Work backwards, keep messages that fit within ~80K chars (~20K tokens)
-        let maxTotalChars = 80_000
-        let maxPerMessage = 8_000
+        // Use agent-specific limits from contextConfig, fall back to defaults
+        let maxTotalChars = agent?.contextConfig?.maxHistoryChars ?? 80_000
+        let maxPerMessage = agent?.contextConfig?.maxMessageChars ?? 8_000
         var totalChars = 0
         var result: [(role: String, content: String)] = []
 
@@ -788,10 +820,7 @@ final class ChatStore: ObservableObject {
     private func handleRealtimeChange(_ change: AnyAction) async {
         switch change {
         case .insert(let action):
-            let decoded: ChatMessage? = await Task.detached {
-                Self.decodeRealtimeMessage(from: action.record)
-            }.value
-            guard let message = decoded else { return }
+            guard let message = Self.decodeRealtimeRecord(action.record) else { return }
 
             // Skip if this is a transient message we already have
             guard !messages.contains(where: { $0.id == message.id }) else { return }
@@ -805,25 +834,31 @@ final class ChatStore: ObservableObject {
                 await resolveSenders()
             }
 
+            // Update preview for this conversation
+            let senderLabel: String
+            if message.isAssistant {
+                senderLabel = defaultAgent?.displayName ?? "Wilson"
+            } else if let senderId = message.senderId, let sender = senderCache[senderId] {
+                senderLabel = sender.displayName
+            } else {
+                senderLabel = "Team"
+            }
+            lastMessagePreviews[message.conversationId] = "\(senderLabel): \(String(message.content.prefix(100)))"
+
             // Post notification if message is from someone else
             let isFromCurrentUser = message.senderId == currentUserId
-            if !isFromCurrentUser && !message.isUser {
+            if !isFromCurrentUser {
                 await postNotificationForMessage(message)
             }
 
         case .update(let action):
-            // Handle message updates (e.g., reactions, edits)
-            let decoded: ChatMessage? = await Task.detached {
-                Self.decodeRealtimeMessage(from: action.record)
-            }.value
-            guard let message = decoded else { return }
+            guard let message = Self.decodeRealtimeRecord(action.record) else { return }
             if let idx = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[idx] = message
             }
 
         case .delete(let action):
-            // Handle message deletion
-            if let idString = action.oldRecord["id"] as? String,
+            if case .string(let idString)? = action.oldRecord["id"],
                let id = UUID(uuidString: idString) {
                 messages.removeAll { $0.id == id }
             }
@@ -857,18 +892,16 @@ final class ChatStore: ObservableObject {
         )
     }
 
-    private nonisolated static func decodeRealtimeMessage(from record: [String: Any]) -> ChatMessage? {
-        guard JSONSerialization.isValidJSONObject(record) else {
-            Log.network.error("ChatStore: Invalid JSON object in realtime record")
-            return nil
-        }
+    /// Decode a realtime record ([String: AnyJSON]) into a ChatMessage.
+    /// Uses JSONEncoder on AnyJSON (Codable) instead of JSONSerialization which can't handle AnyJSON enums.
+    private nonisolated static func decodeRealtimeRecord(_ record: [String: AnyJSON]) -> ChatMessage? {
         do {
-            let data = try JSONSerialization.data(withJSONObject: record)
+            let data = try JSONEncoder().encode(record)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             return try decoder.decode(ChatMessage.self, from: data)
         } catch {
-            Log.network.error("ChatStore: Failed to decode realtime message: \(error)")
+            Log.network.error("ChatStore: Failed to decode realtime record: \(error)")
             return nil
         }
     }
@@ -894,6 +927,16 @@ final class ChatStore: ObservableObject {
     func disconnect() async {
         abortAgent()
         await cleanupRealtime()
+        globalTask?.cancel()
+        globalTask = nil
+        if let channel = globalChannel {
+            globalChannel = nil
+            Task.detached {
+                await channel.unsubscribe()
+                let client = await supabaseAsync()
+                await client.removeChannel(channel)
+            }
+        }
     }
 
     // MARK: - Select Channel
@@ -905,6 +948,100 @@ final class ChatStore: ObservableObject {
         messages = []
         completedTasks = []
         error = nil
+        // Clear unread count, badge, and notifications for this conversation
+        unreadCounts[conversationId] = 0
+        ChatNotificationService.shared.updateBadge(totalUnreadCount)
+        ChatNotificationService.shared.clearNotifications(for: conversationId)
         Task { await loadMessages() }
+    }
+
+    // MARK: - Global Notification Subscription
+
+    /// Subscribes to ALL team chat messages to post notifications for non-active conversations.
+    private func subscribeGlobalNotifications() async {
+        // Cleanup previous
+        globalTask?.cancel()
+        if let channel = globalChannel {
+            globalChannel = nil
+            Task.detached {
+                await channel.unsubscribe()
+                let client = await supabaseAsync()
+                await client.removeChannel(channel)
+            }
+        }
+
+        let client = await supabaseAsync()
+        let channelName = "global-notifications-\(UInt64(Date().timeIntervalSince1970 * 1000))"
+        let channel = client.realtimeV2.channel(channelName)
+        let changes = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "lisa_messages"
+        )
+
+        globalChannel = channel
+
+        do {
+            try await channel.subscribeWithError()
+        } catch {
+            Log.network.error("ChatStore: Global subscription failed: \(error)")
+            return
+        }
+
+        globalTask = Task { [weak self] in
+            for await change in changes {
+                guard let self, !Task.isCancelled else { break }
+
+                switch change {
+                case .insert(let action):
+                    guard let message = Self.decodeRealtimeRecord(action.record) else { continue }
+
+                    // Skip own messages
+                    guard message.senderId != self.currentUserId else { continue }
+                    // Skip active conversation (per-conversation sub handles it)
+                    guard message.conversationId != self.activeConversationId else { continue }
+                    // Skip unknown conversations (check live array, not stale capture)
+                    guard self.conversations.contains(where: { $0.id == message.conversationId }) else { continue }
+                    // Skip muted conversations
+                    guard !self.mutedIds.contains(message.conversationId) else { continue }
+
+                    // Resolve sender name
+                    let senderName: String
+                    if message.isAssistant {
+                        senderName = self.defaultAgent?.displayName ?? "Wilson"
+                    } else if let senderId = message.senderId, let sender = self.senderCache[senderId] {
+                        senderName = sender.displayName
+                    } else {
+                        senderName = "Team"
+                    }
+
+                    // Increment unread count
+                    self.unreadCounts[message.conversationId, default: 0] += 1
+
+                    // Update conversation list: move to top, show preview
+                    let preview = String(message.content.prefix(100))
+                    self.lastMessagePreviews[message.conversationId] = "\(senderName): \(preview)"
+                    if let idx = self.conversations.firstIndex(where: { $0.id == message.conversationId }) {
+                        self.conversations[idx].updatedAt = Date()
+                        self.resortConversations()
+                    }
+
+                    // Update app badge
+                    ChatNotificationService.shared.updateBadge(self.totalUnreadCount)
+
+                    // Post native notification
+                    let conversationTitle = self.conversations.first(where: { $0.id == message.conversationId })?.displayTitle ?? "Team Chat"
+                    await ChatNotificationService.shared.postMessageNotification(
+                        title: conversationTitle,
+                        body: "\(senderName): \(message.content)",
+                        conversationId: message.conversationId,
+                        messageId: message.id
+                    )
+
+                default:
+                    break
+                }
+            }
+        }
     }
 }

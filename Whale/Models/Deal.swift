@@ -67,6 +67,20 @@ struct RecurringPattern: Codable, Sendable, Equatable {
     }
 }
 
+// MARK: - Affiliate Code Result
+
+struct AffiliateCodeResult: Codable, Sendable {
+    let affiliateId: UUID
+    let discountRate: Decimal
+    let discountType: String
+
+    enum CodingKeys: String, CodingKey {
+        case affiliateId = "affiliate_id"
+        case discountRate = "discount_rate"
+        case discountType = "discount_type"
+    }
+}
+
 // MARK: - Deal Model
 
 struct Deal: Identifiable, Codable, Sendable, Equatable, Hashable {

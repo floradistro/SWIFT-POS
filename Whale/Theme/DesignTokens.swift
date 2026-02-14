@@ -111,6 +111,19 @@ enum Design {
             static var accentForeground: Color { tm.semanticAccentForeground }
         }
 
+        // Profile Colors (always vibrant, independent of accent)
+        enum Profile {
+            private static let colors: [Color] = [
+                .blue, .purple, .pink, .orange, .teal, .indigo, .mint, .cyan
+            ]
+
+            /// Deterministic vibrant color for a customer name/identifier
+            static func color(for name: String) -> Color {
+                let hash = abs(name.hashValue)
+                return colors[hash % colors.count]
+            }
+        }
+
         // Interactive States
         enum Interactive {
             private static var tm: ThemeManager { ThemeManager.shared }

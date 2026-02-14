@@ -2,20 +2,31 @@
 //  ChatMarkdownView.swift
 //  Whale
 //
-//  Cached markdown parser, syntax-highlighted code blocks, rich tables.
+//  Consolidated markdown parser, syntax-highlighted code blocks, rich tables.
+//  Unified from ChatMarkdownView + MarkdownComponents.
 //  Tables and code render outside bubbles on the main background.
 //  All parsing is cached per message ID to avoid main-thread blocking.
 //
 
 import SwiftUI
+import UIKit
 
 // MARK: - Block Types
 
-enum ChatMarkdownBlock {
+enum ChatMarkdownBlock: Identifiable {
     case text(String)
     case heading(String, Int)
     case table(headers: [String], rows: [[String]])
-    case codeBlock(code: String, language: String?)
+    case code(code: String, language: String?, incomplete: Bool)
+
+    var id: String {
+        switch self {
+        case .text(let c): return "text-\(c.hashValue)"
+        case .heading(let c, let l): return "heading-\(l)-\(c.hashValue)"
+        case .code(let c, let l, _): return "code-\(l ?? "")-\(c.hashValue)"
+        case .table(let h, _): return "table-\(h.joined())"
+        }
+    }
 }
 
 /// Grouped blocks for rendering: text goes in bubbles, rich content goes standalone.
@@ -23,7 +34,7 @@ enum ChatBlockGroup {
     case textBubble(String)
     case heading(String, Int)
     case table(headers: [String], rows: [[String]])
-    case codeBlock(code: String, language: String?)
+    case codeBlock(code: String, language: String?, incomplete: Bool)
 }
 
 // MARK: - Parser (cached)
@@ -59,9 +70,9 @@ struct ChatMarkdownParser {
             case .table(let headers, let rows):
                 flushGroupText(&currentText, into: &groups)
                 groups.append(.table(headers: headers, rows: rows))
-            case .codeBlock(let code, let lang):
+            case .code(let code, let lang, let incomplete):
                 flushGroupText(&currentText, into: &groups)
-                groups.append(.codeBlock(code: code, language: lang))
+                groups.append(.codeBlock(code: code, language: lang, incomplete: incomplete))
             }
         }
 
@@ -72,30 +83,40 @@ struct ChatMarkdownParser {
     // MARK: - Parse
 
     static func parse(_ content: String) -> [ChatMarkdownBlock] {
+        let cleaned = content.replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression)
         var blocks: [ChatMarkdownBlock] = []
         var currentText = ""
-        let lines = content.components(separatedBy: "\n")
+        let lines = cleaned.components(separatedBy: "\n")
         var i = 0
+        var inCode = false
+        var codeLang = ""
 
         while i < lines.count {
             let trimmed = lines[i].trimmingCharacters(in: .whitespaces)
 
-            // Code block
+            // Code block fence
             if trimmed.hasPrefix("```") {
-                flushText(&currentText, into: &blocks)
-                let langStr = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
-                let language: String? = langStr.isEmpty ? nil : langStr
-                var code = ""
-                i += 1
-                while i < lines.count {
-                    if lines[i].trimmingCharacters(in: .whitespaces).hasPrefix("```") {
-                        i += 1; break
-                    }
-                    if !code.isEmpty { code += "\n" }
-                    code += lines[i]
+                if !inCode {
+                    flushText(&currentText, into: &blocks)
+                    inCode = true
+                    codeLang = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
                     i += 1
+                    continue
+                } else {
+                    // Closing fence
+                    blocks.append(.code(code: currentText, language: codeLang.isEmpty ? nil : codeLang, incomplete: false))
+                    currentText = ""
+                    inCode = false
+                    codeLang = ""
+                    i += 1
+                    continue
                 }
-                blocks.append(.codeBlock(code: code, language: language))
+            }
+
+            if inCode {
+                if !currentText.isEmpty { currentText += "\n" }
+                currentText += lines[i]
+                i += 1
                 continue
             }
 
@@ -136,7 +157,12 @@ struct ChatMarkdownParser {
             i += 1
         }
 
-        flushText(&currentText, into: &blocks)
+        // Flush remaining — if still in code block, mark as incomplete
+        if inCode {
+            blocks.append(.code(code: currentText, language: codeLang.isEmpty ? nil : codeLang, incomplete: true))
+        } else {
+            flushText(&currentText, into: &blocks)
+        }
         return blocks
     }
 
@@ -283,6 +309,223 @@ struct ChatMarkdownText: View {
     }
 }
 
+// MARK: - Main Markdown View (used by iMessageBubble)
+
+struct MarkdownContentView: View, Equatable {
+    let content: String
+    let isFromCurrentUser: Bool
+    private let blocks: [ChatMarkdownBlock]
+
+    init(_ content: String, isFromCurrentUser: Bool = false) {
+        self.content = content
+        self.isFromCurrentUser = isFromCurrentUser
+        self.blocks = ChatMarkdownParser.parse(content)
+    }
+
+    static func == (lhs: MarkdownContentView, rhs: MarkdownContentView) -> Bool { lhs.content == rhs.content }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(blocks) { block in
+                blockView(for: block)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func blockView(for block: ChatMarkdownBlock) -> some View {
+        switch block {
+        case .text(let content):
+            TextBlockView(content: content, isFromCurrentUser: isFromCurrentUser)
+        case .heading(let text, let level):
+            let textColor = isFromCurrentUser ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.primary
+            Text(text)
+                .font(headingFont(level)).fontWeight(.bold)
+                .foregroundStyle(textColor)
+                .padding(.top, level <= 2 ? 8 : 4)
+        case .code(let content, let lang, let incomplete):
+            ChatSyntaxCodeBlock(code: content, language: lang, incomplete: incomplete)
+        case .table(let headers, let rows):
+            ChatRichTableView(headers: headers, rows: rows)
+        }
+    }
+
+    private func headingFont(_ level: Int) -> Font {
+        switch level {
+        case 1: return Design.Typography.title2
+        case 2: return Design.Typography.headline
+        case 3: return Design.Typography.subhead
+        default: return Design.Typography.callout
+        }
+    }
+}
+
+// MARK: - Text Block View (rich inline rendering)
+
+struct TextBlockView: View, Equatable {
+    let content: String
+    let isFromCurrentUser: Bool
+    private let parsedLines: [[String]]
+
+    init(content: String, isFromCurrentUser: Bool) {
+        self.content = content
+        self.isFromCurrentUser = isFromCurrentUser
+        let paragraphs = content.split(separator: "\n\n", omittingEmptySubsequences: true)
+        self.parsedLines = paragraphs.map { $0.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) }
+    }
+
+    static func == (lhs: TextBlockView, rhs: TextBlockView) -> Bool { lhs.content == rhs.content }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(parsedLines.indices, id: \.self) { pIdx in
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(parsedLines[pIdx].indices, id: \.self) { lIdx in
+                        renderLine(parsedLines[pIdx][lIdx])
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func renderLine(_ line: String) -> some View {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        let textColor = isFromCurrentUser ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.primary
+
+        if trimmed.isEmpty {
+            EmptyView()
+        } else if trimmed.hasPrefix("### ") {
+            Text(String(trimmed.dropFirst(4)))
+                .font(Design.Typography.subhead).fontWeight(.semibold)
+                .foregroundStyle(textColor)
+                .padding(.top, 4)
+        } else if trimmed.hasPrefix("## ") {
+            Text(String(trimmed.dropFirst(3)))
+                .font(Design.Typography.headline)
+                .foregroundStyle(textColor)
+                .padding(.top, 6)
+        } else if trimmed.hasPrefix("# ") {
+            Text(String(trimmed.dropFirst(2)))
+                .font(Design.Typography.title3).fontWeight(.bold)
+                .foregroundStyle(textColor)
+                .padding(.top, 8)
+        } else if trimmed.hasPrefix("> ") {
+            HStack(spacing: 8) {
+                Rectangle()
+                    .fill(Design.Colors.Text.tertiary)
+                    .frame(width: 3)
+                Text(renderInlineText(String(trimmed.dropFirst(2))))
+                    .font(Design.Typography.subhead).italic()
+                    .foregroundStyle(Design.Colors.Text.secondary)
+            }
+            .padding(.leading, 8)
+        } else if let listContent = parseUnorderedListItem(trimmed) {
+            HStack(alignment: .top, spacing: 8) {
+                Text("•")
+                    .font(Design.Typography.subhead).fontWeight(.bold)
+                    .foregroundStyle(isFromCurrentUser ? Design.Colors.Semantic.accentForeground : Design.Colors.Semantic.accent)
+                Text(renderInlineText(listContent))
+                    .font(Design.Typography.subhead)
+                    .foregroundStyle(textColor)
+            }
+            .padding(.leading, 8)
+        } else if let (num, listContent) = parseOrderedListItem(trimmed) {
+            HStack(alignment: .top, spacing: 8) {
+                Text("\(num).")
+                    .font(Design.Typography.subhead).fontWeight(.medium)
+                    .foregroundStyle(Design.Colors.Text.secondary)
+                    .frame(minWidth: 20, alignment: .trailing)
+                Text(renderInlineText(listContent))
+                    .font(Design.Typography.subhead)
+                    .foregroundStyle(textColor)
+            }
+            .padding(.leading, 8)
+        } else if trimmed.allSatisfy({ $0 == "-" || $0 == "*" || $0 == "_" }) && trimmed.count >= 3 {
+            Rectangle()
+                .fill(Design.Colors.Border.subtle)
+                .frame(height: 1)
+                .padding(.vertical, 8)
+        } else {
+            Text(renderInlineText(trimmed))
+                .font(Design.Typography.subhead)
+                .foregroundStyle(textColor)
+        }
+    }
+
+    private func renderInlineText(_ text: String) -> AttributedString {
+        var result = AttributedString()
+        var remaining = text[...]
+
+        while !remaining.isEmpty {
+            // Bold: **text**
+            if remaining.hasPrefix("**") {
+                let afterStars = remaining.dropFirst(2)
+                if let endIdx = afterStars.range(of: "**") {
+                    let boldText = String(afterStars[afterStars.startIndex..<endIdx.lowerBound])
+                    var attr = AttributedString(boldText)
+                    attr.font = .system(size: 15, weight: .bold)
+                    result += attr
+                    remaining = afterStars[endIdx.upperBound...]
+                    continue
+                }
+            }
+            // Inline code: `text`
+            if remaining.hasPrefix("`") {
+                if let endIdx = remaining.dropFirst().firstIndex(of: "`") {
+                    let code = String(remaining[remaining.index(after: remaining.startIndex)..<endIdx])
+                    var codeAttr = AttributedString(code)
+                    codeAttr.foregroundColor = Design.Colors.Semantic.accent
+                    codeAttr.font = .system(size: 14, design: .monospaced)
+                    result += codeAttr
+                    remaining = remaining[remaining.index(after: endIdx)...]
+                    continue
+                }
+            }
+            // Currency: $123.45
+            if remaining.hasPrefix("$") {
+                var currency = "$"
+                var idx = remaining.index(after: remaining.startIndex)
+                while idx < remaining.endIndex && (remaining[idx].isNumber || remaining[idx] == "," || remaining[idx] == ".") {
+                    currency.append(remaining[idx])
+                    idx = remaining.index(after: idx)
+                }
+                if currency.count > 1 {
+                    var attr = AttributedString(currency)
+                    attr.foregroundColor = Design.Colors.Semantic.success
+                    attr.font = .system(size: 15, weight: .bold)
+                    result += attr
+                    remaining = remaining[idx...]
+                    continue
+                }
+            }
+            result += AttributedString(String(remaining.prefix(1)))
+            remaining = remaining.dropFirst()
+        }
+        return result
+    }
+
+    private func parseUnorderedListItem(_ line: String) -> String? {
+        for prefix in ["- ", "* ", "+ "] {
+            if line.hasPrefix(prefix) { return String(line.dropFirst(2)) }
+        }
+        return nil
+    }
+
+    private func parseOrderedListItem(_ line: String) -> (String, String)? {
+        var idx = line.startIndex
+        var numStr = ""
+        while idx < line.endIndex && line[idx].isNumber {
+            numStr.append(line[idx])
+            idx = line.index(after: idx)
+        }
+        guard !numStr.isEmpty, idx < line.endIndex, line[idx] == "." else { return nil }
+        let afterDot = line.index(after: idx)
+        guard afterDot < line.endIndex, line[afterDot] == " " else { return nil }
+        return (numStr, String(line[line.index(after: afterDot)...]))
+    }
+}
+
 // MARK: - Rich Table View
 
 struct ChatRichTableView: View {
@@ -426,6 +669,7 @@ struct ChatRichTableView: View {
 struct ChatSyntaxCodeBlock: View {
     let code: String
     let language: String?
+    var incomplete: Bool = false
 
     @State private var highlighted: AttributedString?
     @State private var copied = false
@@ -465,9 +709,17 @@ struct ChatSyntaxCodeBlock: View {
 
     private var codeTopBar: some View {
         HStack {
-            Text(language ?? "code")
-                .font(Design.Typography.caption2).fontWeight(.medium)
-                .foregroundStyle(Design.Colors.Text.ghost)
+            HStack(spacing: 6) {
+                Text(language ?? "code")
+                    .font(Design.Typography.caption2).fontWeight(.medium)
+                    .foregroundStyle(Design.Colors.Text.ghost)
+
+                if incomplete {
+                    Text("streaming\u{2026}")
+                        .font(Design.Typography.caption2)
+                        .foregroundStyle(Design.Colors.Semantic.warning)
+                }
+            }
 
             Spacer()
 
@@ -541,7 +793,7 @@ struct ChatMarkdownContentView: View {
         let blocks = ChatMarkdownParser.blocks(for: messageId, content: content)
 
         VStack(alignment: .leading, spacing: 12) {
-            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+            ForEach(blocks) { block in
                 blockView(block)
             }
         }
@@ -559,8 +811,8 @@ struct ChatMarkdownContentView: View {
                 .padding(.top, level <= 2 ? 8 : 4)
         case .table(let headers, let rows):
             ChatRichTableView(headers: headers, rows: rows)
-        case .codeBlock(let code, let language):
-            ChatSyntaxCodeBlock(code: code, language: language)
+        case .code(let code, let language, let incomplete):
+            ChatSyntaxCodeBlock(code: code, language: language, incomplete: incomplete)
         }
     }
 

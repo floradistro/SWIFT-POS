@@ -50,7 +50,7 @@ struct InventoryUnitScanSheet: View {
                             Text(error).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(Design.Colors.Text.primary)
                             Spacer()
                             Button { errorMessage = nil } label: {
-                                Image(systemName: "xmark").font(Design.Typography.caption1).fontWeight(.bold).foregroundStyle(Design.Colors.Text.disabled).frame(width: 28, height: 28)
+                                Image(systemName: "xmark").font(Design.Typography.caption1).fontWeight(.bold).foregroundStyle(Design.Colors.Text.disabled).frame(width: 44, height: 44).contentShape(Circle())
                             }
                             .buttonStyle(.plain)
                         }

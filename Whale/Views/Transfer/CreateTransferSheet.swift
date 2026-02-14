@@ -361,7 +361,7 @@ private struct TransferErrorBanner: View {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Design.Colors.Semantic.warning)
             Text(error).font(Design.Typography.footnote).fontWeight(.medium).foregroundStyle(Design.Colors.Text.primary)
             Spacer()
-            Button { onDismiss() } label: { Image(systemName: "xmark").font(Design.Typography.caption1).fontWeight(.bold).foregroundStyle(Design.Colors.Text.disabled) }.buttonStyle(.plain)
+            Button { onDismiss() } label: { Image(systemName: "xmark").font(Design.Typography.caption1).fontWeight(.bold).foregroundStyle(Design.Colors.Text.disabled).frame(width: 44, height: 44).contentShape(Circle()) }.buttonStyle(.plain)
         }
         .padding(12)
         .background(Design.Colors.Semantic.error.opacity(0.3))
@@ -451,11 +451,11 @@ private struct TransferSelectedItemRow: View {
             }
             Spacer()
             HStack(spacing: 0) {
-                Button { Haptics.light(); if item.quantity > 1 { item.quantity -= 1 } } label: { Image(systemName: "minus").font(Design.Typography.caption1).fontWeight(.semibold).foregroundStyle(Design.Colors.Text.primary).frame(width: 28, height: 28) }.buttonStyle(.plain)
+                Button { Haptics.light(); if item.quantity > 1 { item.quantity -= 1 } } label: { Image(systemName: "minus").font(Design.Typography.caption1).fontWeight(.semibold).foregroundStyle(Design.Colors.Text.primary).frame(width: 44, height: 44).contentShape(Rectangle()) }.buttonStyle(.plain)
                 Text("\(Int(item.quantity))").font(Design.Typography.footnoteRounded).fontWeight(.semibold).foregroundStyle(Design.Colors.Text.primary).frame(width: 36)
-                Button { Haptics.light(); item.quantity += 1 } label: { Image(systemName: "plus").font(Design.Typography.caption1).fontWeight(.semibold).foregroundStyle(Design.Colors.Text.primary).frame(width: 28, height: 28) }.buttonStyle(.plain)
+                Button { Haptics.light(); item.quantity += 1 } label: { Image(systemName: "plus").font(Design.Typography.caption1).fontWeight(.semibold).foregroundStyle(Design.Colors.Text.primary).frame(width: 44, height: 44).contentShape(Rectangle()) }.buttonStyle(.plain)
             }.background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.Glass.thick))
-            Button { Haptics.light(); onRemove() } label: { Image(systemName: "xmark").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(Design.Colors.Text.subtle).frame(width: 24, height: 24) }.buttonStyle(.plain)
+            Button { Haptics.light(); onRemove() } label: { Image(systemName: "xmark").font(Design.Typography.caption2).fontWeight(.bold).foregroundStyle(Design.Colors.Text.subtle).frame(width: 44, height: 44).contentShape(Circle()) }.buttonStyle(.plain)
         }.padding(.vertical, 4)
     }
 }

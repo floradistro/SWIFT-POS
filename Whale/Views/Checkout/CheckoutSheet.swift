@@ -47,6 +47,14 @@ struct CheckoutSheet: View {
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
 
+    // Promotions
+    @State private var couponCode: String = ""
+    @State private var appliedDeal: Deal?
+    @State private var campaignDiscount: Decimal = 0
+    @State private var affiliateCode: String = ""
+    @State private var affiliateResult: AffiliateCodeResult?
+    @State private var affiliateDiscount: Decimal = 0
+
     // Line Item Discount
     @State private var selectedItemForDiscount: CartItem?
     @State private var showDiscountSheet = false
@@ -85,8 +93,10 @@ struct CheckoutSheet: View {
         return min(availablePoints, maxByTotal)
     }
 
-    private var displayTotal: Decimal { totals.total - calculatedLoyaltyDiscount }
+    private var displayTotal: Decimal { totals.total - calculatedLoyaltyDiscount - campaignDiscount - affiliateDiscount }
     private var hasLoyaltyDiscount: Bool { pointsToRedeem > 0 }
+    private var hasCampaignDiscount: Bool { campaignDiscount > 0 }
+    private var hasAffiliateDiscount: Bool { affiliateDiscount > 0 }
 
     private var canSendInvoice: Bool {
         guard selectedCustomer != nil else { return false }
@@ -144,6 +154,20 @@ struct CheckoutSheet: View {
                 VStack(spacing: 12) {
                     // Items
                     itemsSection
+
+                    // Promotions (coupons, deals, affiliate codes)
+                    CheckoutPromotionsSection(
+                        dealStore: dealStore,
+                        storeId: sessionInfo.storeId,
+                        locationId: sessionInfo.locationId,
+                        subtotal: totals.subtotal,
+                        couponCode: $couponCode,
+                        appliedDeal: $appliedDeal,
+                        campaignDiscount: $campaignDiscount,
+                        affiliateCode: $affiliateCode,
+                        affiliateResult: $affiliateResult,
+                        affiliateDiscount: $affiliateDiscount
+                    )
 
                     // Totals
                     totalsSection
@@ -281,6 +305,14 @@ struct CheckoutSheet: View {
 
             if totals.discountAmount > 0 {
                 totalsRow(label: "Discount", value: "-\(CurrencyFormatter.format(totals.discountAmount))", valueColor: Design.Colors.Semantic.success)
+            }
+
+            if hasCampaignDiscount {
+                totalsRow(label: appliedDeal?.name ?? "Coupon", value: "-\(CurrencyFormatter.format(campaignDiscount))", valueColor: Design.Colors.Semantic.success)
+            }
+
+            if hasAffiliateDiscount {
+                totalsRow(label: "Affiliate (\(affiliateCode))", value: "-\(CurrencyFormatter.format(affiliateDiscount))", valueColor: Design.Colors.Semantic.success)
             }
 
             if hasLoyaltyDiscount {
@@ -691,13 +723,20 @@ struct CheckoutSheet: View {
         LabelPrinterSettings.shared.startPrewarming()
         let loyaltyDiscount = calculatedLoyaltyDiscount
         let effectiveTotal = displayTotal
+        let affId = affiliateResult?.affiliateId
+        let affCode = affiliateResult != nil ? affiliateCode.uppercased() : nil
+        let affDiscount = affiliateDiscount
+        let campDiscount = campaignDiscount
+        let campId = appliedDeal?.id
 
         do {
             switch selectedPaymentMethod {
             case .card:
                 _ = try await paymentStore.processCardPayment(
                     cart: cartItems, totals: totals, sessionInfo: sessionInfo, customer: selectedCustomer,
-                    loyaltyPointsRedeemed: pointsToRedeem, loyaltyDiscountAmount: loyaltyDiscount
+                    loyaltyPointsRedeemed: pointsToRedeem, loyaltyDiscountAmount: loyaltyDiscount,
+                    campaignDiscountAmount: campDiscount, campaignId: campId,
+                    affiliateId: affId, affiliateCode: affCode, affiliateDiscountAmount: affDiscount
                 )
             case .cash:
                 let cashValue = Decimal(string: cashAmount) ?? effectiveTotal
@@ -708,7 +747,9 @@ struct CheckoutSheet: View {
                 }
                 _ = try await paymentStore.processCashPayment(
                     cart: cartItems, totals: totals, cashTendered: cashValue, sessionInfo: sessionInfo, customer: selectedCustomer,
-                    loyaltyPointsRedeemed: pointsToRedeem, loyaltyDiscountAmount: loyaltyDiscount
+                    loyaltyPointsRedeemed: pointsToRedeem, loyaltyDiscountAmount: loyaltyDiscount,
+                    campaignDiscountAmount: campDiscount, campaignId: campId,
+                    affiliateId: affId, affiliateCode: affCode, affiliateDiscountAmount: affDiscount
                 )
             case .split:
                 guard let cashValue = Decimal(string: splitCashAmount), cashValue > 0 else {
@@ -724,13 +765,17 @@ struct CheckoutSheet: View {
                 }
                 _ = try await paymentStore.processSplitPayment(
                     cart: cartItems, totals: totals, cashAmount: cashValue, cardAmount: cardAmount, sessionInfo: sessionInfo, customer: selectedCustomer,
-                    loyaltyPointsRedeemed: pointsToRedeem, loyaltyDiscountAmount: loyaltyDiscount
+                    loyaltyPointsRedeemed: pointsToRedeem, loyaltyDiscountAmount: loyaltyDiscount,
+                    campaignDiscountAmount: campDiscount, campaignId: campId,
+                    affiliateId: affId, affiliateCode: affCode, affiliateDiscountAmount: affDiscount
                 )
             case .multiCard:
                 let splitResult = try await PaymentCalculatorService.shared.calculateSplitPercentage(total: effectiveTotal, percentage: card1Percentage)
                 _ = try await paymentStore.processMultiCardPayment(
                     cart: cartItems, totals: totals, card1Amount: splitResult.amount1, card2Amount: splitResult.amount2, sessionInfo: sessionInfo, customer: selectedCustomer,
-                    loyaltyPointsRedeemed: pointsToRedeem, loyaltyDiscountAmount: loyaltyDiscount
+                    loyaltyPointsRedeemed: pointsToRedeem, loyaltyDiscountAmount: loyaltyDiscount,
+                    campaignDiscountAmount: campDiscount, campaignId: campId,
+                    affiliateId: affId, affiliateCode: affCode, affiliateDiscountAmount: affDiscount
                 )
             case .invoice:
                 break

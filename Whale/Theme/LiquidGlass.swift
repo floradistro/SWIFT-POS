@@ -197,8 +197,8 @@ struct LiquidGlassPill: View {
                 }
             }
             .foregroundStyle(isSelected ? Design.Colors.Text.primary : Design.Colors.Text.disabled)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .background(
                 isSelected ? Design.Colors.Glass.ultraThick : Color.clear,
                 in: .capsule

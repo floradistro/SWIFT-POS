@@ -133,7 +133,7 @@ enum ChatService {
         // Include store-specific agents AND global agents (store_id is null)
         let response = try await client
             .from("ai_agent_config")
-            .select("id, store_id, name, description, icon, accent_color, model, max_tokens, is_active, enabled_tools")
+            .select("id, store_id, name, description, icon, accent_color, model, max_tokens, is_active, enabled_tools, context_config")
             .eq("is_active", value: true)
             .or("store_id.eq.\(storeId.uuidString),store_id.is.null")
             .execute()

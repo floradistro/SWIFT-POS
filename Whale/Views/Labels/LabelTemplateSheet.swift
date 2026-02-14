@@ -346,9 +346,11 @@ struct LabelTemplateSheet: View {
                                 item.wrappedValue.quantity = qty
                             } label: {
                                 Text("\(qty)")
-                                    .font(Design.Typography.footnoteRounded).fontWeight(isActive ? .bold : .medium)
+                                    .font(Design.Typography.caption1Rounded).fontWeight(isActive ? .bold : .medium)
                                     .foregroundStyle(isActive ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.quaternary)
-                                    .frame(minWidth: 40, minHeight: 36)
+                                    .frame(minWidth: 36)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
                                     .background(
                                         Capsule().fill(isActive ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular)
                                     )
@@ -425,6 +427,7 @@ struct LabelTemplateSheet: View {
                         isEditing: isEditingThis
                     )
                 }
+                .padding(.vertical, 4)
             }
 
             // Custom quantity input row (shown when Custom is selected)
@@ -442,16 +445,16 @@ struct LabelTemplateSheet: View {
         } label: {
             HStack(spacing: 4) {
                 Text(label)
-                    .font(Design.Typography.footnote).fontWeight(isSelected ? .bold : .medium)
+                    .font(Design.Typography.caption1).fontWeight(isSelected ? .bold : .medium)
                 if let max = maxCount {
                     Text("(\(max))")
-                        .font(Design.Typography.caption1).fontWeight(.medium)
+                        .font(Design.Typography.caption2).fontWeight(.medium)
                         .foregroundStyle(isSelected ? Design.Colors.Semantic.accentForeground.opacity(0.5) : Design.Colors.Text.subtle)
                 }
             }
             .foregroundStyle(isSelected ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.quaternary)
-            .padding(.horizontal, 14)
-            .frame(minHeight: 36)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .contentShape(Capsule())
             .background(Capsule().fill(isSelected ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular))
         }
@@ -478,15 +481,15 @@ struct LabelTemplateSheet: View {
                     .font(Design.Typography.caption2).fontWeight(.semibold)
                 if isSelected && item.wrappedValue.customQuantityValue > 0 {
                     Text(item.wrappedValue.displayTierLabel ?? "Custom")
-                        .font(Design.Typography.footnote).fontWeight(.bold)
+                        .font(Design.Typography.caption1).fontWeight(.bold)
                 } else {
                     Text("Custom")
-                        .font(Design.Typography.footnote).fontWeight(isSelected ? .bold : .medium)
+                        .font(Design.Typography.caption1).fontWeight(isSelected ? .bold : .medium)
                 }
             }
             .foregroundStyle(isSelected ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.quaternary)
-            .padding(.horizontal, 14)
-            .frame(minHeight: 36)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .contentShape(Capsule())
             .background(Capsule().fill(isSelected ? Design.Colors.Semantic.accent : Design.Colors.Glass.regular))
         }
@@ -532,7 +535,7 @@ struct LabelTemplateSheet: View {
                             .font(Design.Typography.footnote).fontWeight(.semibold)
                             .foregroundStyle(Design.Colors.Text.primary)
                             .padding(.horizontal, 14)
-                            .frame(minHeight: 36)
+                            .frame(minHeight: 44)
                             .background(Capsule().fill(Design.Colors.Glass.ultraThick))
                     }
                     .buttonStyle(.plain)
@@ -562,9 +565,10 @@ struct LabelTemplateSheet: View {
                         }
                     } label: {
                         Text(formatPresetLabel(preset, isWeightBased: isWeightBased))
-                            .font(Design.Typography.footnote).fontWeight(.semibold)
+                            .font(Design.Typography.caption1).fontWeight(.semibold)
                             .foregroundStyle(item.wrappedValue.customQuantityValue == Double(preset) ? Design.Colors.Semantic.accentForeground : Design.Colors.Text.quaternary)
-                            .frame(minWidth: 44, minHeight: 36)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
                             .contentShape(Capsule())
                             .background(
                                 Capsule()
